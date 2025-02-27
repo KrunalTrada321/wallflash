@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "356851868754",
+    "project_id": "wallflash-2f185",
+    "storage_bucket": "wallflash-2f185.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:356851868754:android:d846d6ecd3ac07f1546b8b",
+        "android_client_info": {
+          "package_name": "com.wallflash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1QSD-C73Ji7mxga56AwMKKDlv-fjmJPM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

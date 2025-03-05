@@ -36,7 +36,7 @@ const FavoritesScreen = () => {
   return (
     <View style={styles.container}>
     <Back categoryName={"Favorites"}/>
-       <View style={{padding: scale(8)}}>
+       <View style={{flex: 1 ,padding: scale(8)}}>
       {likedImages.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No liked images yet!</Text>
@@ -61,13 +61,13 @@ const FavoritesScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, },
-  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { color: colors.white, fontSize: scale(16) },
+  emptyContainer: {  flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyText: { color: colors.black, fontSize: scale(16), fontWeight: "700" },
   image: {
     width: scale(160), 
     height: scale(240),
     margin: scale(3.5),
-    borderRadius: scale(10),
+    borderRadius: scale(10), 
   },
 });
 

@@ -1,4 +1,7 @@
 {
   "name": "wallflash",
-  "displayName": "wallflash"
+  "displayName": "wallflash",
+  "react-native-google-mobile-ads": {
+  "android_app_id": "ca-app-pub-7105708210867722~4144239072"
+}
 }

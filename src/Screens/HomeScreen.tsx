@@ -1,58 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity } from 'react-native';
+
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity, ActivityIndicator
+} from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import { fetchImagesFromFirestore } from '../API/ApiHelper';
 import { scale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
+import SqareAd from '../Components/SqareAd';
+import LoaderKit from 'react-native-loader-kit';
 
-// 🔹 Screen width for responsive image sizes
+
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = SCREEN_WIDTH / 3 - 10;
-const PAGE_SIZE = 12; // Number of images per load
+const PAGE_SIZE = 12;
 
 const HomeScreen = () => {
-  const [allImages, setAllImages] = useState([]); // Store all images fetched
-  const [images, setImages] = useState([]); // Store images for pagination
-  const [loading, setLoading] = useState(true); 
-  const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [allImages, setAllImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [isConnected, setIsConnected] = useState<boolean | null>(true);
 
   const navigation = useNavigation();
-  
-  const collections = [
-    'Cars', 'Dark', 'Girls', 'Men', 'Nature', 'Quotes', 'Stock', 'Superheroes'
-  ]; 
+  const collections = ['Cars', 'Dark', 'Girls', 'Men', 'Nature', 'Quotes', 'Stock', 'Superheroes'];
 
-
-  const fetchImages = async () => {
-    setLoading(true);
-    const fetchedImages = await fetchImagesFromFirestore(collections);
-  
-    if (fetchedImages.length === 0) {
-      setHasMore(false);
-    }
-  
-    // 🔹 Shuffling images for randomness
-    const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
-  
-    setAllImages(shuffledImages);
-    setImages(shuffledImages.slice(0, PAGE_SIZE)); // Load first 12 images
-    setLoading(false);
-  };
-  
-
+  // 🔹 Check Internet Connection
   useEffect(() => {
-    fetchImages();
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+      if (state.isConnected) {
+        fetchImages(); // Fetch images when internet is available
+      }
+    });
+    return () => unsubscribe();
   }, []);
+
+
+
+  const fetchImages = useCallback(async () => {
+    if (!isConnected) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const fetchedImages = await fetchImagesFromFirestore(collections);
+
+      if (fetchedImages.length === 0) {
+        setHasMore(false);
+      }
+
+      const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
+      setAllImages(shuffledImages);
+      setImages(shuffledImages.slice(0, PAGE_SIZE));
+    } catch (error) {
+      console.log('❌ Error fetching images:', error);
+    } finally {
+      setLoading(false); 
+    }
+  }, [isConnected]);
+
 
   const handleLoadMore = () => {
     if (!hasMore || loading) return;
 
     const nextPage = page + 1;
     const newImages = allImages.slice(0, nextPage * PAGE_SIZE);
-
     setImages(newImages);
     setPage(nextPage);
 
@@ -61,95 +80,143 @@ const HomeScreen = () => {
     }
   };
 
-
   const handleRefresh = async () => {
     setRefreshing(true);
     setPage(1);
     setHasMore(true);
-    await fetchImages(); // Already fetches random images
+    await fetchImages();
     setRefreshing(false);
   };
-  
 
-  const renderShimmer = () => (
-    <FlatList
-      data={Array.from({ length: PAGE_SIZE })} // Creates an array for shimmer placeholders
-      keyExtractor={(_, index) => index.toString()}
-      showsVerticalScrollIndicator={false}
-      numColumns={3} // Makes sure shimmer placeholders align with real images
-      renderItem={() => (
-        <ShimmerPlaceholder
-          style={styles.shimmer}
-          shimmerColors={['#E0E0E0', '#F5F5F5', '#E0E0E0']}
-        />
-      )}
-    />
-  ); 
-  
 
-  if (loading && images.length === 0) {
-    return <View style={styles.container}>{renderShimmer()}</View>;
+  if (!isConnected) {
+    return (
+      <View style={styles.noInternetContainer}>
+        <Image style={{ height: scale(35), width: scale(35) }} source={require('../assets/no-wifi.png')} />
+        <Text style={styles.noInternetText}>No Internet</Text>
+      </View>
+    );
   }
 
 
-  const renderItem = ({ item }: any) => (
-    <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('FullImageScreen', { imageUri: item })}>
-      <Image source={{ uri: item }} style={styles.image} />
-    </TouchableOpacity> 
-  ); 
+
+
+  if (loading && images.length === 0) {
+    return (
+      <View style={styles.loaderContainer}>
+        <LoaderKit
+          style={styles.loader}
+          name="BallTrianglePath"
+          color={"#F7005F"}  
+        />
+      </View>
+    );
+  }
+  
+  
+
+
+  const renderItem = ({ item, index }: { item: string, index: number }) => {
+    if (index % 15 === 0) {
+      return (
+        <View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: scale(10) }}>
+            {images.slice(index, index + 15).map((image, i) => (
+              <TouchableOpacity 
+                key={`image-${index + i}`}
+                activeOpacity={0.90}
+                onPress={() => navigation.navigate('FullImageScreen', { imageUri: image })}
+              >
+                <Image source={{ uri: image }} style={styles.image} />
+
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Centered Ad Below */}
+          <View style={{ alignItems: 'center', marginBottom: scale(15) }}>
+            <SqareAd />
+          </View>
+        </View>
+      );
+    }
+    return null; // Rendered in the group above
+  };
+
+
+
 
   return (
     <View style={styles.container}>
       <FlatList
         data={images}
-        keyExtractor={(item, index) => index.toString()}
-        showsVerticalScrollIndicator={false}
+        keyExtractor={(item, index) => `image-${index}`}
         numColumns={3}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5} // Load more when scrolling near the end
-        ListFooterComponent={hasMore ? renderShimmer() : <Text style={styles.noMoreText}>No more images</Text>}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={hasMore ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} /> : <Text style={styles.noMoreText}>No more images</Text>}
       />
     </View>
-  ); 
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: scale(4),
+    padding: scale(5), 
     backgroundColor: colors.background
   },
-  shimmerContainer: { 
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  noInternetContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background
+  },
+  noInternetText: {
+    fontSize: scale(18),
+    fontWeight: '600',
+    color: colors.redLight,
+    textAlign: 'center'
   },
   shimmer: {
     width: IMAGE_WIDTH,
-    height: (IMAGE_WIDTH * 16) / 9, // Maintain aspect ratio
+    height: (IMAGE_WIDTH * 16) / 9,
     margin: scale(3),
     borderRadius: 15,
-  }, 
+  },
   image: {
     width: IMAGE_WIDTH,
     aspectRatio: 9 / 16,
-    margin: scale(3.5),
+    margin: scale(3),
     borderRadius: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5, 
+    shadowRadius: 5,  
     elevation: 6,
   },
   noMoreText: {
     textAlign: 'center',
     paddingVertical: 10,
-    fontSize: 16,
+    fontSize: scale(16), 
     color: 'gray',
   },
+
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loader: {
+    width: scale(80),
+    height: scale(80),
+  },
+
+  
 });
 
 export default HomeScreen;
- 

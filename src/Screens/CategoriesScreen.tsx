@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { scale } from 'react-native-size-matters';
 import { colors } from '../Styling/colors';
 import { useNavigation } from '@react-navigation/native';
+import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 
 const categories = [
   { id: '1', name: 'Cars', image: require('../assets/category/Cars.jpg') },
@@ -14,24 +15,66 @@ const categories = [
   { id: '7', name: 'Stock', image: require('../assets/category/Stock.jpg') },
   { id: '8', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
 ];
- 
+
+// Replace with your actual AdMob Interstitial Ad Unit ID
+const adUnitId = "ca-app-pub-3940256099942544/1033173712";
+  
 const CategoriesScreen = () => {
   const navigation = useNavigation();
+  const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);
+  const [adLoaded, setAdLoaded] = useState(false);
+
+  useEffect(() => {
+    loadAd();
+  }, []);
+
+  const loadAd = () => {
+    const interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+
+    interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
+      setAdLoaded(true);
+    });
+
+    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
+      setAdLoaded(false);
+      loadAd(); // Load a new ad after the previous one is closed
+    });
+
+    interstitialAd.load();
+    setInterstitial(interstitialAd);
+  };
+
+  const handleCategoryPress = (categoryName: string) => {
+    // Navigate to CategoryImages first
+    navigation.navigate('CategoryImages', { categoryName });
+
+    // Show the ad **only if it is fully loaded**
+    if (adLoaded && interstitial) {
+      setTimeout(() => {
+        interstitial.show();
+      }, 1000); // Delay of 1 second
+    }
+  };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity activeOpacity={0.8} style={styles.itemContainer}
-      onPress={() => navigation.navigate('CategoryImages', { categoryName: item.name })}>
-      <Image resizeMode='contain' source={item.image} style={styles.image} />
+    <TouchableOpacity
+      activeOpacity={0.8}
+      style={styles.itemContainer}
+      onPress={() => handleCategoryPress(item.name)}
+    >
+      <Image resizeMode="contain" source={item.image} style={styles.image} />
     </TouchableOpacity>
-  ); 
- 
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
         data={categories}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
       />
     </View>
   );
@@ -43,21 +86,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: scale(10),
   },
-
   itemContainer: {
     marginVertical: scale(6),
     alignItems: 'center',
     overflow: 'hidden',
-    borderRadius: 20
+    borderRadius: 20,
   },
   image: {
     height: scale(200),
     borderRadius: scale(20),
-  },
-  text: {
-    marginTop: 5,
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

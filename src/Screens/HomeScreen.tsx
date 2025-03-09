@@ -11,10 +11,13 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
 import SqareAd from '../Components/SqareAd';
 import LoaderKit from 'react-native-loader-kit';
+import LottieView from "lottie-react-native";
+
+
 
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const IMAGE_WIDTH = SCREEN_WIDTH / 3 - 10;
+const IMAGE_WIDTH = Math.floor(SCREEN_WIDTH / 3) - 10;
 const PAGE_SIZE = 12;
 
 const HomeScreen = () => {
@@ -62,7 +65,7 @@ const HomeScreen = () => {
     } catch (error) {
       console.log('❌ Error fetching images:', error);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   }, [isConnected]);
 
@@ -104,16 +107,25 @@ const HomeScreen = () => {
   if (loading && images.length === 0) {
     return (
       <View style={styles.loaderContainer}>
-        <LoaderKit
+        {/* <LoaderKit
           style={styles.loader}
           name="BallTrianglePath"
-          color={"#F7005F"}  
+          color={"#F7005F"}
+        /> */}
+
+        <LottieView
+          source={require("../assets/flashrunner.json")} // Adjust path
+          autoPlay
+          loop
+          speed={1.8} // Increase speed (default is 1)
+          style={{width: scale(100), height: scale(100)}}
         />
+
       </View>
     );
   }
-  
-  
+
+
 
 
   const renderItem = ({ item, index }: { item: string, index: number }) => {
@@ -123,12 +135,16 @@ const HomeScreen = () => {
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: scale(10) }}>
             {images.slice(index, index + 15).map((image, i) => (
-              <TouchableOpacity 
+              <TouchableOpacity
                 key={`image-${index + i}`}
                 activeOpacity={0.90}
                 onPress={() => navigation.navigate('FullImageScreen', { imageUri: image })}
               >
                 <Image source={{ uri: image }} style={styles.image} />
+                {/* <FastImage
+                  source={{ uri: image, priority: FastImage.priority.high }}
+                  style={styles.image}
+                />  */}
 
               </TouchableOpacity>
             ))}
@@ -154,6 +170,7 @@ const HomeScreen = () => {
         keyExtractor={(item, index) => `image-${index}`}
         numColumns={3}
         renderItem={renderItem}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
@@ -166,7 +183,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: scale(5), 
+    padding: scale(5),
     backgroundColor: colors.background
   },
   noInternetContainer: {
@@ -190,18 +207,18 @@ const styles = StyleSheet.create({
   image: {
     width: IMAGE_WIDTH,
     aspectRatio: 9 / 16,
-    margin: scale(3),
+    margin: scale(2.5),
     borderRadius: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,  
+    shadowRadius: 5,
     elevation: 6,
   },
   noMoreText: {
     textAlign: 'center',
     paddingVertical: 10,
-    fontSize: scale(16), 
+    fontSize: scale(16),
     color: 'gray',
   },
 
@@ -216,7 +233,6 @@ const styles = StyleSheet.create({
     height: scale(80),
   },
 
-  
 });
 
 export default HomeScreen;

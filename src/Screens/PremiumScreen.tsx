@@ -8,6 +8,8 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
 import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 import LoaderKit from 'react-native-loader-kit';
+import LottieView from "lottie-react-native";
+
 
 // 🔹 AdMob Rewarded Ad (Use Test ID for testing)
 const adUnitId = "ca-app-pub-3940256099942544/5224354917";
@@ -30,26 +32,6 @@ const PremiumScreen = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigation = useNavigation();
 
-  // 🔹 Listen for Rewarded Ad Events
-  // useEffect(() => {
-  //   const unsubscribeLoaded = rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
-  //     setRewardedLoaded(true);
-  //   });
-
-  //   const unsubscribeEarned = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-  //     if (selectedImage) {
-  //       navigation.navigate('FullImageScreen', { imageUri: selectedImage });
-  //       setSelectedImage(null);
-  //     }
-  //   });
-
-  //   rewardedAd.load();
-
-  //   return () => {
-  //     unsubscribeLoaded();
-  //     unsubscribeEarned();
-  //   };
-  // }, [selectedImage]);
 
 
   useEffect(() => {
@@ -154,7 +136,7 @@ const PremiumScreen = () => {
   const handleImagePress = (imageUri: string) => {
     setSelectedImage(imageUri);
 
-    if (rewardedLoaded) { 
+    if (rewardedLoaded) {
       navigation.navigate('FullImageScreen', { imageUri });
       rewardedAd.show().then(() => rewardedAd.load()) // Reload the ad after showing
         .catch((error) => {
@@ -197,11 +179,19 @@ const PremiumScreen = () => {
   if (loading && images.length === 0) {
     return (
       <View style={styles.loaderContainer}>
-        <LoaderKit
+        {/* <LoaderKit
           style={styles.loader}
           name="BallTrianglePath"
           color={"#F7005F"}  // Deep Purple 
-        />
+        /> */}
+
+        <LottieView
+          source={require("../assets/flashrunner.json")} // Adjust path
+          autoPlay
+          loop
+          speed={1.8} // Increase speed (default is 1)
+          style={{ width: scale(100), height: scale(100) }}
+        /> 
       </View>
     );
   }

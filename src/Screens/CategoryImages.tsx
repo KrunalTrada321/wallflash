@@ -13,6 +13,8 @@ import NetInfo from '@react-native-community/netinfo';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import SqareAd from '../Components/SqareAd';
 import LoaderKit from 'react-native-loader-kit';
+import LottieView from "lottie-react-native";
+
 
 const PAGE_SIZE = 12; // Number of images per page
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -125,13 +127,23 @@ const CategoryImages = ({ route }: any) => {
 
   const renderLoader = () => (
     <View style={styles.loaderContainer}>
-      <LoaderKit
+      {/* <LoaderKit
         style={{  width: scale(80),
           height: scale(80), }}
         name={'BallTrianglePath'}
         color={"#F7005F"}  // Deep Purple 
-      />  
-    </View>
+      />   */}
+
+      <LottieView
+        source={require("../assets/flashrunner.json")} // Adjust path
+        autoPlay
+        loop
+        speed={1.8} // Increase speed (default is 1)
+        style={{ width: scale(100), height: scale(100) }}
+      />
+
+
+    </View> 
   );
 
   // const renderItem = ({ item }: any) => (
@@ -209,7 +221,7 @@ const CategoryImages = ({ route }: any) => {
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={hasMore ? renderShimmer() : <Text style={styles.noMoreText}>No more images</Text>}
-          />  
+          />
         )}
       </View>
     </View>
@@ -262,12 +274,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: Dimensions.get('window').height * 0.5, // Center the loader
-  },   
+  },
 });
 
 export default CategoryImages;
 
- 
+
 
 
 

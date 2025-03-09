@@ -34,9 +34,9 @@ const CustomDrawerContent = (props) => {
             style={{ width: scale(200), height: scale(120), marginBottom: scale(10) }}
           />
 
-         <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.1</Text>
+          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.1</Text>
 
-        </View> 
+        </View>
 
         <View style={{ height: scale(1), width: "100%", backgroundColor: colors.white }}></View>
 
@@ -78,17 +78,26 @@ const CustomDrawerContent = (props) => {
 
       </View>
 
-    <View style={{backgroundColor: '#000116'}}>
-     
-     <TouchableOpacity activeOpacity={0.75} onPress={openPinterestProfile}>
-      <View style={{backgroundColor: colors.white, marginBottom: scale(25), marginHorizontal: scale(60), borderRadius: 20}}>  
-      <Image style={{height: scale(60), width: '100%'}} source={require('../assets/pinterest.png')} />
-      
-      </View>
-      </TouchableOpacity>
+      <View style={{ backgroundColor: '#000116' }}>
+
+        <TouchableOpacity activeOpacity={0.75} onPress={openPinterestProfile}>
+          <View style={{ backgroundColor: colors.white, marginBottom: scale(25), marginHorizontal: scale(60), borderRadius: 20 }}>
+            <Image style={{ height: scale(60), width: '100%' }} source={require('../assets/pinterest.png')} />
+
+          </View>
+        </TouchableOpacity>
 
 
-      <View style={{backgroundColor: colors.background}}><Text style={{fontSize: scale(14), textAlign: 'center', fontWeight: '700'}}>© {new Date().getFullYear()} WallFlash ⚡ by Krunal Trada</Text></View>
+        <View style={{ backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
+
+          <Text style={{ fontSize: scale(14), textAlign: 'center', fontWeight: '700', paddingRight: scale(5) }}>© {new Date().getFullYear()} WallFlash
+          </Text>
+
+          <Image style={{ height: scale(16), width: scale(16) }} source={require('../assets/flashed.png')} />
+
+          <Text style={{ fontSize: scale(14), textAlign: 'center', fontWeight: '700', paddingLeft: scale(5) }}>by Krunal Trada</Text>
+
+        </View> 
       </View>
     </View>
   );
@@ -100,26 +109,26 @@ const CustomDrawerContent = (props) => {
 
 
 const MyDrawer = () => {
- 
-    const borderColorAnim = React.useRef(new Animated.Value(0)).current;
-  
-    useEffect(() => {
-      Animated.loop(
-        Animated.timing(borderColorAnim, {
-          toValue: 1,
-          duration: 30000,
-          useNativeDriver: false,
-        })
-      ).start();
-    }, []);
+
+  const borderColorAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(borderColorAnim, {
+        toValue: 1,
+        duration: 30000,
+        useNativeDriver: false,
+      })
+    ).start();
+  }, []);
 
   const borderColor = borderColorAnim.interpolate({
     inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
     outputRange: ["#F73B00", "#F7E300", "#00DF72", "#00AAF6", "#CE00F2", "#F7A6C9"],
   });
- 
- 
-  
+
+
+
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />} // ✅ Inject custom drawer 
@@ -160,13 +169,22 @@ const MyDrawer = () => {
         options={{
           drawerItemStyle: { display: 'none' }, // Hide drawer item
           headerTitle: () => (
-            <Image
-              source={require('../assets/wallflash-logo.png')} // Update with your logo path
-              style={{ width: scale(250), height: scale(60), resizeMode: 'contain', alignSelf: 'center', marginLeft: scale(8) }}
-            />
+            <View style={{ flexDirection: 'row' }}>
+              <Image
+                source={require('../assets/wallflash-logo.png')} // Update with your logo path
+                style={{ width: scale(220), height: scale(60), resizeMode: 'contain', alignSelf: 'center', marginLeft: scale(10) }}
+              />
+
+              <Image
+                source={require('../assets/flashed.png')} // Update with your logo path
+                style={{ width: scale(30), height: scale(30), resizeMode: 'contain', alignSelf: 'center' }}
+              />
+
+            </View>
+
           ),
         }}
-      />
+      /> 
 
     </Drawer.Navigator>
   );

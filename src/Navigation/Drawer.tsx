@@ -16,7 +16,10 @@ const Drawer = createDrawerNavigator();
 
 const CustomDrawerContent = (props) => {
 
+
   const navigation = useNavigation();
+  const [favPressed, setFavPressed] = React.useState(false);
+
   const openPinterestProfile = () => {
     const pinterestUrl = 'https://www.pinterest.com/KTcreations99/'; // Replace with your Pinterest profile link
     Linking.openURL(pinterestUrl).catch(err => console.log("Failed to open URL:", err));
@@ -26,12 +29,12 @@ const CustomDrawerContent = (props) => {
   return (
     <View style={{ flex: 1 }}>
       {/* Top Section - Add Logo or Profile Image */}
-      <View style={{ flex: 1, paddingVertical: scale(20), backgroundColor: '#000116', }}>
+      <View style={{ flex: 1, paddingVertical: scale(20), backgroundColor: colors.black, }}>
 
         <View style={{ alignSelf: 'center', alignItems: 'center', marginBottom: scale(10) }}>
           <Image
             source={require('../assets/wf-logo.jpg')} // Replace with your image path
-            style={{ width: scale(200), height: scale(120), marginBottom: scale(10) }}
+            style={{ width: scale(200), height: scale(150), marginBottom: scale(10) }}
           />
 
           <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.1</Text>
@@ -45,10 +48,11 @@ const CustomDrawerContent = (props) => {
           {/* Favorites */}
           <TouchableOpacity
             onPress={() => navigation.navigate('FavoritesScreen')}
-            style={styles.drawerItem}
-            activeOpacity={0.5}
-          >
-            <AntDesign name="hearto" size={scale(22)} color={colors.primary} />
+            onPressIn={() => setFavPressed(true)}
+            onPressOut={() => setFavPressed(false)}
+            style={styles.drawerItem}       
+          > 
+            <AntDesign name="hearto" size={scale(22)} color={colors.white} />
             <Text style={styles.drawerText}>Favorites</Text>
 
           </TouchableOpacity>
@@ -57,18 +61,16 @@ const CustomDrawerContent = (props) => {
           <TouchableOpacity
             onPress={() => navigation.navigate('AboutScreen')}
             style={styles.drawerItem}
-            activeOpacity={0.5}
           >
-            <Feather name="info" size={24} color={colors.primary} />
+            <Feather name="info" size={24} color={colors.white} />
             <Text style={styles.drawerText}>About Us</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.drawerItem}
-            activeOpacity={0.5}
             onPress={() => navigation.navigate('TermsPrivacy')}
           >
-            <Feather name="file-text" size={24} color={colors.primary} />
+            <Feather name="file-text" size={24} color={colors.white} />
             <Text style={styles.drawerText}>Terms & Privacy</Text>
           </TouchableOpacity>
 
@@ -78,7 +80,7 @@ const CustomDrawerContent = (props) => {
 
       </View>
 
-      <View style={{ backgroundColor: '#000116' }}>
+      <View style={{ backgroundColor: colors.black }}>
 
         <TouchableOpacity activeOpacity={0.75} onPress={openPinterestProfile}>
           <View style={{ backgroundColor: colors.white, marginBottom: scale(25), marginHorizontal: scale(60), borderRadius: 20 }}>
@@ -197,12 +199,13 @@ const styles = StyleSheet.create({
     paddingVertical: scale(12),
     paddingHorizontal: scale(15),
     borderRadius: scale(10),
-    backgroundColor: colors.background, // Use primary color
     marginBottom: scale(10),
+    borderWidth: 0.8,
+    borderColor: colors.flashColor,
     flexDirection: 'row'
   },
   drawerText: {
-    color: colors.black,
+    color: colors.white,
     fontSize: scale(16),
     fontWeight: 'bold',
     paddingLeft: scale(10)

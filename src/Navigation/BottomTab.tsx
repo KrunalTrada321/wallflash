@@ -23,6 +23,10 @@ function MyTabs() {
           backgroundColor: colors.primary, // Optional: Change background color
           borderTopLeftRadius: scale(20), // Optional: Add rounded corners
           borderTopRightRadius: scale(20),  
+          borderColor: colors.flashColor,
+          borderTopWidth: 1.5,
+          borderLeftWidth: 1.5,
+          borderRightWidth: 1.5,
         },
       }}>
    
@@ -34,7 +38,7 @@ function MyTabs() {
             <Ionicons
               name={focused ? 'home' : 'home-outline'}
               size={scale(24)}
-              color={color}
+              color={focused ? colors.flashColor : colors.white}
             />
           ),
           tabBarActiveTintColor: colors.white ,
@@ -50,7 +54,7 @@ function MyTabs() {
             <Ionicons
               name={focused ? 'grid' : 'grid-outline'}
               size={scale(24)}
-              color={color}
+              color={focused ? colors.flashColor : colors.white}
             />
           ),
           tabBarActiveTintColor: colors.white,
@@ -61,12 +65,12 @@ function MyTabs() {
       <Tab.Screen
         name="Premium" 
         component={PremiumScreen}
-        options={{
+        options={{ 
           tabBarIcon: ({color, size, focused}) => (
             <Ionicons
-              name={focused ? 'star' : 'star-outline'}
-              size={scale(24)}
-              color={color}
+              name={focused ? 'flash-sharp' : 'flash-outline'}
+              size={scale(26)} 
+                   color={focused ? colors.flashColor : colors.white}
             />
           ),
           tabBarActiveTintColor: colors.white,

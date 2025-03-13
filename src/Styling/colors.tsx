@@ -6,6 +6,7 @@ black : '#000000',
 gray : '#ACA7A6',
 redLight: '#E96364',
 gamingBlue : '#0339C6',
+flashColor: '#5DE2FB',
 black_transparant: 'rgba(0,0,0,0.65)'
 }
 

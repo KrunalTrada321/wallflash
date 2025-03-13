@@ -23,7 +23,7 @@ const App = () => {
       }
     }
   };
-
+ 
   useEffect(() => {
     const splashTimeout = setTimeout(() => {
       SplashScreen.hide(); // Hide splash screen after 3 seconds

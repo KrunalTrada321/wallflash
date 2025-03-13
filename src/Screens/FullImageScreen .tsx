@@ -180,9 +180,9 @@ const FullImageScreen = () => {
       });
 
     } catch (error) {
-     setisSettingWallpaper(false);
+      setisSettingWallpaper(false);
       showMessage({
-        message: "Error", 
+        message: "Error",
         description: "Failed to set wallpaper",
         type: "danger",
         style: { borderRadius: 15, marginTop: scale(20), marginHorizontal: scale(20) },
@@ -204,7 +204,7 @@ const FullImageScreen = () => {
         // Add to liked images
         likedImages.push(imageUri);
         await AsyncStorage.setItem("likedImages", JSON.stringify(likedImages));
-      } 
+      }
 
       setIsLiked(!isLiked);
     } catch (error) {
@@ -225,23 +225,23 @@ const FullImageScreen = () => {
 
       <TouchableOpacity activeOpacity={0.65} style={styles.heartButton} onPress={toggleLike}>
         <View style={styles.iconContainer}>
-          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={scale(25)} color={colors.white} />
-        </View>
+          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={scale(25)} color={isLiked ? '#53D7F7' : colors.white} />
+        </View> 
       </TouchableOpacity>
 
 
       <View style={styles.setWallpaperButton}>
         <TouchableOpacity activeOpacity={0.60} onPress={() => setModalVisible(true)}>
-          <Animated.View style={[styles.wallpaperButton, { borderColor: borderColor}]}>
-          {isSettingWallpaper ? (
-           <View style={{flexDirection: "row"}}>
-           <Text style={{ color: colors.white, fontSize: scale(18) , paddingRight: scale(5)}}>Applying</Text>
-           <ActivityIndicator size="small" color={colors.white} /> 
-           </View>
+          <Animated.View style={[styles.wallpaperButton, { borderColor: borderColor }]}>
+            {isSettingWallpaper ? (
+              <View style={{ flexDirection: "row" }}>
+                <Text style={{ color: colors.white, fontSize: scale(18), paddingRight: scale(5) }}>Applying</Text>
+                <ActivityIndicator size="small" color={colors.white} />
+              </View>
             ) : (
               <Text style={{ color: colors.white, fontSize: scale(18) }}>Set Wallpaper</Text>
-            )} 
-            </Animated.View>
+            )}
+          </Animated.View>
         </TouchableOpacity>
 
 
@@ -277,8 +277,8 @@ const FullImageScreen = () => {
             </TouchableOpacity>
           </Animated.View>
         </View>
-      </Modal> 
-      
+      </Modal>
+
       <FlashMessage position="top" />
     </View>
   );
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderColor: colors.gray,
     borderWidth: 0.8,
-    padding: scale(8),
+    padding: scale(8), 
     borderRadius: 50,
   },
   setWallpaperButton: { position: "absolute", bottom: scale(20), flexDirection: "row", alignSelf: "center" },
@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
     borderWidth: 0.8,
     paddingHorizontal: scale(16),
     paddingVertical: scale(10),
-    borderRadius: 15,  
-    
+    borderRadius: 15,
+
   },
   modalContainer: {
     flex: 1,

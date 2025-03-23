@@ -3,7 +3,7 @@ import React, { useRef } from 'react'
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { scale } from 'react-native-size-matters';
 
-const adUnitId = "ca-app-pub-3940256099942544/9214589741";
+const adUnitId = "ca-app-pub-7105708210867722/8647662693";
 
 const SqareAd = () => {
   const bannerRef = useRef<BannerAd>(null);
@@ -13,5 +13,5 @@ const SqareAd = () => {
     </View> 
   )
 }
-
+ 
 export default SqareAd  

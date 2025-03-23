@@ -37,7 +37,7 @@ const CustomDrawerContent = (props) => {
             style={{ width: scale(200), height: scale(150), marginBottom: scale(10) }}
           />
 
-          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.1</Text>
+          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.4</Text>
 
         </View>
 
@@ -50,8 +50,8 @@ const CustomDrawerContent = (props) => {
             onPress={() => navigation.navigate('FavoritesScreen')}
             onPressIn={() => setFavPressed(true)}
             onPressOut={() => setFavPressed(false)}
-            style={styles.drawerItem}       
-          > 
+            style={styles.drawerItem}
+          >
             <AntDesign name="hearto" size={scale(22)} color={colors.white} />
             <Text style={styles.drawerText}>Favorites</Text>
 
@@ -78,6 +78,13 @@ const CustomDrawerContent = (props) => {
 
         </View>
 
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('LeadScreen')}> 
+        <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <Image resizeMode='contain' style={{ height: 130, width: 260 }} source={require('../assets/lead.png')} />
+        </View>
+        </TouchableOpacity> 
+
+
       </View>
 
       <View style={{ backgroundColor: colors.black }}>
@@ -99,7 +106,7 @@ const CustomDrawerContent = (props) => {
 
           <Text style={{ fontSize: scale(14), textAlign: 'center', fontWeight: '700', paddingLeft: scale(5) }}>by Krunal Trada</Text>
 
-        </View> 
+        </View>
       </View>
     </View>
   );
@@ -186,7 +193,7 @@ const MyDrawer = () => {
 
           ),
         }}
-      /> 
+      />
 
     </Drawer.Navigator>
   );

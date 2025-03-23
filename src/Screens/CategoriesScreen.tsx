@@ -16,8 +16,8 @@ const categories = [
   { id: '8', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
 ];
 
-// Replace with your actual AdMob Interstitial Ad Unit ID
-const adUnitId = "ca-app-pub-3940256099942544/1033173712";
+// Replace with your actual AdMob Interstitial Ad Unit ID 
+const adUnitId = "ca-app-pub-7105708210867722/2085051949";
   
 const CategoriesScreen = () => {
   const navigation = useNavigation();

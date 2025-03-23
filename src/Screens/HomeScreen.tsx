@@ -183,7 +183,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: scale(5),
+    padding: scale(6),
     backgroundColor: colors.background
   },
   noInternetContainer: {
@@ -204,10 +204,10 @@ const styles = StyleSheet.create({
     margin: scale(3),
     borderRadius: 15,
   },
-  image: {
+  image: { 
     width: IMAGE_WIDTH,
     aspectRatio: 9 / 16,
-    margin: scale(2.5),
+    margin: scale(2.3),
     borderRadius: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },

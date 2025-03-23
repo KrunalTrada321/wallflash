@@ -7,6 +7,7 @@ import CategoryImages from '../Screens/CategoryImages';
 import FavoritesScreen from '../Screens/FavoritesScreen';
 import AboutScreen from '../Screens/AboutScreen';
 import TermsPrivacy from '../Screens/TermsPrivacy';
+import LeadScreen from '../Screens/LeadScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,7 @@ const StackNav = () => {
             <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />  
             <Stack.Screen name="AboutScreen" component={AboutScreen} />  
             <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />  
+            <Stack.Screen name="LeadScreen" component={LeadScreen} />  
         </Stack.Navigator>  
     ); 
 };

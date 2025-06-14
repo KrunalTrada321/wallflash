@@ -71,20 +71,25 @@ const FullImageScreen = () => {
     outputRange: ["#FF8BF9", "#FFF200", "#FF0000", "#8AF7BB", "#8CFCFC", "#00F000"],
   });
 
+
   const requestStoragePermission = async () => {
     if (Platform.OS === "android") {
       try {
+        let permission;
         if (Platform.Version >= 33) {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
-          );
-          return granted === PermissionsAndroid.RESULTS.GRANTED;
+          permission = PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES;
         } else {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-          );
-          return granted === PermissionsAndroid.RESULTS.GRANTED;
+          permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
         }
+  
+        const granted = await PermissionsAndroid.request(permission);
+        
+        if (granted === PermissionsAndroid.RESULTS.DENIED) {
+          // If denied, ask again when the user clicks download
+          return await PermissionsAndroid.request(permission) === PermissionsAndroid.RESULTS.GRANTED;
+        }
+  
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch (error) {
         console.log("Permission request error:", error);
         return false;
@@ -92,6 +97,9 @@ const FullImageScreen = () => {
     }
     return true;
   };
+
+  
+
 
   const downloadImage = async () => {
     try {
@@ -132,7 +140,9 @@ const FullImageScreen = () => {
       setIsDownloading(false); // Stop loader
     }
   };
-
+  
+ 
+ 
   const saveImageToGalleryAndroid = async (filePath, fileName) => {
     try {
       const destPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;

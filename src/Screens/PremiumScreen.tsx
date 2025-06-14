@@ -12,7 +12,7 @@ import LottieView from "lottie-react-native";
 
 
 // 🔹 AdMob Rewarded Ad (Use Test ID for testing)
-const adUnitId = "ca-app-pub-7105708210867722/6181117151";
+const adUnitId = "ca-app-pub-3940256099942544/5224354917";
 const rewardedAd = RewardedAd.createForAdRequest(adUnitId, { keywords: ['wallpapers', 'premium', 'images'] });
  
 // 🔹 Screen width for responsive image sizes

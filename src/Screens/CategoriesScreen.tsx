@@ -7,18 +7,19 @@ import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile
 
 const categories = [
   { id: '1', name: 'Cars', image: require('../assets/category/Cars.jpg') },
-  { id: '2', name: 'Dark', image: require('../assets/category/Dark.jpg') },
-  { id: '3', name: 'Girls', image: require('../assets/category/Girls.jpg') },
-  { id: '4', name: 'Men', image: require('../assets/category/Men.jpg') },
-  { id: '5', name: 'Nature', image: require('../assets/category/Nature.jpg') },
-  { id: '6', name: 'Quotes', image: require('../assets/category/Quotes.jpg') },
-  { id: '7', name: 'Stock', image: require('../assets/category/Stock.jpg') },
-  { id: '8', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
+  { id: '2', name: 'Anime', image: require('../assets/category/Anime.jpg') },
+  { id: '3', name: 'Dark', image: require('../assets/category/Dark.jpg') },
+  { id: '4', name: 'Girls', image: require('../assets/category/Girls.jpg') },
+  { id: '5', name: 'Men', image: require('../assets/category/Men.jpg') }, 
+  { id: '6', name: 'Nature', image: require('../assets/category/Nature.jpg') },
+  { id: '7', name: 'Quotes', image: require('../assets/category/Quotes.jpg') },
+  { id: '8', name: 'Stock', image: require('../assets/category/Stock.jpg') },
+  { id: '9', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
 ];
 
 // Replace with your actual AdMob Interstitial Ad Unit ID 
-const adUnitId = "ca-app-pub-7105708210867722/2085051949";
-  
+const adUnitId = "ca-app-pub-3940256099942544/1033173712";
+    
 const CategoriesScreen = () => {
   const navigation = useNavigation();
   const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);

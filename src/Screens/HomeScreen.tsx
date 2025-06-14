@@ -4,36 +4,32 @@ import {
   View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity, ActivityIndicator
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import { fetchImagesFromFirestore } from '../API/ApiHelper';
 import { scale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
 import SqareAd from '../Components/SqareAd';
-import LoaderKit from 'react-native-loader-kit';
 import LottieView from "lottie-react-native";
-
-
-
+import { fetchImagesFromFirestore } from '../API/ApiHomeHelper';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = Math.floor(SCREEN_WIDTH / 3) - 10;
 const PAGE_SIZE = 12;
 
 const HomeScreen = () => {
-  const [allImages, setAllImages] = useState<string[]>([]);
+  // const [allImages, setAllImages] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
+ 
 
   const navigation = useNavigation();
-  const collections = ['Cars', 'Dark', 'Girls', 'Men', 'Nature', 'Quotes', 'Stock', 'Superheroes'];
-
-  // 🔹 Check Internet Connection
-  useEffect(() => {
+  const collections = ['Cars', 'Anime', 'Girls', 'Men', 'Quotes', 'Superheroes'];
+ 
+  // 🔹 Check Internet Connection 
+  useEffect(() => { 
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
       if (state.isConnected) {
@@ -43,6 +39,31 @@ const HomeScreen = () => {
     return () => unsubscribe();
   }, []);
 
+  
+
+  // const fetchImages = useCallback(async () => { 
+  //   if (!isConnected) {
+  //     setLoading(false);
+  //     return;  
+  //   }
+ 
+  //   try {
+  //     setLoading(true);
+  //     const fetchedImages = await fetchImagesFromFirestore(collections);
+
+  //     if (fetchedImages.length === 0) { 
+  //       setHasMore(false); 
+  //     }
+
+  //     const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
+  //     setAllImages(shuffledImages);
+  //     setImages(shuffledImages.slice(0, PAGE_SIZE));
+  //   } catch (error) {
+  //     console.log('❌ Error fetching images:', error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [isConnected]);
 
 
   const fetchImages = useCallback(async () => {
@@ -50,38 +71,63 @@ const HomeScreen = () => {
       setLoading(false);
       return;
     }
-
+  
     try {
       setLoading(true);
       const fetchedImages = await fetchImagesFromFirestore(collections);
-
+  
       if (fetchedImages.length === 0) {
         setHasMore(false);
       }
-
+  
       const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
-      setAllImages(shuffledImages);
-      setImages(shuffledImages.slice(0, PAGE_SIZE));
+      setImages(shuffledImages);
+      setPage(1);
     } catch (error) {
       console.log('❌ Error fetching images:', error);
     } finally {
       setLoading(false);
     }
   }, [isConnected]);
+  
+  
+
+  // const handleLoadMore = () => {
+  //   if (!hasMore || loading) return;
+
+  //   const nextPage = page + 1;
+  //   const newImages = allImages.slice(0, nextPage * PAGE_SIZE);
+  //   setImages(newImages);
+  //   setPage(nextPage);
+
+  //   if (newImages.length >= allImages.length) {
+  //     setHasMore(false);
+  //   }
+  // };
 
 
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-
-    const nextPage = page + 1;
-    const newImages = allImages.slice(0, nextPage * PAGE_SIZE);
-    setImages(newImages);
-    setPage(nextPage);
-
-    if (newImages.length >= allImages.length) {
-      setHasMore(false);
+  
+    setLoading(true);
+  
+    try {
+      const newFetchedImages = await fetchImagesFromFirestore(collections);
+  
+      if (newFetchedImages.length === 0) {
+        setHasMore(false);
+      } else {
+        const shuffledNew = newFetchedImages.sort(() => Math.random() - 0.5);
+        setImages(prev => [...prev, ...shuffledNew]);
+        setPage(prev => prev + 1);
+      }
+    } catch (error) {
+      console.log('❌ Error loading more images:', error);
+    } finally {
+      setLoading(false);
     }
   };
+  
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -90,7 +136,7 @@ const HomeScreen = () => {
     await fetchImages();
     setRefreshing(false);
   };
-
+  
 
   if (!isConnected) {
     return (
@@ -145,7 +191,7 @@ const HomeScreen = () => {
                   source={{ uri: image, priority: FastImage.priority.high }}
                   style={styles.image}
                 />  */}
-
+ 
               </TouchableOpacity>
             ))}
           </View>
@@ -236,3 +282,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+

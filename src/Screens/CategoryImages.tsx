@@ -13,7 +13,7 @@ import NetInfo from '@react-native-community/netinfo';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import SqareAd from '../Components/SqareAd';
 import LoaderKit from 'react-native-loader-kit';
-import LottieView from "lottie-react-native";
+import LottieView from "lottie-react-native"; 
 
 
 const PAGE_SIZE = 12; // Number of images per page
@@ -30,6 +30,8 @@ const CategoryImages = ({ route }: any) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
+
+  
 
   const navigation = useNavigation();
 

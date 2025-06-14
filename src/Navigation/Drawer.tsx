@@ -9,6 +9,7 @@ import { colors } from '../Styling/colors';
 import Feather from 'react-native-vector-icons/Feather';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useEffect } from 'react';
+import BlinkingFlash from '../Components/BlinkingFlash';
 
 const Drawer = createDrawerNavigator();
 
@@ -37,7 +38,7 @@ const CustomDrawerContent = (props) => {
             style={{ width: scale(200), height: scale(150), marginBottom: scale(10) }}
           />
 
-          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.4</Text>
+          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.5</Text>
 
         </View>
 
@@ -188,6 +189,8 @@ const MyDrawer = () => {
                 source={require('../assets/flashed.png')} // Update with your logo path
                 style={{ width: scale(30), height: scale(30), resizeMode: 'contain', alignSelf: 'center' }}
               />
+
+          
 
             </View>
 

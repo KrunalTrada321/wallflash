@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity } from 'react-native';
+import { View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import NetInfo from '@react-native-community/netinfo';
 import { fetchImagesFromFirestore } from '../API/ApiHelper';
@@ -14,7 +14,7 @@ import LottieView from "lottie-react-native";
 // 🔹 AdMob Rewarded Ad (Use Test ID for testing)
 const adUnitId = "ca-app-pub-3940256099942544/5224354917";
 const rewardedAd = RewardedAd.createForAdRequest(adUnitId, { keywords: ['wallpapers', 'premium', 'images'] });
- 
+
 // 🔹 Screen width for responsive image sizes
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = SCREEN_WIDTH / 3 - 10;
@@ -65,60 +65,109 @@ const PremiumScreen = () => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
       if (state.isConnected) {
-        fetchImages();
+        fetchImages(true);
       }
     });
     return () => unsubscribe();
   }, []);
 
   // 🔹 Fetch Images from Firestore
-  const fetchImages = useCallback(async () => {
+  // const fetchImages = useCallback(async () => {
+  //   if (!isConnected) {
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+  //     const fetchedImages = await fetchImagesFromFirestore(['Premium']);
+
+  //     if (fetchedImages.length === 0) {
+  //       setHasMore(false);
+  //     }
+
+  //     const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
+  //     setAllImages(shuffledImages);
+  //     setImages(shuffledImages.slice(0, PAGE_SIZE));
+  //   } catch (error) {
+  //     console.log('❌ Error fetching images:', error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [isConnected]);
+
+
+  const fetchImages = useCallback(async (reset = false) => {
     if (!isConnected) {
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-      const fetchedImages = await fetchImagesFromFirestore(['Premium']);
-
-      if (fetchedImages.length === 0) {
-        setHasMore(false);
+      if (reset) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
 
-      const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
-      setAllImages(shuffledImages);
-      setImages(shuffledImages.slice(0, PAGE_SIZE));
+      const fetchedImages = await fetchImagesFromFirestore(['Premium'], reset);
+
+      if (reset) {
+        setImages(fetchedImages);
+      } else {
+        setImages(prev => [...prev, ...fetchedImages]);
+      }
+
+      // 🔹 If fewer than PAGE_LIMIT images are returned, no more images
+      setHasMore(fetchedImages.length === PAGE_SIZE);
     } catch (error) {
       console.log('❌ Error fetching images:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [isConnected]);
 
+
+
   // 🔹 Load More Images When Scrolling
+  // const handleLoadMore = () => {
+  //   if (!hasMore || loading) return;
+
+  //   const nextPage = page + 1;
+  //   const newImages = allImages.slice(0, nextPage * PAGE_SIZE);
+
+  //   setImages(newImages);
+  //   setPage(nextPage);
+
+  //   if (newImages.length >= allImages.length) {
+  //     setHasMore(false);
+  //   }
+  // };
+
   const handleLoadMore = () => {
-    if (!hasMore || loading) return;
-
-    const nextPage = page + 1;
-    const newImages = allImages.slice(0, nextPage * PAGE_SIZE);
-
-    setImages(newImages);
-    setPage(nextPage);
-
-    if (newImages.length >= allImages.length) {
-      setHasMore(false);
+    if (!loading && hasMore) {
+      fetchImages(false); // load next batch
     }
   };
 
+
+
   // 🔹 Pull-to-Refresh
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setPage(1);
+  // const handleRefresh = async () => {
+  //   setRefreshing(true);
+  //   setPage(1);
+  //   setHasMore(true);
+  //   await fetchImages();
+  //   setRefreshing(false);
+  // };
+
+
+  const handleRefresh = () => {
     setHasMore(true);
-    await fetchImages();
-    setRefreshing(false);
+    fetchImages(true); // reset pagination and reload
   };
+
 
   // 🔹 Handle Image Click → Show Rewarded Ad → Navigate to FullImageScreen
   // const handleImagePress = (imageUri: string) => {
@@ -191,7 +240,7 @@ const PremiumScreen = () => {
           loop
           speed={1.8} // Increase speed (default is 1)
           style={{ width: scale(100), height: scale(100) }}
-        /> 
+        />
       </View>
     );
   }
@@ -227,13 +276,37 @@ const PremiumScreen = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
 
-        ListFooterComponent={() =>
-          hasMore ? <View></View> : (
-            <View style={styles.noMoreContainer}>
-              <Text style={styles.noMoreText}>No more images</Text>
-            </View>
-          )
-        }
+        // ListFooterComponent={() =>
+        //   hasMore ? <View></View> : (
+        //     <View style={styles.noMoreContainer}>
+        //       <Text style={styles.noMoreText}>No more images</Text>
+        //     </View>
+        //   )
+        // }
+
+        ListFooterComponent={() => {
+          if (loading && images.length > 0) {
+            return (
+              <View style={{
+                paddingVertical: scale(16),
+                marginTop: scale(8),
+                justifyContent: 'center',
+                alignItems: 'center', 
+              }}>
+                <ActivityIndicator size="small" color="#000000" />
+              </View>
+            );
+          }
+          if (!hasMore) {
+            return (
+              <View style={styles.noMoreContainer}>
+                <Text style={styles.noMoreText}>No more images</Text>
+              </View>
+            );
+          }
+          return null;
+        }}
+
 
       />
     </View>

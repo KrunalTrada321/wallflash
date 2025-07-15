@@ -77,6 +77,7 @@ import requestUserPermission, {
 import Orientation from 'react-native-orientation-locker';
 import FlashMessage from 'react-native-flash-message';
 import VersionCheck from 'react-native-version-check';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const App = () => {
   const requestPostNotificationPermission = async () => {
@@ -145,11 +146,14 @@ const App = () => {
   return (
     <>
       <NavigationContainer>
+       <SafeAreaView style={{flex:1, backgroundColor: colors.primary}}>
+       
         <StatusBar
           backgroundColor={colors.primary}
           barStyle="light-content"
         />
         <StackNav />
+        </SafeAreaView>
       </NavigationContainer>
       <FlashMessage position="top" />
     </>

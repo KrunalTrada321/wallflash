@@ -14,14 +14,15 @@ import NetInfo from '@react-native-community/netinfo';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import SqareAd from '../Components/SqareAd';
 import LoaderKit from 'react-native-loader-kit';
-import LottieView from "lottie-react-native"; 
+import LottieView from "lottie-react-native";
+import ShortBanner from '../Components/ShortBanner';
 
 
 const PAGE_SIZE = 12; // Number of images per page
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = SCREEN_WIDTH / 3 - 10;
 
- 
+
 const CategoryImages = ({ route }: any) => {
   const { categoryName } = route.params;
 
@@ -34,8 +35,8 @@ const CategoryImages = ({ route }: any) => {
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  
- 
+
+
   const navigation = useNavigation();
 
   // Check Internet Connection on Mount & Subscribe to Changes
@@ -101,14 +102,14 @@ const CategoryImages = ({ route }: any) => {
       setLoading(false);
       return;
     }
-  
+
     if (reset) {
       setLoading(true);
     }
-  
+
     try {
       const fetchedImages = await fetchImagesFromFirestore([categoryName], reset);
-  
+
       if (reset) {
         setImages(fetchedImages);
         setPage(1);
@@ -126,7 +127,7 @@ const CategoryImages = ({ route }: any) => {
       if (reset) setLoading(false);
     }
   };
-  
+
 
 
   // const handleLoadMore = () => {
@@ -160,7 +161,7 @@ const CategoryImages = ({ route }: any) => {
     await fetchCategoryImages();
     setLoadingMore(false);
   };
-  
+
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -168,7 +169,7 @@ const CategoryImages = ({ route }: any) => {
     await fetchCategoryImages(true); // Pass reset = true
     setRefreshing(false);
   };
-  
+
 
 
   const renderShimmer = () => (
@@ -180,7 +181,7 @@ const CategoryImages = ({ route }: any) => {
         <ShimmerPlaceholder style={styles.shimmer} shimmerColors={['#F5F5F5', '#F5F5F5', '#F5F5F5']} />
       )}
     />
-  ); 
+  );
 
 
   const renderLoader = () => (
@@ -201,7 +202,7 @@ const CategoryImages = ({ route }: any) => {
       />
 
 
-    </View> 
+    </View>
   );
 
   // const renderItem = ({ item }: any) => (
@@ -288,10 +289,12 @@ const CategoryImages = ({ route }: any) => {
             ListFooterComponent={() => {
               if (loadingMore) {
                 return (
-                  <View style={{ paddingVertical: scale(12),
+                  <View style={{
+                    paddingVertical: scale(12),
                     marginTop: scale(8),
                     justifyContent: 'center',
-                    alignItems: 'center',}}>
+                    alignItems: 'center',
+                  }}>
                     <ActivityIndicator size="small" color="#000000" />
                   </View>
                 );
@@ -301,11 +304,16 @@ const CategoryImages = ({ route }: any) => {
               }
               return null;
             }}
-            
-            
-            />
+
+          />
         )}
+
+      
       </View>
+
+
+
+
     </View>
   );
 };

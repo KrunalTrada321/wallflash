@@ -4,13 +4,14 @@ import { scale } from 'react-native-size-matters';
 import { colors } from '../Styling/colors';
 import { useNavigation } from '@react-navigation/native';
 import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import ShortBanner from '../Components/ShortBanner';
 
 const categories = [
   { id: '1', name: 'Cars', image: require('../assets/category/Cars.jpg') },
   { id: '2', name: 'Anime', image: require('../assets/category/Anime.jpg') },
   { id: '3', name: 'Dark', image: require('../assets/category/Dark.jpg') },
   { id: '4', name: 'Girls', image: require('../assets/category/Girls.jpg') },
-  { id: '5', name: 'Men', image: require('../assets/category/Men.jpg') }, 
+  { id: '5', name: 'Men', image: require('../assets/category/Men.jpg') },
   { id: '6', name: 'Nature', image: require('../assets/category/Nature.jpg') },
   { id: '7', name: 'Quotes', image: require('../assets/category/Quotes.jpg') },
   { id: '8', name: 'Stock', image: require('../assets/category/Stock.jpg') },
@@ -18,8 +19,9 @@ const categories = [
 ];
 
 // Replace with your actual AdMob Interstitial Ad Unit ID 
-const adUnitId = "ca-app-pub-3940256099942544/1033173712";
-    
+const adUnitId = "ca-app-pub-7105708210867722/2085051949";
+
+
 const CategoriesScreen = () => {
   const navigation = useNavigation();
   const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);
@@ -77,7 +79,12 @@ const CategoriesScreen = () => {
         showsVerticalScrollIndicator={false}
         keyExtractor={(item) => item.id}
       />
-    </View>
+
+      <View style={{ alignItems: 'center' }}>
+        <ShortBanner />
+      </View>
+
+    </View> 
   );
 };
 

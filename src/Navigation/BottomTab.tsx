@@ -19,7 +19,7 @@ function MyTabs() {
 
         tabBarStyle: {
           height: scale(55), // Increase the height of the bottom tab bar
-          paddingTop: scale(10), 
+          paddingTop: scale(10),
           backgroundColor: colors.primary, // Optional: Change background color
           borderTopLeftRadius: scale(20), // Optional: Add rounded corners
           borderTopRightRadius: scale(20),  

@@ -10,6 +10,8 @@ import { colors } from '../Styling/colors';
 import SqareAd from '../Components/SqareAd';
 import LottieView from "lottie-react-native";
 import { fetchImagesFromFirestore } from '../API/ApiHomeHelper';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import ShortBanner from '../Components/ShortBanner';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = Math.floor(SCREEN_WIDTH / 3) - 10;
@@ -23,13 +25,13 @@ const HomeScreen = () => {
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
- 
+
 
   const navigation = useNavigation();
   const collections = ['Cars', 'Anime', 'Girls', 'Men', 'Quotes', 'Superheroes'];
- 
+
   // 🔹 Check Internet Connection 
-  useEffect(() => { 
+  useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
       if (state.isConnected) {
@@ -39,14 +41,14 @@ const HomeScreen = () => {
     return () => unsubscribe();
   }, []);
 
-  
+
 
   // const fetchImages = useCallback(async () => { 
   //   if (!isConnected) {
   //     setLoading(false);
   //     return;  
   //   }
- 
+
   //   try {
   //     setLoading(true);
   //     const fetchedImages = await fetchImagesFromFirestore(collections);
@@ -71,15 +73,15 @@ const HomeScreen = () => {
       setLoading(false);
       return;
     }
-  
+
     try {
       setLoading(true);
       const fetchedImages = await fetchImagesFromFirestore(collections);
-  
+
       if (fetchedImages.length === 0) {
         setHasMore(false);
       }
-  
+
       const shuffledImages = fetchedImages.sort(() => Math.random() - 0.5);
       setImages(shuffledImages);
       setPage(1);
@@ -89,8 +91,8 @@ const HomeScreen = () => {
       setLoading(false);
     }
   }, [isConnected]);
-  
-  
+
+
 
   // const handleLoadMore = () => {
   //   if (!hasMore || loading) return;
@@ -108,12 +110,12 @@ const HomeScreen = () => {
 
   const handleLoadMore = async () => {
     if (!hasMore || loading) return;
-  
+
     setLoading(true);
-  
+
     try {
       const newFetchedImages = await fetchImagesFromFirestore(collections);
-  
+
       if (newFetchedImages.length === 0) {
         setHasMore(false);
       } else {
@@ -127,7 +129,7 @@ const HomeScreen = () => {
       setLoading(false);
     }
   };
-  
+
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -136,7 +138,7 @@ const HomeScreen = () => {
     await fetchImages();
     setRefreshing(false);
   };
-  
+
 
   if (!isConnected) {
     return (
@@ -164,7 +166,7 @@ const HomeScreen = () => {
           autoPlay
           loop
           speed={1.8} // Increase speed (default is 1)
-          style={{width: scale(100), height: scale(100)}}
+          style={{ width: scale(100), height: scale(100) }}
         />
 
       </View>
@@ -191,7 +193,7 @@ const HomeScreen = () => {
                   source={{ uri: image, priority: FastImage.priority.high }}
                   style={styles.image}
                 />  */}
- 
+
               </TouchableOpacity>
             ))}
           </View>
@@ -222,6 +224,12 @@ const HomeScreen = () => {
         onEndReachedThreshold={0.5}
         ListFooterComponent={hasMore ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} /> : <Text style={styles.noMoreText}>No more images</Text>}
       />
+
+     <View style={{alignItems: 'center'}}>
+     <ShortBanner/>
+     </View>
+      
+
     </View>
   );
 };
@@ -250,7 +258,7 @@ const styles = StyleSheet.create({
     margin: scale(3),
     borderRadius: 15,
   },
-  image: { 
+  image: {
     width: IMAGE_WIDTH,
     aspectRatio: 9 / 16,
     margin: scale(2.3),

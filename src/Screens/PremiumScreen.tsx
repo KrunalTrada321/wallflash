@@ -9,10 +9,11 @@ import { colors } from '../Styling/colors';
 import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 import LoaderKit from 'react-native-loader-kit';
 import LottieView from "lottie-react-native";
+import ShortBanner from '../Components/ShortBanner';
 
 
 // 🔹 AdMob Rewarded Ad (Use Test ID for testing)
-const adUnitId = "ca-app-pub-3940256099942544/5224354917";
+const adUnitId = "ca-app-pub-7105708210867722/6181117151"; 
 const rewardedAd = RewardedAd.createForAdRequest(adUnitId, { keywords: ['wallpapers', 'premium', 'images'] });
 
 // 🔹 Screen width for responsive image sizes
@@ -306,9 +307,12 @@ const PremiumScreen = () => {
           }
           return null;
         }}
-
-
       />
+
+<View style={{alignItems: 'center'}}>
+     <ShortBanner/>
+     </View>
+     
     </View>
   );
 };

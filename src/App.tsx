@@ -78,6 +78,7 @@ import Orientation from 'react-native-orientation-locker';
 import FlashMessage from 'react-native-flash-message';
 import VersionCheck from 'react-native-version-check';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { scale } from 'react-native-size-matters';
 
 const App = () => {
   const requestPostNotificationPermission = async () => {
@@ -92,23 +93,21 @@ const App = () => {
         console.log('🔕 Notification permission denied');
       }
     }
-  };
+  }; 
 
   const checkForUpdate = async () => {
     try {
-      const isNeeded = await VersionCheck.needUpdate();
+      const isNeeded = await VersionCheck.needUpdate(); 
 
       if (isNeeded?.isNeeded) {
 
-        const storeUrl = VersionCheck.getStoreUrl({
-          appID: 'com.wallflash', // Replace with your actual app ID (package name)
-        });
+        const storeUrl = "https://play.google.com/store/apps/details?id=com.wallflash";
         console.log('🛒 Store URL:', storeUrl); // Debug log
         Alert.alert(
           'Update Available',
           'A new version of this app is available. Please update to continue.',
           [
-            {
+            { 
               text: 'Update Now',
               onPress: () => {
                 // const storeUrl = VersionCheck.getStoreUrl({
@@ -155,7 +154,10 @@ const App = () => {
         <StackNav />
         </SafeAreaView>
       </NavigationContainer>
-      <FlashMessage position="top" />
+
+
+    <FlashMessage position="top" />
+      
     </>
   );
 };

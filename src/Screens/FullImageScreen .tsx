@@ -17,6 +17,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "../Styling/colors";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // or any icon set
 import { scale } from "react-native-size-matters";
 import RNFS from "react-native-fs";
 import RNFetchBlob from "rn-fetch-blob";
@@ -24,6 +25,7 @@ import { applyWallpaper } from "@codeooze/react-native-wallpaper-manager";
 import { showMessage } from "react-native-flash-message";
 import FlashMessage from "react-native-flash-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import LinearGradient from "react-native-linear-gradient";
 
 
 
@@ -81,14 +83,14 @@ const FullImageScreen = () => {
         } else {
           permission = PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE;
         }
-  
+
         const granted = await PermissionsAndroid.request(permission);
-        
+
         if (granted === PermissionsAndroid.RESULTS.DENIED) {
           // If denied, ask again when the user clicks download
           return await PermissionsAndroid.request(permission) === PermissionsAndroid.RESULTS.GRANTED;
         }
-  
+
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch (error) {
         console.log("Permission request error:", error);
@@ -98,7 +100,7 @@ const FullImageScreen = () => {
     return true;
   };
 
-  
+
 
 
   const downloadImage = async () => {
@@ -140,9 +142,9 @@ const FullImageScreen = () => {
       setIsDownloading(false); // Stop loader
     }
   };
-  
- 
- 
+
+
+
   const saveImageToGalleryAndroid = async (filePath, fileName) => {
     try {
       const destPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
@@ -153,7 +155,7 @@ const FullImageScreen = () => {
             message: "Success",
             description: "Image saved to gallery!",
             type: "success",
-            style: { borderRadius: 15, marginTop: scale(20), marginHorizontal: scale(20) },
+            style: { borderRadius: 15, marginTop: scale(40), marginHorizontal: scale(20) },
           });
 
         })
@@ -186,7 +188,7 @@ const FullImageScreen = () => {
         message: "Success",
         description: "Wallpaper set successfully!",
         type: "success",
-        style: { borderRadius: 15, marginTop: scale(20), marginHorizontal: scale(20) },
+        style: { borderRadius: 15, marginTop: scale(40), marginHorizontal: scale(20) },
       });
 
     } catch (error) {
@@ -236,7 +238,7 @@ const FullImageScreen = () => {
       <TouchableOpacity activeOpacity={0.65} style={styles.heartButton} onPress={toggleLike}>
         <View style={styles.iconContainer}>
           <Ionicons name={isLiked ? "heart" : "heart-outline"} size={scale(25)} color={isLiked ? '#53D7F7' : colors.white} />
-        </View> 
+        </View>
       </TouchableOpacity>
 
 
@@ -273,7 +275,8 @@ const FullImageScreen = () => {
 
 
           <Animated.View style={[styles.modalContent, { borderColor: borderColor }]}>
-            <TouchableOpacity activeOpacity={0.75} style={styles.modalButton} onPress={() => setWallpaper("home")}>
+
+            {/* <TouchableOpacity activeOpacity={0.75} style={styles.modalButton} onPress={() => setWallpaper("home")}>
               <Text style={styles.modalText}>Set as Homescreen</Text>
             </TouchableOpacity>
             <TouchableOpacity activeOpacity={0.75} style={styles.modalButton} onPress={() => setWallpaper("lock")}>
@@ -284,7 +287,71 @@ const FullImageScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity activeOpacity={0.75} style={styles.closeButton} onPress={() => setModalVisible(false)}>
               <Text style={{ color: '#FFF0F5', fontSize: scale(16), fontWeight: "500" }}>Close</Text>
+            </TouchableOpacity> */}
+
+
+
+            {/* Homescreen Button */}
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("home")}>
+              <LinearGradient
+                colors={['#6A11CB', '#2575FC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <View style={styles.buttonContent}>
+                  <Icon name="home" size={20} color="#fff" style={styles.icon} />
+                  <Text style={styles.gradientText}>Set as Homescreen</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
+
+            {/* Lockscreen Button */}
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("lock")}>
+              <LinearGradient
+               colors={[ '#2575FC', '#6A11CB']} 
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <View style={styles.buttonContent}>
+                  <Icon name="lock" size={20} color="#fff" style={styles.icon} />
+                  <Text style={styles.gradientText}>Set as Lockscreen</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Both Button */}
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("both")}>
+              <LinearGradient
+                  colors={['#6A11CB', '#2575FC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <View style={styles.buttonContent}>
+                  <Icon name="image-multiple" size={20} color="#fff" style={styles.icon} />
+                  <Text style={styles.gradientText}>Set as Both</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Close Button */}
+            <TouchableOpacity activeOpacity={0.85} onPress={() => setModalVisible(false)}>
+              <LinearGradient
+                colors={['#FF4B2B', '#FF416C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <View style={styles.buttonContent}>
+                  <Icon name="close" size={20} color="#fff" style={styles.icon} />
+                  <Text style={styles.gradientText}>Close</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+
+
           </Animated.View>
         </View>
       </Modal>
@@ -305,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderColor: colors.gray,
     borderWidth: 0.8,
-    padding: scale(8), 
+    padding: scale(8),
     borderRadius: 50,
   },
   setWallpaperButton: { position: "absolute", bottom: scale(20), flexDirection: "row", alignSelf: "center" },
@@ -336,6 +403,37 @@ const styles = StyleSheet.create({
   modalButton: { padding: 8, width: 200, backgroundColor: colors.white, marginVertical: 5, borderRadius: 5, alignItems: "center" },
   closeButton: { padding: 6, width: 200, backgroundColor: '#F78989', marginTop: 10, borderRadius: 5, alignItems: "center" },
   modalText: { color: colors.primary, fontSize: scale(16), fontWeight: "500" },
+
+  gradientButton: {
+    paddingVertical: 12,
+    width: 220,
+    borderRadius: 25,
+    alignItems: "center",
+    marginVertical: 6,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  icon: {
+    marginRight: 8,
+  },
+
+  gradientText: {
+    color: "#fff",
+    fontSize: scale(16),
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+
 
   downloadButton: {
     backgroundColor: colors.black_transparant,

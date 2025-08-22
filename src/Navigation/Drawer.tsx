@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Animated, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Image, Linking, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { Button } from '@react-navigation/elements';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -9,7 +9,6 @@ import { colors } from '../Styling/colors';
 import Feather from 'react-native-vector-icons/Feather';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useEffect } from 'react';
-import BlinkingFlash from '../Components/BlinkingFlash';
 
 const Drawer = createDrawerNavigator();
 
@@ -21,10 +20,28 @@ const CustomDrawerContent = (props) => {
   const navigation = useNavigation();
   const [favPressed, setFavPressed] = React.useState(false);
 
-  const openPinterestProfile = () => {
-    const pinterestUrl = 'https://www.pinterest.com/KTcreations99/'; // Replace with your Pinterest profile link
-    Linking.openURL(pinterestUrl).catch(err => console.log("Failed to open URL:", err));
+
+  const shareApp = async () => {
+    try {
+      const result = await Share.share({
+        message:
+          "Download 4K Wallpapers & Trending Status | WallFlash : https://play.google.com/store/apps/details?id=com.wallflash",
+      });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log("Shared with activity type:", result.activityType);
+        } else {
+          console.log("Shared successfully");
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log("Share dismissed");
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
   };
+
 
 
   return (
@@ -48,7 +65,12 @@ const CustomDrawerContent = (props) => {
         <View style={{ flex: 1, padding: scale(12) }}>
           {/* Favorites */}
           <TouchableOpacity
-            onPress={() => navigation.navigate('FavoritesScreen')}
+            onPress={() => {          
+              navigation.navigate('FavoritesScreen')
+             
+            }
+              
+          }
             onPressIn={() => setFavPressed(true)}
             onPressOut={() => setFavPressed(false)}
             style={styles.drawerItem}
@@ -76,26 +98,39 @@ const CustomDrawerContent = (props) => {
           </TouchableOpacity>
 
 
+          <TouchableOpacity
+            style={styles.drawerItem}
+            onPress={shareApp}
+          >
+            <Feather name="share-2" size={24} color={colors.white} />
+            <Text style={styles.drawerText}>Share This App</Text>
+          </TouchableOpacity>
+
 
         </View>
 
-        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('LeadScreen')}> 
+        {/* <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('LeadScreen')}> 
         <View style={{ justifyContent: 'center', alignItems: 'center' }}>
           <Image resizeMode='contain' style={{ height: 130, width: 260 }} source={require('../assets/lead.png')} />
         </View>
-        </TouchableOpacity> 
+        </TouchableOpacity>  */}
+
+
+
+        <TouchableOpacity activeOpacity={0.7} onPress={() => Alert.alert("COMING SOON", "Share & Support Our App,\nWe Develop It, As Soon Possible!")} >
+          <View style={{
+            justifyContent: 'center', alignItems: 'center', borderRadius: 20,       // 👈 your radius
+            overflow: 'hidden'
+          }}>
+            <Image resizeMode="cover" style={{ height: 130, width: 260, borderRadius: 20, }} source={require('../assets/dow_bundle.jpg')} />
+          </View>
+        </TouchableOpacity>
 
 
       </View>
 
       <View style={{ backgroundColor: colors.black }}>
 
-        <TouchableOpacity activeOpacity={0.75} onPress={openPinterestProfile}>
-          <View style={{ backgroundColor: colors.white, marginBottom: scale(25), marginHorizontal: scale(60), borderRadius: 20 }}>
-            <Image style={{ height: scale(60), width: '100%' }} source={require('../assets/pinterest.png')} />
-
-          </View>
-        </TouchableOpacity>
 
 
         <View style={{ backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
@@ -190,7 +225,7 @@ const MyDrawer = () => {
                 style={{ width: scale(30), height: scale(30), resizeMode: 'contain', alignSelf: 'center' }}
               />
 
-          
+
 
             </View>
 

@@ -8,21 +8,55 @@ import FavoritesScreen from '../Screens/FavoritesScreen';
 import AboutScreen from '../Screens/AboutScreen';
 import TermsPrivacy from '../Screens/TermsPrivacy';
 import LeadScreen from '../Screens/LeadScreen';
+import FullVideoScreen from '../Screens/FullVideoScreen';
 
 const Stack = createStackNavigator();
 
 const StackNav = () => {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Drawer" component={MyDrawer} /> 
-            <Stack.Screen name="FullImageScreen" component={FullImageScreen} /> 
-            <Stack.Screen name="CategoryImages" component={CategoryImages} /> 
-            <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />  
-            <Stack.Screen name="AboutScreen" component={AboutScreen} />  
-            <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />  
-            <Stack.Screen name="LeadScreen" component={LeadScreen} />  
-        </Stack.Navigator>  
-    ); 
-};
-  
+            <Stack.Screen name="Drawer" component={MyDrawer} />
+            <Stack.Screen name="FullImageScreen" component={FullImageScreen}
+             options={{
+                animation: 'slide_from_right',
+                transitionSpec: {
+                    open: { animation: 'timing', config: { duration: 500 } },  // 👈 slower open
+                    close: { animation: 'timing', config: { duration: 500 } }, // 👈 slower close
+                },
+            }}
+            />
+            <Stack.Screen name="CategoryImages" component={CategoryImages} />
+            <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} options={{
+                animation: 'slide_from_right',
+                transitionSpec: {
+                    open: { animation: 'timing', config: { duration: 500 } },  // 👈 slower open
+                    close: { animation: 'timing', config: { duration: 500 } }, // 👈 slower close
+                },
+            }} />
+            <Stack.Screen name="AboutScreen" component={AboutScreen}
+                options={{
+                    animation: 'slide_from_right',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 500 } },  // 👈 slower open
+                        close: { animation: 'timing', config: { duration: 500 } }, // 👈 slower close
+                    },
+                }} />
+            <Stack.Screen name="TermsPrivacy" component={TermsPrivacy}
+                options={{
+                    animation: 'slide_from_right',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 500 } },  // 👈 slower open
+                        close: { animation: 'timing', config: { duration: 500 } }, // 👈 slower close
+                    },
+                }} />
+            <Stack.Screen name="LeadScreen" component={LeadScreen} />
+            <Stack.Screen
+                name="FullVideo"
+                component={FullVideoScreen} 
+                options={{ headerShown: false }}
+            />
+        </Stack.Navigator>
+    );
+}; 
+
 export default StackNav;

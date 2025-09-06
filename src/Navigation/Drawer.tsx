@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, Animated, Image, Linking, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
+import { CommonActions, NavigationContainer, useNavigation } from '@react-navigation/native';
 import { Button } from '@react-navigation/elements';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import MyTabs from './BottomTab';
@@ -9,6 +9,7 @@ import { colors } from '../Styling/colors';
 import Feather from 'react-native-vector-icons/Feather';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useEffect } from 'react';
+import { navigateToLastTab } from './NavigationService';
 
 const Drawer = createDrawerNavigator();
 
@@ -65,12 +66,12 @@ const CustomDrawerContent = (props) => {
         <View style={{ flex: 1, padding: scale(12) }}>
           {/* Favorites */}
           <TouchableOpacity
-            onPress={() => {          
+            onPress={() => {
               navigation.navigate('FavoritesScreen')
-             
+
             }
-              
-          }
+
+            }
             onPressIn={() => setFavPressed(true)}
             onPressOut={() => setFavPressed(false)}
             style={styles.drawerItem}
@@ -116,13 +117,16 @@ const CustomDrawerContent = (props) => {
         </TouchableOpacity>  */}
 
 
-
-        <TouchableOpacity activeOpacity={0.7} onPress={() => Alert.alert("COMING SOON", "Share & Support Our App,\nWe Develop It, As Soon Possible!")} >
+        <TouchableOpacity activeOpacity={0.7}
+          onPress={() => {
+            navigateToLastTab();
+          }}
+        >
           <View style={{
             justifyContent: 'center', alignItems: 'center', borderRadius: 20,       // 👈 your radius
             overflow: 'hidden'
           }}>
-            <Image resizeMode="cover" style={{ height: 130, width: 260, borderRadius: 20, }} source={require('../assets/dow_bundle.jpg')} />
+            <Image resizeMode="cover" style={{ height: 130, width: 260, borderRadius: 20, }} source={require('../assets/premium-card.jpg')} />
           </View>
         </TouchableOpacity>
 

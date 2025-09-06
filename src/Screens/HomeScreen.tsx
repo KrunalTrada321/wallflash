@@ -12,6 +12,7 @@ import LottieView from "lottie-react-native";
 import { fetchImagesFromFirestore } from '../API/ApiHomeHelper';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import ShortBanner from '../Components/ShortBanner';
+import LinearGradient from 'react-native-linear-gradient';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const IMAGE_WIDTH = Math.floor(SCREEN_WIDTH / 3) - 10;
@@ -28,7 +29,7 @@ const HomeScreen = () => {
 
 
   const navigation = useNavigation();
-  const collections = ['Cars', 'Anime', 'Girls', 'Men', 'Quotes', 'Superheroes'];
+  const collections = ['Cars', 'Anime', 'Dark', 'Girls', 'Men', 'Quotes', 'Superheroes'];
 
   // 🔹 Check Internet Connection 
   useEffect(() => {
@@ -165,8 +166,8 @@ const HomeScreen = () => {
           source={require("../assets/flashrunner.json")} // Adjust path
           autoPlay
           loop
-          speed={1.8} // Increase speed (default is 1)
-          style={{ width: scale(100), height: scale(100) }}
+          speed={1.4} // Increase speed (default is 1)
+          style={{ width: scale(85), height: scale(85) }}
         />
 
       </View>
@@ -217,18 +218,45 @@ const HomeScreen = () => {
         data={images}
         keyExtractor={(item, index) => `image-${index}`}
         numColumns={3}
-        renderItem={renderItem}
+        renderItem={renderItem} 
         columnWrapperStyle={{ justifyContent: 'space-between' }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={hasMore ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} /> : <Text style={styles.noMoreText}>No more images</Text>}
+        ListFooterComponent={hasMore ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 10 }} /> : <View style={{ alignItems: 'center', marginVertical: 10 }}>
+
+          <TouchableOpacity
+          activeOpacity={0.7}
+            onPress={() => navigation.navigate('Premium')} // Replace with your premium tab name
+            style={{
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 8,
+            }}
+          >
+            <LinearGradient
+              colors={['#FFD700', '#FFC200', '#FFB000', '#FFA000']} // golden tones
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 10,
+              }}
+            >
+              <Text style={{ color: colors.black, fontWeight: '600', fontSize: 16 }}>
+                Go to Premium
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+        </View>}
       />
 
-     <View style={{alignItems: 'center'}}>
-     <ShortBanner/>
-     </View>
-      
+      <View style={{ alignItems: 'center' }}>
+        <ShortBanner />
+      </View>
+
 
     </View>
   );

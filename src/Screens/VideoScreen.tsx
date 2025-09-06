@@ -19,10 +19,12 @@ import Video from "react-native-video";
 import { fetchSeasonInfo, fetchSeasonVideos } from "../API/StatusApiHelper";
 import { createThumbnail } from "react-native-create-thumbnail";
 import Icon from "react-native-vector-icons/Ionicons";
+import LottieView from "lottie-react-native";
 import RNFS from "react-native-fs";
 import CryptoJS from "crypto-js";
 import NetInfo from "@react-native-community/netinfo"; // 🔹 Internet status
 import { useNavigation } from "@react-navigation/native";
+import ShortBanner from "../Components/ShortBanner";
 
 const { width, height } = Dimensions.get("window");
 
@@ -33,7 +35,7 @@ const VideoScreen = () => {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
 
   useEffect(() => {
     // 🔹 Listen to network status
@@ -103,7 +105,7 @@ const VideoScreen = () => {
   }, [isConnected]);
 
   // 🔹 Show No Internet screen
-  if (!isConnected) {
+  if (!isConnected) { 
     return (
       <View style={styles.noInternetContainer}>
         <Image
@@ -117,11 +119,29 @@ const VideoScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.redLight} />
+      <View style={{flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.background,}}>
+        {/* <LoaderKit
+          style={styles.loader}
+          name="BallTrianglePath"
+          color={"#F7005F"}
+        /> */}
+
+        <LottieView
+          source={require("../assets/flashrunner.json")} // Adjust path
+          autoPlay
+          loop
+          speed={1.4} // Increase speed (default is 1)
+          style={{ width: scale(85), height: scale(85) }}
+        />
+
       </View>
     );
   }
+
+
 
   return (
     <View style={{ flex: 1, paddingHorizontal: scale(8), marginTop: scale(8) }}>
@@ -146,7 +166,9 @@ const VideoScreen = () => {
             </View>
           </LinearGradient>
         )}
-
+   
+        <ShortBanner />
+        
         {/* 🔹 Video Grid */}
         <FlatList
           data={videos}
@@ -155,19 +177,19 @@ const VideoScreen = () => {
           scrollEnabled={false}
           renderItem={({ item }) => (
             <TouchableOpacity
-           
+
               activeOpacity={0.8}
               style={styles.card}
               onPress={() => {
                 navigation.navigate("FullVideo", { videoUrl: item.url, videos: videos.map(v => v.url) })
-              }} 
+              }}
             >
               {item?.thumbnail ? (
                 <Image
                   source={{ uri: item?.thumbnail }}
                   style={{ width: "100%", height: "100%" }}
                   resizeMode="cover"
-                /> 
+                />
               ) : (
                 <ActivityIndicator color={"red"} size={"large"} />
               )}

@@ -56,6 +56,10 @@ react {
     autolinkLibrariesWithApp()
 }
 
+
+
+
+
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
@@ -73,6 +77,67 @@ def enableProguardInReleaseBuilds = true
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
+ 
+// android {
+//     ndkVersion rootProject.ext.ndkVersion
+//     buildToolsVersion rootProject.ext.buildToolsVersion
+//     compileSdk rootProject.ext.compileSdkVersion 
+
+//     namespace "com.wallflash"
+//     defaultConfig { 
+//         applicationId "com.wallflash"
+//         minSdkVersion rootProject.ext.minSdkVersion
+//         targetSdkVersion 35 
+//         missingDimensionStrategy "store", "play"
+//         versionCode 21
+//         versionName "1.21"  
+        
+//     }     
+//     signingConfigs {  
+//         debug {  
+//             storeFile file('debug.keystore')
+//             storePassword 'android'
+//             keyAlias 'androiddebugkey'
+//             keyPassword 'android'
+//         }
+//     }
+//     buildTypes {
+//         debug {
+//             signingConfig signingConfigs.debug
+//         }
+//         release {
+//             // Caution! In production, you need to generate your own keystore file.
+//             // see https://reactnative.dev/docs/signed-apk-android.
+//             signingConfig signingConfigs.debug
+//             minifyEnabled enableProguardInReleaseBuilds
+//             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+//         }
+//     }
+    
+
+
+//   packagingOptions {
+//         jniLibs {
+//             useLegacyPackaging false
+//         }
+//     }
+
+//     // Force linker to align .so files to 16 KB (required by Google Play)
+//     defaultConfig {
+//         ndk {
+//             abiFilters "armeabi-v7a", "arm64-v8a" // only keep what you need
+//         }
+//         externalNativeBuild {
+//             cmake {
+//                 arguments "-DANDROID_ARM_NEON=TRUE"
+//                 cppFlags "-Wl,-z,max-page-size=16384"
+//             }
+//         }
+//     }
+
+
+// }
+
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -80,13 +145,21 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.wallflash"
+
     defaultConfig {
         applicationId "com.wallflash"
         minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
-        versionName "1.12"  
-    }  
+        targetSdkVersion 35
+        missingDimensionStrategy "store", "play"
+        versionCode 22 
+        versionName "1.22" 
+
+        // ✅ Only build ABIs you need
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -95,23 +168,36 @@ android {
             keyPassword 'android'
         }
     }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
+            minifyEnabled true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    // ✅ Fix 16 KB alignment for Google Play
+    packagingOptions { 
+        jniLibs {
+            useLegacyPackaging false
+        }
+    }
+
+    // ✅ Inject linker flags globally (applies ANDROID_LD_FLAGS from gradle.properties)
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += ["-Xlint:unchecked", "-Xlint:deprecation"]
+    }
 }
+
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation project(':react-native-iap')
     implementation platform('com.google.firebase:firebase-bom:33.9.0')
     implementation project(':react-native-splash-screen')
     
@@ -123,3 +209,5 @@ dependencies {
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+  
+ 

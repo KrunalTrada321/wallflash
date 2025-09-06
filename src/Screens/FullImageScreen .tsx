@@ -251,7 +251,7 @@ const FullImageScreen = () => {
                 <ActivityIndicator size="small" color={colors.white} />
               </View>
             ) : (
-              <Text style={{ color: colors.white, fontSize: scale(18) }}>Set Wallpaper</Text>
+              <Text style={{ color: colors.white, fontSize: scale(18) , fontFamily: 'Poppins-Regular'}}>Set Wallpaper</Text>
             )}
           </Animated.View>
         </TouchableOpacity>
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 0.8,
     paddingHorizontal: scale(16),
-    paddingVertical: scale(10),
+    paddingVertical: scale(8),
     borderRadius: 15,
 
   },

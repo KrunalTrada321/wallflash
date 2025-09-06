@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../Styling/colors';
@@ -8,6 +8,9 @@ import HomeScreen from '../Screens/HomeScreen';
 import CategoriesScreen from '../Screens/CategoriesScreen';
 import PremiumScreen from '../Screens/PremiumScreen';
 import VideoScreen from '../Screens/VideoScreen';
+import BundleScreen from '../Screens/BundleScreen';
+import PrimeCategories from '../Screens/PrimeCategories';
+import PremiumWrapper from '../Components/PremiumWrapper ';
 
 const Tab = createBottomTabNavigator();
 
@@ -63,7 +66,7 @@ function MyTabs() {
         }}
       />
 
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Premium"
         component={PremiumScreen}
         options={{
@@ -77,13 +80,13 @@ function MyTabs() {
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
         }}
-      />
+      /> */}
 
 
       <Tab.Screen
         name="Video"
         component={VideoScreen}
-        options={{ 
+        options={{
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'play-circle' : 'play-circle-outline'}
@@ -96,6 +99,31 @@ function MyTabs() {
         }}
       />
 
+
+
+      <Tab.Screen
+        name="Premium"
+        component={PremiumWrapper}
+        options={{ 
+          tabBarIcon: ({ color, size, focused }) => (
+            <Image
+              source={
+                focused
+                  ? require("../assets/bottomTab/crown2.png") // active icon
+                  : require("../assets/bottomTab/crown-outline.png") // inactive icon
+              }
+              style={{
+                width: scale(25),
+                height: scale(25),
+                tintColor: focused ? colors.flashColor : colors.white,
+                resizeMode: "contain",
+              }}
+            />
+          ),
+          tabBarActiveTintColor: colors.white,
+          tabBarInactiveTintColor: colors.white,
+        }}
+      />
 
     </Tab.Navigator>
   );

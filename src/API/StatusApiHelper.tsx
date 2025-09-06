@@ -30,7 +30,7 @@ import {
       if (!snapshot.empty) {
         const doc = snapshot.docs[0]; // take first one (or loop if multiple)
         const data = doc.data();
-        return {
+        return { 
           title: data.title,
           description: data.description,
           imageUrl: data.imageUrl,

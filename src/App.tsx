@@ -79,6 +79,7 @@ import FlashMessage from 'react-native-flash-message';
 import VersionCheck from 'react-native-version-check';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scale } from 'react-native-size-matters';
+import { navigationRef } from './Navigation/NavigationService';
 
 const App = () => {
   const requestPostNotificationPermission = async () => {
@@ -144,7 +145,7 @@ const App = () => {
 
   return (
     <>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}> 
        <SafeAreaView style={{flex:1, backgroundColor: colors.primary}}>
        
         <StatusBar

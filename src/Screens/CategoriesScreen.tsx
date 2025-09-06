@@ -6,18 +6,19 @@ import { useNavigation } from '@react-navigation/native';
 import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 import ShortBanner from '../Components/ShortBanner';
 
-const categories = [
-  { id: '1', name: 'Cars', image: require('../assets/category/Cars.jpg') },
-  { id: '2', name: 'Anime', image: require('../assets/category/Anime.jpg') },
-  { id: '3', name: 'Dark', image: require('../assets/category/Dark.jpg') },
-  { id: '4', name: 'Girls', image: require('../assets/category/Girls.jpg') },
-  { id: '5', name: 'Men', image: require('../assets/category/Men.jpg') },
-  { id: '6', name: 'Nature', image: require('../assets/category/Nature.jpg') },
-  { id: '7', name: 'Quotes', image: require('../assets/category/Quotes.jpg') },
-  { id: '8', name: 'Stock', image: require('../assets/category/Stock.jpg') },
-  { id: '9', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
-];
-
+const categories = [ 
+  { id: '1', name: 'God', image: require('../assets/category/God.jpg') },
+  { id: '2', name: 'Cars', image: require('../assets/category/Cars.jpg') },
+  { id: '3', name: 'Anime', image: require('../assets/category/Anime.jpg') },
+  { id: '4', name: 'Dark', image: require('../assets/category/Dark.jpg') },
+  { id: '5', name: 'Girls', image: require('../assets/category/Girls.jpg') },
+  { id: '6', name: 'Men', image: require('../assets/category/Men.jpg') },
+  { id: '7', name: 'Nature', image: require('../assets/category/Nature.jpg') },
+  { id: '8', name: 'Quotes', image: require('../assets/category/Quotes.jpg') },
+  { id: '9', name: 'Stock', image: require('../assets/category/Stock.jpg') },
+  { id: '10', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
+];  
+ 
 // Replace with your actual AdMob Interstitial Ad Unit ID 
 const adUnitId = "ca-app-pub-7105708210867722/2085051949";
 

@@ -16,6 +16,7 @@ import SqareAd from '../Components/SqareAd';
 import LoaderKit from 'react-native-loader-kit';
 import LottieView from "lottie-react-native";
 import ShortBanner from '../Components/ShortBanner';
+import LinearGradient from 'react-native-linear-gradient';
 
 
 const PAGE_SIZE = 12; // Number of images per page
@@ -195,10 +196,10 @@ const CategoryImages = ({ route }: any) => {
 
       <LottieView
         source={require("../assets/flashrunner.json")} // Adjust path
-        autoPlay
+        autoPlay 
         loop
-        speed={1.8} // Increase speed (default is 1)
-        style={{ width: scale(100), height: scale(100) }}
+        speed={1.4} // Increase speed (default is 1)
+        style={{ width: scale(85), height: scale(85) }}
       />
 
 
@@ -272,7 +273,7 @@ const CategoryImages = ({ route }: any) => {
           renderLoader()  // Show loader instead of shimmer
         ) : (
           <FlatList
-            data={images}
+            data={images} 
             keyExtractor={(item, index) => index.toString()}
             numColumns={3}
             renderItem={renderItem}
@@ -300,7 +301,40 @@ const CategoryImages = ({ route }: any) => {
                 );
               }
               if (!hasMore) {
-                return <Text style={styles.noMoreText}>No more images</Text>;
+                return (<View style={{ alignItems: 'center', marginVertical: 10 }}>
+                
+                          <TouchableOpacity
+                          activeOpacity={0.7}
+                            onPress={() => navigation.navigate('Drawer', {   // your drawer navigator name
+                              screen: 'WallFlash',           // bottom tab navigator inside the drawer
+                              params: { 
+                                screen: 'Premium',            // the tab you want
+                              },
+                            })
+                          }
+                            style={{  
+                              paddingHorizontal: 20,
+                              paddingVertical: 10,
+                              borderRadius: 8,
+                            }}
+                          > 
+                            <LinearGradient
+                              colors={['#FFD700', '#FFC200', '#FFB000', '#FFA000']} // golden tones
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={{
+                                paddingHorizontal: 20,
+                                paddingVertical: 10,
+                                borderRadius: 10,
+                              }}
+                            >
+                              <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+                                Go to Premium
+                              </Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                
+                        </View>)
               }
               return null;
             }}

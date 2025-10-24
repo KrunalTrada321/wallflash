@@ -316,6 +316,7 @@ const CategoryImages = ({ route }: any) => {
                               paddingHorizontal: 20,
                               paddingVertical: 10,
                               borderRadius: 8,
+                              alignItems: 'center'
                             }}
                           > 
                             <LinearGradient
@@ -328,6 +329,9 @@ const CategoryImages = ({ route }: any) => {
                                 borderRadius: 10,
                               }}
                             >
+                              <Text style={{ textAlign: 'center', color: 'white', fontWeight: '600', fontSize: scale(12) }}>
+                                Want More?
+                              </Text>
                               <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
                                 Go to Premium
                               </Text>

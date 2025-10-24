@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import MyDrawer from './Drawer';
-import FullImageScreen from '../Screens/FullImageScreen ';
+import FullImageScreen from '../Screens/FullImageScreen';
 import CategoryImages from '../Screens/CategoryImages';
 import FavoritesScreen from '../Screens/FavoritesScreen';
 import AboutScreen from '../Screens/AboutScreen';

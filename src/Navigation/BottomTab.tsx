@@ -89,7 +89,7 @@ function MyTabs() {
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'play-circle' : 'play-circle-outline'}
+              name={focused ? 'flash' : 'flash-outline'}
               size={scale(26)}
               color={focused ? colors.flashColor : colors.white}
             />

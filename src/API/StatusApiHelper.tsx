@@ -24,6 +24,8 @@ import {
     title: string;
     description: string;
     imageUrl: string;
+    stitle : string;
+    simageUrl: string;
   } | null> => {
     try {
       const snapshot = await getDocs(collection(db, "SeasonData"));
@@ -34,7 +36,9 @@ import {
           title: data.title,
           description: data.description,
           imageUrl: data.imageUrl,
-        };
+          stitle: data.stitle,
+          simageUrl: data.simageUrl
+        }; 
       }
       return null;
     } catch (error) {

@@ -11,6 +11,7 @@ import LeadScreen from '../Screens/LeadScreen';
 import FullVideoScreen from '../Screens/FullVideoScreen';
 import PrimeImages from '../Screens/PrimeImages';
 import MyTabs from './BottomTab';
+import SeasonalImages from '../Screens/SeasonalImages';
 
 const Stack = createStackNavigator();
 
@@ -19,17 +20,17 @@ const StackNav = () => {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Drawer" component={MyDrawer} />
             <Stack.Screen name="FullImageScreen" component={FullImageScreen}
-             options={{
-                animation: 'scale_from_center',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 300 } },  // 👈 slower open
-                    close: { animation: 'timing', config: { duration: 300 } }, // 👈 slower close
-                },
-            }}
+                options={{
+                    animation: 'scale_from_center',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 300 } },  // 👈 slower open
+                        close: { animation: 'timing', config: { duration: 300 } }, // 👈 slower close
+                    },
+                }}
             />
             <Stack.Screen name="CategoryImages" component={CategoryImages} />
             <Stack.Screen name="PrimeImages" component={PrimeImages} />
-            
+
             <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} options={{
                 animation: 'slide_from_right',
                 transitionSpec: {
@@ -56,7 +57,7 @@ const StackNav = () => {
             <Stack.Screen name="LeadScreen" component={LeadScreen} />
             <Stack.Screen
                 name="FullVideo"
-                component={FullVideoScreen} 
+                component={FullVideoScreen}
                 options={{
                     animation: 'scale_from_center',
                     transitionSpec: {
@@ -64,9 +65,20 @@ const StackNav = () => {
                         close: { animation: 'timing', config: { duration: 500 } }, // 👈 slower close
                     },
                 }}
-            /> 
+            />
+
+            <Stack.Screen name="SeasonalImages" component={SeasonalImages}
+                options={{
+                    animation: 'scale_from_center',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 300 } },  // 👈 slower open
+                        close: { animation: 'timing', config: { duration: 300 } }, // 👈 slower close
+                    },
+                }} />
+
+
         </Stack.Navigator>
     );
-}; 
+};
 
 export default StackNav;

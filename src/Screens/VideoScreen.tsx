@@ -58,7 +58,7 @@ const VideoScreen = () => {
         const vids = urls.map((url: string) => ({ url, thumbnail: "" }));
         setSeasonInfo(info);
         setVideos(vids);
-        setLoading(false);
+        setLoading(false); 
 
         // 🔹 Generate thumbnails with hashing (safe cache names)
         urls.forEach(async (url, index) => {
@@ -105,7 +105,7 @@ const VideoScreen = () => {
   }, [isConnected]);
 
   // 🔹 Show No Internet screen
-  if (!isConnected) { 
+  if (!isConnected) {
     return (
       <View style={styles.noInternetContainer}>
         <Image
@@ -119,10 +119,12 @@ const VideoScreen = () => {
 
   if (loading) {
     return (
-      <View style={{flex: 1,
+      <View style={{
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background,}}>
+        backgroundColor: colors.background,
+      }}>
         {/* <LoaderKit
           style={styles.loader}
           name="BallTrianglePath"
@@ -166,9 +168,49 @@ const VideoScreen = () => {
             </View>
           </LinearGradient>
         )}
-   
+
+  
+        <TouchableOpacity onPress={() => navigation.navigate('SeasonalImages')} activeOpacity={0.8}> 
+          <LinearGradient
+            colors={['#100C10', '#000000']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              marginBottom: scale(8),
+              borderRadius: scale(12),
+              overflow: 'hidden', // Important to keep image corners rounded
+            }}
+          > 
+            <Image
+              style={{
+                height: scale(160),
+                width: '100%',
+                borderTopLeftRadius: scale(12),
+                borderTopRightRadius: scale(12),
+                resizeMode: "cover",
+                opacity: 1,
+              }}
+              source={{ uri: seasonInfo?.simageUrl }}
+            />
+            <View style={{borderColor: colors.white, borderTopWidth: 1.5}}>
+              <Text
+                style={{
+                  fontFamily: 'Poppins-Medium',
+                  fontSize: scale(20),
+                  color: colors.white,
+                  textAlign: "center",
+                  padding: scale(6),
+                }}
+              >   
+               {seasonInfo?.stitle}
+              </Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+          
+
         <ShortBanner />
-        
+
         {/* 🔹 Video Grid */}
         <FlatList
           data={videos}
@@ -224,7 +266,7 @@ const styles = StyleSheet.create({
     color: colors.redLight,
     textAlign: 'center'
   },
-  infoCard: { padding: 18, borderRadius: 12, marginBottom: 10 },
+  infoCard: { padding: 18, borderRadius: 12, marginBottom: scale(10) },
   infoTitle: { color: "#FF1493", fontSize: scale(16), fontFamily: "Poppins-Medium" },
   infoDesc: { color: "white", fontSize: scale(12), fontFamily: "Poppins-Regular" },
   infoImage: {

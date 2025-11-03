@@ -51,33 +51,33 @@ const FullVideoScreen = ({ route, navigation }: any) => {
   };
 
   // Permission Handling
-  const requestPermission = async () => {
-    if (Platform.OS !== "android") return true;
+  // const requestPermission = async () => {
+  //   if (Platform.OS !== "android") return true;
 
-    if (Platform.Version >= 33) {
-      const statuses = await PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-      ]);
-      return (
-        statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO] ===
-        PermissionsAndroid.RESULTS.GRANTED
-      );
-    } else {
-      const status = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-      );
-      return status === PermissionsAndroid.RESULTS.GRANTED;
-    }
-  };
+  //   if (Platform.Version >= 33) {
+  //     const statuses = await PermissionsAndroid.requestMultiple([
+  //       PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+  //     ]);
+  //     return (
+  //       statuses[PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO] ===
+  //       PermissionsAndroid.RESULTS.GRANTED
+  //     );
+  //   } else {
+  //     const status = await PermissionsAndroid.request(
+  //       PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+  //     );
+  //     return status === PermissionsAndroid.RESULTS.GRANTED;
+  //   }
+  // };
 
   // Download + Save using CameraRoll
   const downloadVideo = async () => {
-    const hasPermission = await requestPermission();
-    if (!hasPermission) {
-      Alert.alert("Permission Denied", "Cannot save video without permission.");
-      return;
-    }
-
+    // const hasPermission = await requestPermission();
+    // if (!hasPermission) {
+    //   Alert.alert("Permission Denied", "Cannot save video without permission.");
+    //   return;
+    // }
+ 
     try {
       setDownloading(true);
       setProgress(0);
@@ -110,8 +110,8 @@ const FullVideoScreen = ({ route, navigation }: any) => {
         description: "Video saved to Gallery!",
         type: "success",
         style: { borderRadius: 15, marginTop: scale(55), marginHorizontal: scale(20) },
-      }); 
-
+      });  
+      
       setProgress(100);
     } catch (err) {
       console.log("Download error:", err);

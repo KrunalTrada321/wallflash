@@ -123,13 +123,13 @@ const FullImageScreen = () => {
   const downloadImage = async () => {
     try {
       setIsDownloading(true); // Start loader
-      const hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        Alert.alert("Permission Denied", "You need to allow storage access to download images.");
-        setIsDownloading(false);
-        return;
-      }
-
+      // const hasPermission = await requestStoragePermission();
+      // if (!hasPermission) {
+      //   Alert.alert("Permission Denied", "You need to allow storage access to download images.");
+      //   setIsDownloading(false);
+      //   return;
+      // }
+   
       const fileName = `Wallpaper_${Date.now()}.jpg`;
       const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
 

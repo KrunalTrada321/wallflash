@@ -12,6 +12,7 @@ import FullVideoScreen from '../Screens/FullVideoScreen';
 import PrimeImages from '../Screens/PrimeImages';
 import MyTabs from './BottomTab';
 import SeasonalImages from '../Screens/SeasonalImages';
+import PrimeCategories from '../Screens/PrimeCategories';
 
 const Stack = createStackNavigator();
 
@@ -30,7 +31,9 @@ const StackNav = () => {
             />
             <Stack.Screen name="CategoryImages" component={CategoryImages} />
             <Stack.Screen name="PrimeImages" component={PrimeImages} />
+            <Stack.Screen name="PrimeCategories" component={PrimeCategories} />
 
+ 
             <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} options={{
                 animation: 'slide_from_right',
                 transitionSpec: {

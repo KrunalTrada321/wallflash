@@ -56,9 +56,9 @@ const CustomDrawerContent = (props) => {
             style={{ width: scale(200), height: scale(150), marginBottom: scale(10) }}
           />
 
-          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.27</Text>
+          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.28</Text>
 
-        </View> 
+        </View>  
 
         <View style={{ height: scale(1), width: "100%", backgroundColor: colors.white }}></View>
 

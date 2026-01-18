@@ -24,6 +24,7 @@ import { scale } from 'react-native-size-matters';
 import { navigationRef } from './Navigation/NavigationService';
 import messaging from "@react-native-firebase/messaging";
 import notifee, { AndroidImportance } from '@notifee/react-native';
+import { initRewardedPremiumAd } from './Components/RewardedPremiumAd';
 
 
 const App = () => {
@@ -67,7 +68,8 @@ const App = () => {
 
     Orientation.lockToPortrait();
     checkForUpdate();
-
+    initRewardedPremiumAd();
+ 
     return () => {
       clearTimeout(splashTimeout);
       Orientation.unlockAllOrientations();

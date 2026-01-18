@@ -8,9 +8,9 @@ import HomeScreen from '../Screens/HomeScreen';
 import CategoriesScreen from '../Screens/CategoriesScreen';
 import PremiumScreen from '../Screens/PremiumScreen';
 import VideoScreen from '../Screens/VideoScreen';
-import BundleScreen from '../Screens/BundleScreen';
 import PrimeCategories from '../Screens/PrimeCategories';
-import PremiumWrapper from '../Components/PremiumWrapper ';
+import PremiumWrapper from '../Components/PremiumWrapper';
+import GamesScreen from '../Screens/GamesScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -108,9 +108,33 @@ function MyTabs() {
           tabBarIcon: ({ color, size, focused }) => (
             <Image
               source={
-                focused
+                focused 
                   ? require("../assets/bottomTab/crown2.png") // active icon
                   : require("../assets/bottomTab/crown-outline.png") // inactive icon
+              }
+              style={{
+                width: scale(25),
+                height: scale(25),
+                tintColor: focused ? colors.flashColor : colors.white,
+                resizeMode: "contain",
+              }}
+            />
+          ),
+          tabBarActiveTintColor: colors.white,
+          tabBarInactiveTintColor: colors.white,
+        }}
+      />
+
+ <Tab.Screen
+        name="Games"
+        component={GamesScreen}
+        options={{ 
+          tabBarIcon: ({ color, size, focused }) => (
+            <Image
+              source={
+                focused 
+                  ? require("../assets/bottomTab/games.png") // active icon
+                  : require("../assets/bottomTab/games-o.png") // inactive icon
               }
               style={{
                 width: scale(25),

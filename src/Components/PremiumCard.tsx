@@ -8,11 +8,13 @@ import { scale } from "react-native-size-matters";
 interface PremiumCardProps {
   price?: string;
   onPurchasePress: () => void;
+  onWatchAdPress: () => void;
 }
 
-const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress }) => {
+const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress, onWatchAdPress }) => {
   return (
     <View>
+ 
       <LinearGradient
         colors={["#0f0f0f", "#1a1a1a", "#000000"]}
         start={{ x: 0, y: 0 }}
@@ -96,6 +98,46 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress }) => 
             </Text>
           </LinearGradient>
         </TouchableOpacity>
+
+ <Text style={{color: colors.white, marginVertical: scale(5)}}>OR</Text>
+
+        {/* Watch Ads Button */}
+        <TouchableOpacity
+          onPress={onWatchAdPress}
+         activeOpacity={0.8}
+          style={{
+            marginTop: 6,
+            paddingVertical: scale(12),
+            paddingHorizontal: 24,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.25)",
+            backgroundColor: "rgba(255,255,255,0.05)",
+            width: "100%",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: "#ccc",
+              fontSize: scale(14),
+              fontWeight: "500",
+            }}
+          >
+            Watch Ad to Unlock
+          </Text>
+            <Text
+            style={{
+              color: "#ccc",
+              fontSize: scale(10),
+              fontWeight: "500",
+            }}
+          >
+            (For 30 Minutes)
+          </Text>
+        </TouchableOpacity>
+
+
       </LinearGradient>
 
       <View style={{ marginTop: scale(12), width: '100%', }}>
@@ -106,7 +148,7 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress }) => 
             Linking.openURL('https://play.google.com/store/apps/details?id=com.wallflash');
           }}>
           <Text style={{ fontSize: scale(12), color: colors.redLight, textAlign: "center", textDecorationLine: "underline" }}>Playstore Link</Text>
-        </TouchableOpacity> 
+        </TouchableOpacity>
       </View>
     </View>
   )

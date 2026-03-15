@@ -6,7 +6,6 @@ import { colors } from '../Styling/colors';
 import { scale } from 'react-native-size-matters';
 import HomeScreen from '../Screens/HomeScreen';
 import CategoriesScreen from '../Screens/CategoriesScreen';
-import PremiumScreen from '../Screens/PremiumScreen';
 import VideoScreen from '../Screens/VideoScreen';
 import PrimeCategories from '../Screens/PrimeCategories';
 import PremiumWrapper from '../Components/PremiumWrapper';
@@ -25,24 +24,56 @@ function MyTabs() {
           height: scale(55), // Increase the height of the bottom tab bar
           paddingTop: scale(10),
           backgroundColor: colors.primary, // Optional: Change background color
-          borderTopLeftRadius: scale(20), // Optional: Add rounded corners
-          borderTopRightRadius: scale(20),
+          // borderTopLeftRadius: scale(20), // Optional: Add rounded corners
+          // borderTopRightRadius: scale(20),
           borderColor: colors.flashColor,
           borderTopWidth: 1.5,
-          borderLeftWidth: 1.5,
-          borderRightWidth: 1.5,
+          // borderLeftWidth: 1.5,
+          // borderRightWidth: 1.5,
         },
       }}>
+
+ <Tab.Screen
+        name="Games"
+        component={GamesScreen}
+        options={{ 
+          tabBarIcon: ({ color, size, focused }) => (
+            <Image
+              source={
+                focused 
+                  ? require("../assets/bottomTab/games.png") // active icon
+                  : require("../assets/bottomTab/games-o.png") // inactive icon
+              }
+              style={{
+                width: scale(25),
+                height: scale(25),
+                tintColor: focused ? colors.flashColor : colors.white,
+                resizeMode: "contain",
+              }}
+            />
+          ),
+          tabBarActiveTintColor: colors.white,
+          tabBarInactiveTintColor: colors.white,
+        }}
+      />
 
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
+     options={{ 
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={scale(24)}
-              color={focused ? colors.flashColor : colors.white}
+            <Image
+              source={
+                focused 
+                  ? require("../assets/bottomTab/gallery.png") // active icon
+                  : require("../assets/bottomTab/gallery-o.png") // inactive icon
+              }
+              style={{
+                width: scale(24),
+                height: scale(24), 
+                tintColor: focused ? colors.flashColor : colors.white,
+                resizeMode: "contain",
+              }}
             />
           ),
           tabBarActiveTintColor: colors.white,
@@ -83,7 +114,7 @@ function MyTabs() {
       /> */}
 
 
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Video"
         component={VideoScreen}
         options={{
@@ -97,7 +128,7 @@ function MyTabs() {
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
         }}
-      />
+      /> */}
 
 
 
@@ -125,29 +156,7 @@ function MyTabs() {
         }}
       />
 
- <Tab.Screen
-        name="Games"
-        component={GamesScreen}
-        options={{ 
-          tabBarIcon: ({ color, size, focused }) => (
-            <Image
-              source={
-                focused 
-                  ? require("../assets/bottomTab/games.png") // active icon
-                  : require("../assets/bottomTab/games-o.png") // inactive icon
-              }
-              style={{
-                width: scale(25),
-                height: scale(25),
-                tintColor: focused ? colors.flashColor : colors.white,
-                resizeMode: "contain",
-              }}
-            />
-          ),
-          tabBarActiveTintColor: colors.white,
-          tabBarInactiveTintColor: colors.white,
-        }}
-      />
+
 
     </Tab.Navigator>
   );

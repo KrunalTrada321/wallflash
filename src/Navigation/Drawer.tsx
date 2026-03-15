@@ -56,7 +56,7 @@ const CustomDrawerContent = (props) => {
             style={{ width: scale(200), height: scale(150), marginBottom: scale(10) }}
           />
 
-          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.28</Text>
+          <Text style={{ fontSize: scale(13), color: colors.white, marginTop: scale(10) }}>Version 1.30</Text>
 
         </View>  
 
@@ -196,8 +196,8 @@ const MyDrawer = () => {
         },
         headerStyle: {
           backgroundColor: colors.primary, // Set primary color for header background
-          borderBottomLeftRadius: 25, // Rounded bottom-left corner
-          borderBottomRightRadius: 25, // Rounded bottom-right corner
+          // borderBottomLeftRadius: 25, // Rounded bottom-left corner
+          // borderBottomRightRadius: 25, // Rounded bottom-right corner
           borderBottomColor: borderColor,
           borderWidth: 2, // Increase border width for better visibility
           shadowColor: borderColor, // Dynamic animated shadow color
@@ -205,8 +205,8 @@ const MyDrawer = () => {
           shadowOpacity: 1, // Make shadow fully visible
           shadowRadius: 50, // Increase blur effect for a glowing effect
           elevation: 50, // Stronger shadow effect on Android
-          borderLeftColor: borderColor,
-          borderRightColor: borderColor,  // ✅ Animated right border
+          // borderLeftColor: borderColor,
+          // borderRightColor: borderColor,  // ✅ Animated right border
         },
         headerTintColor: colors.white,
         headerTitleAlign: 'center',

@@ -12,18 +12,18 @@ import { useNavigation } from "@react-navigation/native";
 import {
   ArrowLeft, RefreshCw,
   Trophy, ChevronLeft, PlayCircle,
-  Zap, Skull, Star, Flame, Award,
-  ChevronUp, ChevronDown, ChevronRight,
-  Wind,
-  ChevronLeft as ChevronLft,
+  Zap, Star, Flame, Award,
+  Route,
 } from "lucide-react-native";
 import GameBannerAd from "../../Components/GameBannerAd";
+import { useInterstitialAd } from "../../Components/Useinterstitialad";
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 const SCREEN_W = Dimensions.get("window").width;
+const SCREEN_H = Dimensions.get("window").height;
 const COLS     = 20;
-const ROWS     = 24;
-const CELL     = Math.floor((SCREEN_W - scale(24)) / COLS);
+const ROWS     = 30;
+const CELL     = Math.floor((SCREEN_W - scale(16)) / COLS);
 const BOARD_W  = CELL * COLS;
 const BOARD_H  = CELL * ROWS;
 const MAX_SEGS = 150;
@@ -101,18 +101,90 @@ const getRating = (score) => {
   return                  { label: "Keep Going!", color: "#ff4081", emoji: "💪", Icon: Award  };
 };
 
-// Fade body colour from bright cyan → dim teal
 const segColor = (i, total) => {
   if (i === 0) return "#00ffff";
   const fade = Math.max(0.2, 1 - i / (total + 2));
   return `rgba(0,210,210,${fade.toFixed(2)})`;
 };
 
+// ─── Swipe Tutorial Overlay ───────────────────────────────────────────────────
+function SwipeTutorial({ visible, onDismiss }) {
+  const opacity  = useRef(new Animated.Value(0)).current;
+  const arrowAnims = useRef({
+    up:    new Animated.Value(0),
+    down:  new Animated.Value(0),
+    left:  new Animated.Value(0),
+    right: new Animated.Value(0),
+  }).current;
+
+  useEffect(() => {
+    if (!visible) return;
+
+    Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+
+    const pulse = (anim) =>
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1,  duration: 350, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0,  duration: 350, useNativeDriver: true }),
+      ]);
+
+    const loop = Animated.loop(
+      Animated.stagger(200, [
+        pulse(arrowAnims.up),
+        pulse(arrowAnims.right),
+        pulse(arrowAnims.down),
+        pulse(arrowAnims.left),
+      ])
+    );
+    loop.start();
+
+    const timer = setTimeout(() => {
+      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(onDismiss);
+      loop.stop();
+    }, 2800);
+
+    return () => { clearTimeout(timer); loop.stop(); };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const ArrowBtn = ({ label, anim, style }) => (
+    <Animated.View style={[
+      styles.tutArrow,
+      style,
+      { opacity: anim.interpolate({ inputRange:[0,1], outputRange:[0.35, 1] }),
+        transform: [{ scale: anim.interpolate({ inputRange:[0,1], outputRange:[0.85, 1.15] }) }] }
+    ]}>
+      <Text style={styles.tutArrowText}>{label}</Text>
+    </Animated.View>
+  );
+
+  return (
+    <Animated.View style={[styles.tutOverlay, { opacity }]} pointerEvents="box-none">
+      <View style={styles.tutCard}>
+        <Text style={styles.tutTitle}>SWIPE TO MOVE</Text>
+        <View style={styles.tutPad}>
+          <ArrowBtn label="▲" anim={arrowAnims.up}    style={styles.tutUp}    />
+          <View style={styles.tutMidRow}>
+            <ArrowBtn label="◀" anim={arrowAnims.left}  style={styles.tutLeft}  />
+            <View style={styles.tutCenter}>
+              <Text style={styles.tutFingerEmoji}>👆</Text>
+            </View>
+            <ArrowBtn label="▶" anim={arrowAnims.right} style={styles.tutRight} />
+          </View>
+          <ArrowBtn label="▼" anim={arrowAnims.down}  style={styles.tutDown}  />
+        </View>
+        <Text style={styles.tutHint}>Swipe anywhere on the board</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function SnakeGame() {
   const navigation = useNavigation();
-
-  // Pre-allocate animated value pool (never re-created — required for useNativeDriver)
+  const { showAd } = useInterstitialAd(); // ← hook
+ 
   const animX = useRef(
     Array.from({ length: MAX_SEGS }, () => new Animated.Value(-CELL * 3))
   ).current;
@@ -120,7 +192,6 @@ export default function SnakeGame() {
     Array.from({ length: MAX_SEGS }, () => new Animated.Value(-CELL * 3))
   ).current;
 
-  // Game logic refs
   const snakeRef     = useRef([]);
   const dirRef       = useRef(DIR.RIGHT);
   const pendingDir   = useRef(DIR.RIGHT);
@@ -130,14 +201,14 @@ export default function SnakeGame() {
   const aliveRef     = useRef(false);
   const runningAnims = useRef([]);
 
-  // React state
-  const [snakeLen,   setSnakeLen]   = useState(0);
-  const [foods,      setFoods]      = useState([]);
-  const [score,      setScore]      = useState(0);
-  const [phase,      setPhase]      = useState("idle");
-  const [speed,      setSpeed]      = useState(SPEED_TIERS[0]);
-  const [highScore,  setHighScore]  = useState(0);
-  const [lastLabel,  setLastLabel]  = useState(null);
+  const [snakeLen,     setSnakeLen]     = useState(0);
+  const [foods,        setFoods]        = useState([]);
+  const [score,        setScore]        = useState(0);
+  const [phase,        setPhase]        = useState("idle");
+  const [speed,        setSpeed]        = useState(SPEED_TIERS[0]);
+  const [highScore,    setHighScore]    = useState(0);
+  const [lastLabel,    setLastLabel]    = useState(null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const tickRef     = useRef(null);
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -154,7 +225,6 @@ export default function SnakeGame() {
     };
   }, []);
 
-  // ── Smooth-animate all segments ───────────────────────────────────────────
   const animateSegments = useCallback((oldSnake, newSnake, duration) => {
     runningAnims.current.forEach((a) => a.stop());
     runningAnims.current = [];
@@ -175,8 +245,7 @@ export default function SnakeGame() {
         const ax = Animated.timing(animX[i], { toValue: to.x, duration: dur, useNativeDriver: true });
         const ay = Animated.timing(animY[i], { toValue: to.y, duration: dur, useNativeDriver: true });
         runningAnims.current.push(ax, ay);
-        ax.start();
-        ay.start();
+        ax.start(); ay.start();
       }
     });
 
@@ -186,7 +255,6 @@ export default function SnakeGame() {
     }
   }, []);
 
-  // ── Start ────────────────────────────────────────────────────────────────
   const startGame = useCallback(() => {
     clearInterval(tickRef.current);
     runningAnims.current.forEach((a) => a.stop());
@@ -194,9 +262,9 @@ export default function SnakeGame() {
     overlayAnim.setValue(0);
 
     const initSnake = [
-      { r: 12, c: 11 },
-      { r: 12, c: 10 },
-      { r: 12, c: 9  },
+      { r: 15, c: 11 },
+      { r: 15, c: 10 },
+      { r: 15, c: 9  },
     ];
     const initFood = [spawnFood(initSnake, [])];
 
@@ -224,6 +292,7 @@ export default function SnakeGame() {
     setSpeed(SPEED_TIERS[0]);
     setPhase("playing");
     setLastLabel(null);
+    setShowTutorial(true);
 
     scheduleTick(SPEED_TIERS[0]);
   }, []);
@@ -233,7 +302,6 @@ export default function SnakeGame() {
     tickRef.current = setInterval(tick, ms);
   };
 
-  // ── Tick ─────────────────────────────────────────────────────────────────
   const tick = useCallback(() => {
     if (!aliveRef.current) return;
 
@@ -246,7 +314,6 @@ export default function SnakeGame() {
       c: ((head.c + dirRef.current.c) + COLS) % COLS,
     };
 
-    // Self collision
     if (oldSnake.slice(0, -1).some((s) => s.r === newHead.r && s.c === newHead.c)) {
       die(); return;
     }
@@ -260,9 +327,9 @@ export default function SnakeGame() {
       const pts   = FOOD_TYPES[ftype].points;
       grow        = ftype !== "POISON";
 
-      if      (ftype === "POISON")               haptic("poison");
-      else if (ftype === "BONUS" || ftype === "POWER") haptic("bonus");
-      else                                       haptic("eat");
+      if      (ftype === "POISON")                     haptic("poison");
+      else if (ftype === "BONUS" || ftype === "POWER")  haptic("bonus");
+      else                                              haptic("eat");
 
       const newFoods = foodsRef.current.filter((_, i) => i !== hitIdx);
       newFoods.push(spawnFood([...oldSnake, newHead], newFoods));
@@ -300,7 +367,6 @@ export default function SnakeGame() {
     setSnakeLen(newSnake.length);
   }, [animateSegments]);
 
-  // ── Die ──────────────────────────────────────────────────────────────────
   const die = () => {
     aliveRef.current = false;
     clearInterval(tickRef.current);
@@ -321,18 +387,17 @@ export default function SnakeGame() {
     }, 450);
   };
 
-  // ── Direction ─────────────────────────────────────────────────────────────
   const changeDir = useCallback((newDir) => {
     if (!aliveRef.current) return;
     const nk = dirKey(newDir);
     const ck = dirKey(dirRef.current);
-    if (OPPOSITE[nk] !== ck) {
+    const pk = dirKey(pendingDir.current);
+    if (OPPOSITE[nk] !== ck && OPPOSITE[nk] !== pk) {
       pendingDir.current = newDir;
       haptic("turn");
     }
   }, []);
 
-  // ── PanResponder — use a ref so the handler always sees latest changeDir ──
   const changeDirRef = useRef(changeDir);
   useEffect(() => { changeDirRef.current = changeDir; }, [changeDir]);
 
@@ -341,10 +406,11 @@ export default function SnakeGame() {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder:  () => true,
       onPanResponderRelease: (_, g) => {
-        if (!g) return;                              // guard: gestureState undefined on tap
+        if (!g) return;
         const dx = g.dx ?? 0;
         const dy = g.dy ?? 0;
         if (Math.max(Math.abs(dx), Math.abs(dy)) < 15) return;
+        setShowTutorial(false);
         if (Math.abs(dx) > Math.abs(dy))
           changeDirRef.current(dx > 0 ? DIR.RIGHT : DIR.LEFT);
         else
@@ -360,7 +426,6 @@ export default function SnakeGame() {
       {...pan.panHandlers}
     >
       <View style={styles.board}>
-        {/* Snake segments */}
         {Array.from({ length: snakeLen }, (_, i) => {
           const isHead = i === 0;
           const sz = CELL - 2;
@@ -376,13 +441,7 @@ export default function SnakeGame() {
                   backgroundColor: segColor(i, snakeLen),
                   transform: [{ translateX: animX[i] }, { translateY: animY[i] }],
                   zIndex: isHead ? 5 : 2,
-                  ...(isHead && {
-                    shadowColor:   "#00ffff",
-                    shadowOffset:  { width: 0, height: 0 },
-                    shadowOpacity: 0.95,
-                    shadowRadius:  8,
-                    elevation:     8,
-                  }),
+                  ...(isHead && { elevation: 8 }),
                 },
               ]}
             >
@@ -396,7 +455,6 @@ export default function SnakeGame() {
           );
         })}
 
-        {/* Food */}
         {foods.map((f, i) => (
           <View
             key={`food-${i}`}
@@ -406,7 +464,6 @@ export default function SnakeGame() {
           </View>
         ))}
 
-        {/* Floating score pop */}
         {lastLabel && (
           <Animated.Text
             style={[
@@ -423,6 +480,11 @@ export default function SnakeGame() {
             {lastLabel.text}
           </Animated.Text>
         )}
+
+        <SwipeTutorial
+          visible={showTutorial}
+          onDismiss={() => setShowTutorial(false)}
+        />
       </View>
     </Animated.View>
   );
@@ -448,9 +510,8 @@ export default function SnakeGame() {
           contentContainerStyle={styles.idleContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero */}
           <View style={styles.heroRing}>
-            <Wind size={scale(48)} color="#00ffff" strokeWidth={1.4} />
+            <Route size={scale(48)} color="#00ffff" strokeWidth={1.4} />
           </View>
 
           <View style={styles.idleTitleBlock}>
@@ -459,7 +520,6 @@ export default function SnakeGame() {
             <Text style={styles.idleTagline}>Eat. Grow. Survive. Don't bite yourself.</Text>
           </View>
 
-          {/* Food legend */}
           <View style={styles.legendCard}>
             <Text style={styles.legendCardTitle}>FOOD GUIDE</Text>
             {Object.entries(FOOD_TYPES).map(([k, v]) => (
@@ -487,15 +547,6 @@ export default function SnakeGame() {
             ))}
           </View>
 
-         
-
-          {/* Controls note */}
-          <View style={styles.controlsNote}>
-            <Text style={styles.controlsText}>
-              Swipe anywhere on the board  ·  or use the D-pad below
-            </Text>
-          </View>
-
           <Pressable
             style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.88 }]}
             onPress={startGame}
@@ -516,7 +567,6 @@ export default function SnakeGame() {
       <StatusBar barStyle="light-content" backgroundColor="#0d0118" />
       <Header onBack={() => navigation.goBack()} onReset={startGame} showReset />
 
-      {/* Stats */}
       <View style={styles.statsRow}>
         <StatBox label="SCORE"  value={score}     color="#00ffff" />
         <StatBox label="BEST"   value={highScore}  color="#ffd700" />
@@ -530,28 +580,8 @@ export default function SnakeGame() {
 
       {renderBoard()}
 
-      {/* D-Pad */}
-      <View style={styles.dpad}>
-        <Pressable style={styles.dpadBtn} onPress={() => changeDir(DIR.UP)}>
-          <ChevronUp size={scale(22)} color="#9e86b8" strokeWidth={2.5} />
-        </Pressable>
-        <View style={styles.dpadMid}>
-          <Pressable style={styles.dpadBtn} onPress={() => changeDir(DIR.LEFT)}>
-            <ChevronLft size={scale(22)} color="#9e86b8" strokeWidth={2.5} />
-          </Pressable>
-          <View style={styles.dpadCenter} />
-          <Pressable style={styles.dpadBtn} onPress={() => changeDir(DIR.RIGHT)}>
-            <ChevronRight size={scale(22)} color="#9e86b8" strokeWidth={2.5} />
-          </Pressable>
-        </View>
-        <Pressable style={styles.dpadBtn} onPress={() => changeDir(DIR.DOWN)}>
-          <ChevronDown size={scale(22)} color="#9e86b8" strokeWidth={2.5} />
-        </Pressable>
-      </View>
-
       <GameBannerAd bottom size="banner" />
 
-      {/* Game Over overlay */}
       {phase === "dead" && (
         <Animated.View style={[
           styles.overlay,
@@ -582,16 +612,20 @@ export default function SnakeGame() {
                 <Text style={styles.newBestText}>  New High Score!</Text>
               </View>
             )}
+
+            {/* Play Again → interstitial then restart */}
             <Pressable
               style={({ pressed }) => [styles.playAgainBtn, pressed && { opacity: 0.88 }]}
-              onPress={startGame}
+              onPress={() => showAd(startGame)}
             >
               <PlayCircle size={scale(16)} color="#0d0118" strokeWidth={2.5} />
               <Text style={styles.playAgainText}>  Play Again</Text>
             </Pressable>
+
+            {/* Back to Games → interstitial then navigate */}
             <Pressable
               style={({ pressed }) => [styles.exitBtn, pressed && { opacity: 0.6 }]}
-              onPress={() => navigation.goBack()}
+              onPress={() => showAd(() => navigation.goBack())}
             >
               <ChevronLeft size={scale(13)} color="#9e86b8" />
               <Text style={styles.exitText}>Back to Games</Text>
@@ -611,7 +645,7 @@ function Header({ onBack, onReset, showReset }) {
         <ArrowLeft size={scale(18)} color="#fff" strokeWidth={2.5} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Wind size={scale(15)} color="#00ffff" strokeWidth={2} style={{ marginRight: scale(6) }} />
+        <Route size={scale(15)} color="#00ffff" strokeWidth={2} style={{ marginRight: scale(6) }} />
         <Text style={styles.headerTitle}>Snake</Text>
       </View>
       {showReset
@@ -633,18 +667,6 @@ function StatBox({ label, value, color }) {
   );
 }
 
-function RuleTile({ color, icon, title, desc }) {
-  return (
-    <View style={[styles.ruleTile, { borderColor: color + "25" }]}>
-      <View style={[styles.ruleTileIcon, { backgroundColor: color + "18" }]}>{icon}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.ruleTileTitle, { color }]}>{title}</Text>
-        <Text style={styles.ruleTileDesc}>{desc}</Text>
-      </View>
-    </View>
-  );
-}
-
 function WinStat({ label, value, color }) {
   return (
     <View style={styles.winStat}>
@@ -659,7 +681,6 @@ const styles = StyleSheet.create({
   flex:      { flex: 1 },
   container: { flex: 1, backgroundColor: "#0d0118", alignItems: "center" },
 
-  // Header
   header: {
     width: "100%", flexDirection: "row", alignItems: "center",
     paddingHorizontal: scale(16), paddingTop: scale(12), paddingBottom: scale(8),
@@ -667,11 +688,7 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: scale(38), height: scale(38), borderRadius: scale(12),
     backgroundColor: "#1f0a3a", borderWidth: 1, borderColor: "#ffffff18",
-    justifyContent: "center", alignItems: "center",
-    ...Platform.select({
-      ios:     { shadowColor: "#7b2fff", shadowOffset:{width:0,height:2}, shadowOpacity:0.3, shadowRadius:6 },
-      android: { elevation: 4 },
-    }),
+    justifyContent: "center", alignItems: "center", elevation: 4,
   },
   headerCenter: { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center" },
   headerTitle: {
@@ -679,7 +696,6 @@ const styles = StyleSheet.create({
     textShadowColor: "#00ffff88", textShadowOffset:{width:0,height:0}, textShadowRadius:8,
   },
 
-  // Idle
   idleContent: {
     alignItems: "center",
     paddingHorizontal: scale(20),
@@ -690,11 +706,7 @@ const styles = StyleSheet.create({
   heroRing: {
     width: scale(110), height: scale(110), borderRadius: scale(55),
     backgroundColor: "#00ffff12", borderWidth: 1.5, borderColor: "#00ffff55",
-    justifyContent: "center", alignItems: "center",
-    ...Platform.select({
-      ios:     { shadowColor:"#00ffff", shadowOffset:{width:0,height:0}, shadowOpacity:0.35, shadowRadius:18 },
-      android: { elevation: 6 },
-    }),
+    justifyContent: "center", alignItems: "center", elevation: 6,
   },
   idleTitleBlock: { alignItems: "center", gap: scale(4) },
   idleSubLabel:   { fontSize: scale(9), fontWeight: "900", color: "#00ffff88", letterSpacing: 4 },
@@ -713,7 +725,7 @@ const styles = StyleSheet.create({
     fontSize: scale(9), fontWeight: "900", color: "#9e86b8",
     letterSpacing: 3, marginBottom: scale(2),
   },
-  legendRow: { flexDirection: "row", alignItems: "center", gap: scale(10) },
+  legendRow:     { flexDirection: "row", alignItems: "center", gap: scale(10) },
   legendDot: {
     width: scale(34), height: scale(34), borderRadius: scale(10),
     borderWidth: 1, justifyContent: "center", alignItems: "center",
@@ -729,41 +741,16 @@ const styles = StyleSheet.create({
   },
   avoidText: { fontSize: scale(8), color: "#ff4081", fontWeight: "900", letterSpacing: 1 },
 
-  rulesCard: {
-    width: "100%", backgroundColor: "#130824",
-    borderRadius: scale(16), borderWidth: 1, borderColor: "#ffffff10",
-    padding: scale(14), gap: scale(8),
-  },
-  ruleTile: {
-    flexDirection: "row", alignItems: "center", gap: scale(12),
-    backgroundColor: "#0d0118", borderRadius: scale(12),
-    borderWidth: 1, padding: scale(10),
-  },
-  ruleTileIcon:  { width: scale(30), height: scale(30), borderRadius: scale(8), justifyContent:"center", alignItems:"center" },
-  ruleTileTitle: { fontSize: scale(12), fontWeight: "800", letterSpacing: 0.3, marginBottom: scale(1) },
-  ruleTileDesc:  { fontSize: scale(10), color: "#9e86b8", fontWeight: "400" },
-
-  controlsNote: {
-    backgroundColor: "#ffffff08",
-    borderRadius: scale(10), paddingHorizontal: scale(14), paddingVertical: scale(8),
-    borderWidth: 1, borderColor: "#ffffff12",
-  },
-  controlsText: { fontSize: scale(11), color: "#9e86b8", fontWeight: "500", textAlign: "center" },
-
   startBtn: {
     flexDirection: "row", alignItems: "center", backgroundColor: "#00ffff",
     paddingHorizontal: scale(40), paddingVertical: scale(14), borderRadius: scale(25),
-    ...Platform.select({
-      ios:     { shadowColor:"#00ffff", shadowOffset:{width:0,height:6}, shadowOpacity:0.5, shadowRadius:14 },
-      android: { elevation: 8 },
-    }),
+    elevation: 8,
   },
   startBtnText: { fontSize: scale(15), fontWeight: "900", color: "#0d0118", letterSpacing: 0.5 },
 
-  // Stats
   statsRow: {
     flexDirection: "row", gap: scale(8),
-    paddingHorizontal: scale(12), marginBottom: scale(8), width: "100%",
+    paddingHorizontal: scale(8), marginBottom: scale(6), width: "100%",
   },
   statBox: {
     flex: 1, backgroundColor: "#160728", borderRadius: scale(10),
@@ -772,16 +759,15 @@ const styles = StyleSheet.create({
   statVal:   { fontSize: scale(13), fontWeight: "900" },
   statLabel: { fontSize: scale(7), color: "#9e86b8", fontWeight: "700", letterSpacing: 1, marginTop: scale(2) },
 
-  // Board
-  boardWrap: { marginBottom: scale(8) },
+  boardWrap: { marginBottom: scale(4) },
   board: {
     width: BOARD_W, height: BOARD_H,
     backgroundColor: "#06011a",
     borderRadius: scale(8), borderWidth: 1.5, borderColor: "#a78bfa55",
     overflow: "hidden", position: "relative",
   },
-  seg:  { position: "absolute", top: 0, left: 0 },
-  eye:  {
+  seg: { position: "absolute", top: 0, left: 0 },
+  eye: {
     position: "absolute",
     width:  Math.max(3, Math.round(CELL * 0.22)),
     height: Math.max(3, Math.round(CELL * 0.22)),
@@ -797,17 +783,39 @@ const styles = StyleSheet.create({
     textShadowColor: "#00000099", textShadowOffset:{width:0,height:1}, textShadowRadius:3,
   },
 
-  // D-pad
-  dpad:      { alignItems: "center", gap: scale(2) },
-  dpadMid:   { flexDirection: "row", alignItems: "center", gap: scale(2) },
-  dpadBtn: {
-    width: scale(44), height: scale(44), borderRadius: scale(12),
-    backgroundColor: "#160728", borderWidth: 1, borderColor: "#ffffff14",
+  tutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center", alignItems: "center",
+    backgroundColor: "rgba(5,0,14,0.82)",
+    zIndex: 20,
+  },
+  tutCard: {
+    alignItems: "center", gap: scale(10),
+    backgroundColor: "#130824",
+    borderRadius: scale(18), borderWidth: 1, borderColor: "#00ffff30",
+    paddingHorizontal: scale(28), paddingVertical: scale(20),
+  },
+  tutTitle: {
+    fontSize: scale(11), fontWeight: "900", color: "#00ffff",
+    letterSpacing: 3, marginBottom: scale(4),
+  },
+  tutPad:    { alignItems: "center", gap: scale(6) },
+  tutMidRow: { flexDirection: "row", alignItems: "center", gap: scale(6) },
+  tutCenter: {
+    width:  scale(44), height: scale(44),
     justifyContent: "center", alignItems: "center",
   },
-  dpadCenter: { width: scale(44), height: scale(44) },
+  tutFingerEmoji: { fontSize: scale(22) },
+  tutArrow: {
+    width:  scale(44), height: scale(44),
+    borderRadius: scale(12),
+    backgroundColor: "#00ffff18", borderWidth: 1, borderColor: "#00ffff55",
+    justifyContent: "center", alignItems: "center",
+  },
+  tutArrowText: { fontSize: scale(16), color: "#00ffff", fontWeight: "900" },
+  tutUp: {}, tutDown: {}, tutLeft: {}, tutRight: {},
+  tutHint: { fontSize: scale(10), color: "#9e86b8", fontWeight: "500", marginTop: scale(4) },
 
-  // Overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(5,0,14,0.95)",
@@ -817,19 +825,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#100520", borderRadius: scale(24),
     borderWidth: 1.5, borderColor: "#00ffff33",
     padding: scale(24), alignItems: "center", width: SCREEN_W - scale(48),
-    ...Platform.select({
-      ios:     { shadowColor:"#00ffff", shadowOffset:{width:0,height:0}, shadowOpacity:0.4, shadowRadius:24 },
-      android: { elevation: 12 },
-    }),
+    elevation: 12,
   },
   trophyRing: {
     width: scale(76), height: scale(76), borderRadius: scale(38),
     backgroundColor: "#1f0a3a", borderWidth: 2,
     justifyContent: "center", alignItems: "center", marginBottom: scale(12),
-    ...Platform.select({
-      ios:     { shadowColor:"#ffd700", shadowOffset:{width:0,height:0}, shadowOpacity:0.4, shadowRadius:14 },
-      android: { elevation: 6 },
-    }),
+    elevation: 6,
   },
   winTitle: {
     fontSize: scale(26), fontWeight: "900", color: "#ff4081", letterSpacing: 4,
@@ -850,10 +852,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "#ffffff0e",
     width: "100%", justifyContent: "center",
   },
-  winStat:      { alignItems: "center", gap: scale(3) },
-  winStatValue: { fontSize: scale(18), fontWeight: "900" },
-  winStatLabel: { fontSize: scale(8), color: "#9e86b8", fontWeight: "700", letterSpacing: 1 },
-  winStatDivider: { width: 1, height: scale(36), backgroundColor: "#ffffff14" },
+  winStat:       { alignItems: "center", gap: scale(3) },
+  winStatValue:  { fontSize: scale(18), fontWeight: "900" },
+  winStatLabel:  { fontSize: scale(8), color: "#9e86b8", fontWeight: "700", letterSpacing: 1 },
+  winStatDivider:{ width: 1, height: scale(36), backgroundColor: "#ffffff14" },
   newBestBadge: {
     flexDirection: "row", alignItems: "center",
     backgroundColor: "#ffd70018", borderRadius: scale(20),
@@ -864,11 +866,7 @@ const styles = StyleSheet.create({
   playAgainBtn: {
     flexDirection: "row", alignItems: "center", backgroundColor: "#00ffff",
     paddingHorizontal: scale(30), paddingVertical: scale(12),
-    borderRadius: scale(25), marginBottom: scale(10),
-    ...Platform.select({
-      ios:     { shadowColor:"#00ffff", shadowOffset:{width:0,height:4}, shadowOpacity:0.5, shadowRadius:10 },
-      android: { elevation: 6 },
-    }),
+    borderRadius: scale(25), marginBottom: scale(10), elevation: 6,
   },
   playAgainText: { fontSize: scale(14), fontWeight: "900", color: "#0d0118" },
   exitBtn:       { flexDirection: "row", alignItems: "center", paddingVertical: scale(8) },

@@ -19,6 +19,7 @@ import {
   CheckCircle, XCircle, Zap, Brain, Eye, EyeOff,
 } from "lucide-react-native";
 import GameBannerAd from "../../Components/GameBannerAd";
+import { useInterstitialAd } from "../../Components/Useinterstitialad";
 
 const SCREEN_WIDTH  = Dimensions.get("window").width;
 const GAME_DURATION = 30;
@@ -120,10 +121,11 @@ function LevelDots({ level, max = 5 }) {
     </View>
   );
 }
-
+ 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function ColorTrap() {
   const navigation = useNavigation();
+  const { showAd } = useInterstitialAd(); // ← hook
 
   const [phase,    setPhase]    = useState("idle");
   const [q,        setQ]        = useState(null);
@@ -134,7 +136,7 @@ export default function ColorTrap() {
   const [correct,  setCorrect]  = useState(0);
   const [wrong,    setWrong]    = useState(0);
   const [chosen,   setChosen]   = useState(null);
-  const [feedback, setFeedback] = useState(null); // "correct" | "wrong" | null
+  const [feedback, setFeedback] = useState(null);
 
   const timerRef     = useRef(null);
   const overlayAnim  = useRef(new Animated.Value(0)).current;
@@ -308,7 +310,6 @@ export default function ColorTrap() {
             </View>
           </View>
 
-     
           <Pressable
             style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.88 }]}
             onPress={startGame}
@@ -429,9 +430,9 @@ export default function ColorTrap() {
               let swatchOp    = 0.7;
 
               if (revealed) {
-                if (isCorrect)   { borderColor = "#4caf5080"; bgColor = "#0a2e18"; txtColor = "#4caf50"; swatchOp = 1; }
+                if (isCorrect)    { borderColor = "#4caf5080"; bgColor = "#0a2e18"; txtColor = "#4caf50"; swatchOp = 1; }
                 else if (isChosen){ borderColor = "#ff408180"; bgColor = "#2e0a14"; txtColor = "#ff4081"; swatchOp = 1; }
-                else             { txtColor = "#ffffff28"; swatchOp = 0.25; }
+                else              { txtColor = "#ffffff28"; swatchOp = 0.25; }
               }
 
               return (
@@ -507,17 +508,19 @@ export default function ColorTrap() {
                 </View>
               )}
 
+              {/* Play Again → interstitial then restart */}
               <Pressable
                 style={({ pressed }) => [styles.playAgainBtn, pressed && { opacity: 0.88 }]}
-                onPress={startGame}
+                onPress={() => showAd(startGame)}
               >
                 <PlayCircle size={scale(17)} color="#0d0118" strokeWidth={2.5} />
                 <Text style={styles.playAgainText}>  Play Again</Text>
               </Pressable>
 
+              {/* Back to Games → interstitial then navigate */}
               <Pressable
                 style={({ pressed }) => [styles.exitBtn, pressed && { opacity: 0.6 }]}
-                onPress={() => navigation.goBack()}
+                onPress={() => showAd(() => navigation.goBack())}
               >
                 <ChevronLeft size={scale(13)} color="#9e86b8" />
                 <Text style={styles.exitText}>Back to Games</Text>
@@ -576,16 +579,6 @@ function StatPill({ label, value, color, urgent, extra }) {
   );
 }
 
-function RuleTile({ color, icon, title, desc }) {
-  return (
-    <View style={[styles.ruleTile, { borderColor: color + "33" }]}>
-      <View style={[styles.ruleTileIcon, { backgroundColor: color + "18" }]}>{icon}</View>
-      <Text style={[styles.ruleTileTitle, { color }]}>{title}</Text>
-      <Text style={styles.ruleTileDesc}>{desc}</Text>
-    </View>
-  );
-}
-
 function WinStat({ label, value, color }) {
   return (
     <View style={styles.winStat}>
@@ -601,7 +594,6 @@ const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: "#0d0118" },
   playingRoot:  { alignItems: "center" },
 
-  // Header
   header: {
     width: "100%",
     flexDirection: "row",
@@ -616,10 +608,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f0a3a",
     borderWidth: 1, borderColor: "#ffffff18",
     justifyContent: "center", alignItems: "center",
-    ...Platform.select({
-      ios:     { shadowColor: "#7b2fff", shadowOffset: { width:0, height:2 }, shadowOpacity: 0.3, shadowRadius: 6 },
-      android: { elevation: 4 },
-    }),
+    elevation: 4,
   },
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   headerTitle: {
@@ -627,12 +616,11 @@ const styles = StyleSheet.create({
     textShadowColor: "#ff00ff66", textShadowOffset: { width:0, height:0 }, textShadowRadius: 8,
   },
 
-  // Idle
   idleContent: {
     alignItems: "center",
     paddingHorizontal: scale(20),
     paddingTop: scale(8),
-    paddingBottom: scale(24),   // breathing room above the banner
+    paddingBottom: scale(24),
     gap: scale(16),
   },
   idleTitleBlock: { alignItems: "center", gap: scale(4) },
@@ -658,37 +646,15 @@ const styles = StyleSheet.create({
   demoRow:     { flexDirection: "row", alignItems: "center" },
   demoRowText: { fontSize: scale(11), color: "#9e86b8", fontWeight: "500" },
 
-  rulesGrid: {
-    width: "100%",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: scale(10),
-  },
-  ruleTile: {
-    width: (SCREEN_WIDTH - scale(40) - scale(10)) / 2,
-    backgroundColor: "#160728",
-    borderRadius: scale(14),
-    borderWidth: 1,
-    padding: scale(12),
-    gap: scale(5),
-  },
-  ruleTileIcon:  { width: scale(28), height: scale(28), borderRadius: scale(8), justifyContent: "center", alignItems: "center" },
-  ruleTileTitle: { fontSize: scale(12), fontWeight: "800", letterSpacing: 0.3 },
-  ruleTileDesc:  { fontSize: scale(10), color: "#9e86b8", fontWeight: "400", lineHeight: scale(14) },
-
   startBtn: {
     flexDirection: "row", alignItems: "center",
     backgroundColor: "#ff00ff",
     paddingHorizontal: scale(40), paddingVertical: scale(14),
     borderRadius: scale(25),
-    ...Platform.select({
-      ios:     { shadowColor: "#ff00ff", shadowOffset: { width:0, height:6 }, shadowOpacity: 0.5, shadowRadius: 14 },
-      android: { elevation: 8 },
-    }),
+    elevation: 8,
   },
   startBtnText: { fontSize: scale(15), fontWeight: "900", color: "#0d0118", letterSpacing: 0.5 },
 
-  // Playing
   statsRow: {
     flexDirection: "row", gap: scale(8),
     paddingHorizontal: scale(16),
@@ -726,10 +692,7 @@ const styles = StyleSheet.create({
     paddingTop: scale(24), overflow: "hidden",
     alignItems: "center", marginBottom: scale(10),
     minHeight: scale(130),
-    ...Platform.select({
-      ios:     { shadowColor: "#ff00ff", shadowOffset: { width:0, height:4 }, shadowOpacity: 0.12, shadowRadius: 12 },
-      android: { elevation: 5 },
-    }),
+    elevation: 5,
   },
   wordGlowBg: { ...StyleSheet.absoluteFillObject, borderRadius: scale(22) },
   streakBadge: {
@@ -769,15 +732,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#160728", borderRadius: scale(16), borderWidth: 1.5,
     paddingVertical: scale(14), paddingHorizontal: scale(14),
     flexDirection: "row", alignItems: "center",
-    ...Platform.select({
-      ios:     { shadowColor: "#000", shadowOffset: { width:0, height:2 }, shadowOpacity: 0.18, shadowRadius: 4 },
-      android: { elevation: 3 },
-    }),
+    elevation: 3,
   },
   colorSwatch: { width: scale(16), height: scale(16), borderRadius: scale(5), marginRight: scale(8) },
   colorBtnText: { fontSize: scale(13), fontWeight: "800", letterSpacing: 0.8, flex: 1 },
 
-  // Overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(5,0,14,0.96)",
@@ -788,19 +747,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: "#ff00ff44",
     padding: scale(24), alignItems: "center",
     width: SCREEN_WIDTH - scale(40),
-    ...Platform.select({
-      ios:     { shadowColor: "#ff00ff", shadowOffset: { width:0, height:0 }, shadowOpacity: 0.5, shadowRadius: 24 },
-      android: { elevation: 12 },
-    }),
+    elevation: 12,
   },
   trophyRing: {
     width: scale(76), height: scale(76), borderRadius: scale(38),
     backgroundColor: "#1f0a3a", borderWidth: 2, borderColor: "#ffd70044",
     justifyContent: "center", alignItems: "center", marginBottom: scale(12),
-    ...Platform.select({
-      ios:     { shadowColor: "#ffd700", shadowOffset: { width:0, height:0 }, shadowOpacity: 0.4, shadowRadius: 14 },
-      android: { elevation: 6 },
-    }),
+    elevation: 6,
   },
   winTitle: {
     fontSize: scale(26), fontWeight: "900", color: "#ffd700", letterSpacing: 5,
@@ -839,10 +792,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ff00ff",
     paddingHorizontal: scale(32), paddingVertical: scale(13),
     borderRadius: scale(25), marginBottom: scale(10),
-    ...Platform.select({
-      ios:     { shadowColor: "#ff00ff", shadowOffset: { width:0, height:4 }, shadowOpacity: 0.5, shadowRadius: 10 },
-      android: { elevation: 6 },
-    }),
+    elevation: 6,
   },
   playAgainText: { fontSize: scale(14), fontWeight: "900", color: "#0d0118", letterSpacing: 0.5 },
   exitBtn: { flexDirection: "row", alignItems: "center", paddingVertical: scale(8) },

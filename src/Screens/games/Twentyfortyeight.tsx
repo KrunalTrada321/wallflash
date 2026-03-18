@@ -20,6 +20,7 @@ import {
   ArrowRight, Star, Flame, Award, Zap,
 } from "lucide-react-native";
 import GameBannerAd from "../../Components/GameBannerAd";
+import { useInterstitialAd } from "../../Components/Useinterstitialad";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const GRID_SIZE    = 4;
@@ -71,7 +72,6 @@ function addRandomTile(grid) {
 }
 
 function slideRow(row) {
-  // remove zeros, merge, pad with zeros
   let tiles   = row.filter((v) => v !== 0);
   let merged  = 0;
   let points  = 0;
@@ -108,7 +108,6 @@ function rotateLeft(grid) {
 }
 
 function move(grid, dir) {
-  // rotate so we always slide left, then rotate back
   let rotated = grid;
   if (dir === "right") { rotated = rotateRight(rotateRight(grid)); }
   else if (dir === "up")    { rotated = rotateLeft(grid); }
@@ -199,15 +198,16 @@ function ScorePop({ points }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function TwentyFortyEight() {
   const navigation = useNavigation();
-
+  const { showAd } = useInterstitialAd(); // ← hook
+ 
   const [grid, setGrid]       = useState(emptyGrid);
   const [score, setScore]     = useState(0);
   const [best, setBest]       = useState(0);
-  const [phase, setPhase]     = useState("idle"); // idle | playing | won | over
-  const [newCells, setNewCells]     = useState(new Set());
-  const [mergedCells, setMergedCells] = useState(new Set());
-  const [scorePops, setScorePops]   = useState([]); // { id, pts }
-  const [keepPlaying, setKeepPlaying] = useState(false);
+  const [phase, setPhase]     = useState("idle");
+  const [newCells, setNewCells]         = useState(new Set());
+  const [mergedCells, setMergedCells]   = useState(new Set());
+  const [scorePops, setScorePops]       = useState([]);
+  const [keepPlaying, setKeepPlaying]   = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -224,7 +224,7 @@ export default function TwentyFortyEight() {
     setScore(0);
     setPhase("playing");
     setKeepPlaying(false);
-    setShowTutorial(true); // show swipe guide before first move
+    setShowTutorial(true);
     setNewCells(new Set());
     setMergedCells(new Set());
     setScorePops([]);
@@ -243,7 +243,6 @@ export default function TwentyFortyEight() {
     const nextGrid = addRandomTile(result.grid);
     setGrid(nextGrid);
 
-    // Track which cells are new / merged for animation
     const newSet    = new Set();
     const mergedSet = new Set();
     nextGrid.forEach((row, r) => row.forEach((v, c) => {
@@ -251,7 +250,6 @@ export default function TwentyFortyEight() {
         if (v === result.grid[r][c]) mergedSet.add(`${r}-${c}`);
       }
     }));
-    // find the newly added tile
     nextGrid.forEach((row, r) => row.forEach((v, c) => {
       if (result.grid[r][c] === 0 && v !== 0) newSet.add(`${r}-${c}`);
     }));
@@ -282,11 +280,9 @@ export default function TwentyFortyEight() {
     }
   }, [phase, score, keepPlaying]);
 
-  // ── handleMove ref — keeps PanResponder closure always fresh ───────────────
   const handleMoveRef = useRef(handleMove);
   useEffect(() => { handleMoveRef.current = handleMove; }, [handleMove]);
 
-  // ── PanResponder — created once, reads via ref to avoid stale closure ───────
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -323,7 +319,6 @@ export default function TwentyFortyEight() {
             Swipe to merge matching tiles.{"\n"}Reach the <Text style={{ color: "#ffd700", fontWeight: "900" }}>2048</Text> tile to win!
           </Text>
 
-          {/* Mini demo grid */}
           <View style={styles.demoGrid}>
             {[2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 0].map((v, i) => {
               const ts = getTileStyle(v);
@@ -355,7 +350,6 @@ export default function TwentyFortyEight() {
       <StatusBar barStyle="light-content" backgroundColor="#0d0118" />
       <Header onBack={() => navigation.goBack()} onReset={startGame} showReset />
 
-      {/* Score row */}
       <View style={styles.scoreRow}>
         <ScoreBox label="SCORE" value={score} color="#ffd700" />
         <ScoreBox label="BEST"  value={best}  color="#ff00ff" />
@@ -365,14 +359,10 @@ export default function TwentyFortyEight() {
         </View>
       </View>
 
-      {/* Swipe hint */}
       <Text style={styles.hintText}>⬅  Swipe to move tiles  ➡</Text>
 
-      {/* Board */}
       <View style={styles.board} {...panResponder.panHandlers}>
-        {/* Score pops */}
         {scorePops.map((p) => <ScorePop key={p.id} points={p.pts} />)}
-
         {grid.map((row, r) => (
           <View key={r} style={styles.boardRow}>
             {row.map((v, c) => (
@@ -387,10 +377,10 @@ export default function TwentyFortyEight() {
         ))}
       </View>
 
-      {/* Win / Game Over overlay */}
       {showTutorial && (
         <SwipeTutorial onDismiss={() => setShowTutorial(false)} />
       )}
+
       {(phase === "won" || phase === "over") && (
         <Animated.View style={[styles.overlay, {
           opacity: overlayAnim,
@@ -414,17 +404,16 @@ export default function TwentyFortyEight() {
             </View>
 
             <View style={styles.winStatsRow}>
-              <WinStat label="Score"     value={score}        color="#ffd700" />
+              <WinStat label="Score"    value={score}       color="#ffd700" />
               <View style={styles.winStatDivider} />
-              <WinStat label="Best"      value={best}         color="#ff00ff" />
+              <WinStat label="Best"     value={best}        color="#ff00ff" />
               <View style={styles.winStatDivider} />
-              <WinStat label="Top Tile"  value={highestTile}  color={getTileStyle(highestTile).bg} />
+              <WinStat label="Top Tile" value={highestTile} color={getTileStyle(highestTile).bg} />
             </View>
 
-            {/* Keep going after 2048 */}
             {phase === "won" && (
               <Pressable
-                style={[styles.keepGoingBtn]}
+                style={styles.keepGoingBtn}
                 onPress={() => {
                   setKeepPlaying(true);
                   setPhase("playing");
@@ -436,11 +425,20 @@ export default function TwentyFortyEight() {
               </Pressable>
             )}
 
-            <Pressable style={[styles.playAgainBtn, { backgroundColor: "#ffd700" }]} onPress={startGame}>
+            {/* New Game → interstitial then restart */}
+            <Pressable
+              style={[styles.playAgainBtn, { backgroundColor: "#ffd700" }]}
+              onPress={() => showAd(startGame)}
+            >
               <PlayCircle size={scale(16)} color="#0d0118" strokeWidth={2.5} />
               <Text style={styles.playAgainText}>  New Game</Text>
             </Pressable>
-            <Pressable style={styles.exitBtn} onPress={() => navigation.goBack()}>
+
+            {/* Back to Games → interstitial then navigate */}
+            <Pressable
+              style={styles.exitBtn}
+              onPress={() => showAd(() => navigation.goBack())}
+            >
               <ChevronLeft size={scale(13)} color="#9e86b8" />
               <Text style={styles.exitText}>Back to Games</Text>
             </Pressable>
@@ -448,9 +446,7 @@ export default function TwentyFortyEight() {
         </Animated.View>
       )}
 
-        <GameBannerAd bottom size="banner" />
-      
-
+      <GameBannerAd bottom size="banner" />
     </SafeAreaView>
   );
 }
@@ -520,7 +516,6 @@ function SwipeTutorial({ onDismiss }) {
   const DIST = scale(54);
 
   useEffect(() => {
-    // Entrance
     Animated.spring(cardScale, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }).start();
     runStep(0);
   }, []);
@@ -535,18 +530,13 @@ function SwipeTutorial({ onDismiss }) {
     trailScale.setValue(0);
 
     Animated.sequence([
-      // Finger appears at center
       Animated.timing(fingerOpac, { toValue: 1, duration: 200, useNativeDriver: true }),
-      // Trail pulse
       Animated.spring(trailScale, { toValue: 1, tension: 120, friction: 6, useNativeDriver: true }),
-      // Slide in direction
       Animated.parallel([
         Animated.timing(fingerX, { toValue: s.dx * DIST, duration: 480, useNativeDriver: true }),
         Animated.timing(fingerY, { toValue: s.dy * DIST, duration: 480, useNativeDriver: true }),
       ]),
-      // Pause at end
       Animated.delay(260),
-      // Fade out
       Animated.timing(fingerOpac, { toValue: 0, duration: 200, useNativeDriver: true }),
       Animated.delay(180),
     ]).start(() => {
@@ -560,14 +550,10 @@ function SwipeTutorial({ onDismiss }) {
   return (
     <View style={tutStyles.backdrop}>
       <Animated.View style={[tutStyles.card, { transform: [{ scale: cardScale }] }]}>
-
-        {/* Title */}
         <Text style={tutStyles.title}>How to Play</Text>
         <Text style={tutStyles.subtitle}>Swipe the board in any direction</Text>
 
-        {/* Animated demo area */}
         <View style={tutStyles.demoArea}>
-          {/* Grid hint lines */}
           <View style={tutStyles.gridHint}>
             {[0,1,2,3].map(r => (
               <View key={r} style={tutStyles.gridRow}>
@@ -578,7 +564,6 @@ function SwipeTutorial({ onDismiss }) {
             ))}
           </View>
 
-          {/* Trail ring */}
           <Animated.View
             style={[
               tutStyles.trail,
@@ -586,7 +571,6 @@ function SwipeTutorial({ onDismiss }) {
             ]}
           />
 
-          {/* Finger */}
           <Animated.Text
             style={[
               tutStyles.finger,
@@ -596,7 +580,6 @@ function SwipeTutorial({ onDismiss }) {
             👆
           </Animated.Text>
 
-          {/* Direction arrow */}
           <Animated.Text
             style={[
               tutStyles.dirArrow,
@@ -614,11 +597,9 @@ function SwipeTutorial({ onDismiss }) {
           </Animated.Text>
         </View>
 
-        {/* Step label */}
         <Text style={[tutStyles.stepLabel, { color: current.color }]}>{current.label}</Text>
         <Text style={tutStyles.stepSub}>{current.sub}</Text>
 
-        {/* Step dots */}
         <View style={tutStyles.dots}>
           {SWIPE_STEPS.map((_, i) => (
             <View
@@ -628,14 +609,12 @@ function SwipeTutorial({ onDismiss }) {
           ))}
         </View>
 
-        {/* Rules quick list */}
         <View style={tutStyles.rulesList}>
           <Text style={tutStyles.rulesItem}>🟰  Same tiles merge into their sum</Text>
           <Text style={tutStyles.rulesItem}>🏆  Reach <Text style={{ color: "#ffd700", fontWeight: "900" }}>2048</Text> to win!</Text>
           <Text style={tutStyles.rulesItem}>♾️   Keep going beyond 2048</Text>
         </View>
 
-        {/* Got it button */}
         <Pressable style={[tutStyles.gotItBtn, { backgroundColor: current.color }]} onPress={onDismiss}>
           <Text style={tutStyles.gotItText}>Got it!  Let's Play 🎮</Text>
         </Pressable>
@@ -667,7 +646,6 @@ const tutStyles = StyleSheet.create({
     textShadowColor: "#ffd70066", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
   subtitle: { fontSize: scale(12), color: "#9e86b8", marginBottom: scale(18), fontWeight: "500" },
-
   demoArea: {
     width: scale(140), height: scale(140),
     backgroundColor: "#0e0222",
@@ -680,9 +658,8 @@ const tutStyles = StyleSheet.create({
     overflow: "hidden",
   },
   gridHint: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, padding: scale(8), gap: scale(3) },
-  gridRow: { flex: 1, flexDirection: "row", gap: scale(3) },
+  gridRow:  { flex: 1, flexDirection: "row", gap: scale(3) },
   gridCell: { flex: 1, backgroundColor: "#1a0b2e", borderRadius: scale(4) },
-
   trail: {
     position: "absolute",
     width: scale(44), height: scale(44),
@@ -691,31 +668,24 @@ const tutStyles = StyleSheet.create({
     backgroundColor: "transparent",
     opacity: 0.4,
   },
-  finger: { position: "absolute", fontSize: scale(28), zIndex: 5 },
-  dirArrow: {
-    position: "absolute", fontSize: scale(22), fontWeight: "900", zIndex: 4,
-  },
-
+  finger:   { position: "absolute", fontSize: scale(28), zIndex: 5 },
+  dirArrow: { position: "absolute", fontSize: scale(22), fontWeight: "900", zIndex: 4 },
   stepLabel: { fontSize: scale(18), fontWeight: "900", letterSpacing: 1, marginBottom: scale(2) },
   stepSub:   { fontSize: scale(12), color: "#9e86b8", marginBottom: scale(14), fontWeight: "500" },
-
   dots: { flexDirection: "row", gap: scale(6), marginBottom: scale(16) },
   dot: {
     width: scale(8), height: scale(8), borderRadius: scale(4),
     backgroundColor: "#2a1a4e",
   },
-
   rulesList: {
     backgroundColor: "#160728", borderRadius: scale(12), padding: scale(12),
     width: "100%", marginBottom: scale(18), gap: scale(6),
     borderWidth: 1, borderColor: "#ffffff0e",
   },
   rulesItem: { fontSize: scale(11), color: "#c9b8e8", fontWeight: "500", lineHeight: scale(17) },
-
   gotItBtn: {
     paddingHorizontal: scale(32), paddingVertical: scale(13),
     borderRadius: scale(25), elevation: 6,
-    shadowColor: "#ffd700", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10,
   },
   gotItText: { fontSize: scale(14), fontWeight: "900", color: "#0d0118" },
 });
@@ -725,13 +695,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0d0118", alignItems: "center" },
 
   header: { width: "100%", flexDirection: "row", alignItems: "center", paddingHorizontal: scale(16), paddingTop: scale(12), paddingBottom: scale(8) },
-  iconBtn: { width: scale(38), height: scale(38), borderRadius: scale(12), backgroundColor: "#1f0a3a", borderWidth: 1, borderColor: "#ffffff18", justifyContent: "center", alignItems: "center" },
+  iconBtn: { width: scale(38), height: scale(38), borderRadius: scale(12), backgroundColor: "#1f0a3a", borderWidth: 1, borderColor: "#ffffff18", justifyContent: "center", alignItems: "center", elevation: 3 },
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: scale(20), fontWeight: "900", letterSpacing: 3 },
 
-  // Start screen
   startScreen: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: scale(24) },
-  bigIconRing: { width: scale(100), height: scale(100), borderRadius: scale(50), backgroundColor: "#1f0a3a", borderWidth: 2, justifyContent: "center", alignItems: "center", marginBottom: scale(16) },
+  bigIconRing: { width: scale(100), height: scale(100), borderRadius: scale(50), backgroundColor: "#1f0a3a", borderWidth: 2, justifyContent: "center", alignItems: "center", marginBottom: scale(16), elevation: 5 },
   gameTitle: { fontSize: scale(42), fontWeight: "900", letterSpacing: 4, marginBottom: scale(8), textShadowColor: "#ffd70088", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 },
   gameSubtitle: { fontSize: scale(13), color: "#9e86b8", textAlign: "center", lineHeight: scale(20), marginBottom: scale(18) },
 
@@ -739,13 +708,12 @@ const styles = StyleSheet.create({
   demoTile: { width: scale(40), height: scale(40), borderRadius: scale(6), justifyContent: "center", alignItems: "center" },
   demoTileText: { fontSize: scale(9), fontWeight: "900" },
 
-  rulesBox: { backgroundColor: "#160728", borderRadius: scale(14), padding: scale(14), width: "100%", marginBottom: scale(24), gap: scale(10), borderWidth: 1, borderColor: "#ffffff10" },
-  ruleRow: { flexDirection: "row", alignItems: "center", gap: scale(8) },
+  rulesBox: { backgroundColor: "#160728", borderRadius: scale(14), padding: scale(14), minWidth: "100%", marginBottom: scale(24), gap: scale(10), borderWidth: 1, borderColor: "#ffffff10" },
+  ruleRow:  { flexDirection: "row", alignItems: "center", gap: scale(8) },
   ruleText: { fontSize: scale(12), color: "#c9b8e8", fontWeight: "500", flex: 1 },
-  startBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: scale(36), paddingVertical: scale(14), borderRadius: scale(25), elevation: 6, shadowColor: "#ffd700", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10 },
+  startBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: scale(36), paddingVertical: scale(14), borderRadius: scale(25), elevation: 6 },
   startBtnText: { fontSize: scale(15), fontWeight: "900", color: "#0d0118" },
 
-  // Playing
   scoreRow: { flexDirection: "row", gap: scale(8), paddingHorizontal: scale(16), marginBottom: scale(8), width: "100%" },
   scoreBox: { flex: 1, backgroundColor: "#160728", borderRadius: scale(12), borderWidth: 1, paddingVertical: scale(8), alignItems: "center" },
   scoreBoxLabel: { fontSize: scale(8), color: "#9e86b8", fontWeight: "800", letterSpacing: 1 },
@@ -754,12 +722,8 @@ const styles = StyleSheet.create({
   highTileLabel: { fontSize: scale(8), color: "#9e86b8", fontWeight: "800", letterSpacing: 1 },
   highTileVal: { fontSize: scale(16), fontWeight: "900", marginTop: scale(2) },
 
-  hintText: {
-    fontSize: scale(11), color: "#ffffff22", fontWeight: "600",
-    textAlign: "center", marginBottom: scale(10), letterSpacing: 0.5,
-  },
+  hintText: { fontSize: scale(11), color: "#ffffff22", fontWeight: "600", textAlign: "center", marginBottom: scale(10), letterSpacing: 0.5 },
 
-  // Board
   board: {
     width: SCREEN_WIDTH - scale(32),
     backgroundColor: "#0e0222",
@@ -769,39 +733,32 @@ const styles = StyleSheet.create({
     borderColor: "#ffffff0a",
     gap: GAP,
     position: "relative",
-    ...Platform.select({ ios: { shadowColor: "#7b2fff", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12 }, android: { elevation: 6 } }),
+    elevation: 6,
   },
   boardRow: { flexDirection: "row", gap: GAP },
 
   emptyTile: { width: TILE_SIZE, height: TILE_SIZE, borderRadius: scale(8), backgroundColor: "#1a0b2e" },
-  tile: {
-    width: TILE_SIZE, height: TILE_SIZE, borderRadius: scale(8),
-    justifyContent: "center", alignItems: "center",
-    ...Platform.select({ ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 }, android: { elevation: 3 } }),
-  },
-  tile2048: {
-    ...Platform.select({ ios: { shadowColor: "#ffd700", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 12 }, android: { elevation: 8 } }),
-  },
+  tile: { width: TILE_SIZE, height: TILE_SIZE, borderRadius: scale(8), justifyContent: "center", alignItems: "center", elevation: 3 },
+  tile2048: { elevation: 8 },
   tileText: { fontWeight: "900", letterSpacing: 0.5 },
 
   scorePop: { position: "absolute", top: BOARD_PAD + TILE_SIZE / 2, left: SCREEN_WIDTH / 2 - scale(24), fontSize: scale(16), fontWeight: "900", color: "#ffd700", zIndex: 10, textShadowColor: "#ffd70088", textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6 },
 
-  // Overlay
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.92)", justifyContent: "center", alignItems: "center", zIndex: 99 },
-  winCard: { backgroundColor: "#100520", borderRadius: scale(24), borderWidth: 1.5, padding: scale(24), alignItems: "center", width: SCREEN_WIDTH - scale(48) },
-  trophyRing: { width: scale(76), height: scale(76), borderRadius: scale(38), backgroundColor: "#1f0a3a", borderWidth: 2, justifyContent: "center", alignItems: "center", marginBottom: scale(12) },
+  winCard: { backgroundColor: "#100520", borderRadius: scale(24), borderWidth: 1.5, padding: scale(24), alignItems: "center", width: SCREEN_WIDTH - scale(48), elevation: 12 },
+  trophyRing: { width: scale(76), height: scale(76), borderRadius: scale(38), backgroundColor: "#1f0a3a", borderWidth: 2, justifyContent: "center", alignItems: "center", marginBottom: scale(12), elevation: 6 },
   winTitle: { fontSize: scale(28), fontWeight: "900", letterSpacing: 3, marginBottom: scale(6) },
   winEmoji: { fontSize: scale(28), marginBottom: scale(4) },
   perfBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "#1a0b2e", borderRadius: scale(20), paddingHorizontal: scale(14), paddingVertical: scale(6), marginBottom: scale(16), borderWidth: 1, borderColor: "#ffffff14" },
   winPerf: { fontSize: scale(14), fontWeight: "800" },
   winStatsRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#0d0118", borderRadius: scale(14), paddingVertical: scale(12), paddingHorizontal: scale(16), marginBottom: scale(16), gap: scale(16), borderWidth: 1, borderColor: "#ffffff0e", width: "100%", justifyContent: "center" },
-  winStat: { alignItems: "center", gap: scale(3) },
-  winStatValue: { fontSize: scale(16), fontWeight: "900" },
-  winStatLabel: { fontSize: scale(9), color: "#9e86b8", fontWeight: "600" },
+  winStat:        { alignItems: "center", gap: scale(3) },
+  winStatValue:   { fontSize: scale(16), fontWeight: "900" },
+  winStatLabel:   { fontSize: scale(9), color: "#9e86b8", fontWeight: "600" },
   winStatDivider: { width: 1, height: scale(36), backgroundColor: "#ffffff14" },
-  keepGoingBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#1f0a3a", borderWidth: 1.5, borderColor: "#ffd70066", paddingHorizontal: scale(28), paddingVertical: scale(11), borderRadius: scale(25), marginBottom: scale(10) },
+  keepGoingBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#1f0a3a", borderWidth: 1.5, borderColor: "#ffd70066", paddingHorizontal: scale(28), paddingVertical: scale(11), borderRadius: scale(25), marginBottom: scale(10), elevation: 4 },
   keepGoingText: { fontSize: scale(13), fontWeight: "800", color: "#ffd700" },
-  playAgainBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: scale(30), paddingVertical: scale(12), borderRadius: scale(25), marginBottom: scale(10), shadowColor: "#ffd700", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+  playAgainBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: scale(30), paddingVertical: scale(12), borderRadius: scale(25), marginBottom: scale(10), elevation: 5 },
   playAgainText: { fontSize: scale(14), fontWeight: "900", color: "#0d0118" },
   exitBtn: { flexDirection: "row", alignItems: "center", paddingVertical: scale(6) },
   exitText: { fontSize: scale(12), color: "#9e86b8", fontWeight: "600" },

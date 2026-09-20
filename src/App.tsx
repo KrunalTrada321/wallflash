@@ -28,12 +28,12 @@ import { initRewardedPremiumAd } from './Components/RewardedPremiumAd';
 
 
 const App = () => {
-  
-  const TOPIC = "all-users";  
+
+  const TOPIC = "all-users";
 
   const checkForUpdate = async () => {
     try {
-      const isNeeded = await VersionCheck.needUpdate(); 
+      const isNeeded = await VersionCheck.needUpdate();
 
       if (isNeeded?.isNeeded) {
 
@@ -43,7 +43,7 @@ const App = () => {
           'Update Available',
           'A new version of this app is available. Please update to continue.',
           [
-            { 
+            {
               text: 'Update Now',
               onPress: () => {
                 // const storeUrl = VersionCheck.getStoreUrl({
@@ -67,9 +67,9 @@ const App = () => {
     }, 2400);
 
     Orientation.lockToPortrait();
-    checkForUpdate();
+    // checkForUpdate();
     initRewardedPremiumAd();
- 
+
     return () => {
       clearTimeout(splashTimeout);
       Orientation.unlockAllOrientations();
@@ -83,17 +83,17 @@ const App = () => {
 
     const createAndroidChannel = async () => {
       if (Platform.OS === 'android') {
-        await notifee.createChannel({ 
+        await notifee.createChannel({
           id: 'high_importance_channel', // must match Node.js
           name: 'High Importance',
           importance: AndroidImportance.HIGH,
-          sound: 'custom_sound', 
-          vibration: true,   
+          sound: 'custom_sound',
+          vibration: true,
         });
-      } 
-    };  
+      }
+    };
 
- 
+
     const setupFCM = async () => {
       try {
         // iOS permissions
@@ -112,7 +112,7 @@ const App = () => {
             return;
           }
         }
- 
+
         // Android 13+ permissions
         if (Platform.OS === "android" && Platform.Version >= 33) {
           const granted = await PermissionsAndroid.request(
@@ -125,8 +125,8 @@ const App = () => {
         }
 
         await notifee.deleteChannel("high_importance_channel");
-        await createAndroidChannel(); 
- 
+        await createAndroidChannel();
+
 
         // Subscribe to topic
         await messaging().subscribeToTopic(TOPIC);
@@ -141,11 +141,11 @@ const App = () => {
             await notifee.displayNotification({
               title,
               body,
-              android: { channelId: 'high_importance_channel', sound: 'custom_sound'},
-              ios: { sound: 'default' }, 
+              android: { channelId: 'high_importance_channel', sound: 'custom_sound' },
+              ios: { sound: 'default' },
             });
           }
-        }); 
+        });
 
       } catch (err) {
         console.error("FCM setup error:", err);
@@ -159,23 +159,22 @@ const App = () => {
 
   return (
     <>
-      <NavigationContainer ref={navigationRef}> 
-       <SafeAreaView style={{flex:1, backgroundColor: colors.primary}}>
-       
-        <StatusBar
-          backgroundColor={colors.primary}
-          barStyle="light-content"
-        />
-        <StackNav />
+      <NavigationContainer ref={navigationRef}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.primary }}>
+
+          <StatusBar
+            backgroundColor={colors.primary}
+            barStyle="light-content"
+          />
+          <StackNav />
         </SafeAreaView>
       </NavigationContainer>
 
 
-    <FlashMessage position="top" />
-      
+      <FlashMessage position="top" />
+
     </>
   );
 };
- 
-export default App; 
- 
+
+export default App;

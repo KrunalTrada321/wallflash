@@ -63,7 +63,7 @@ const PrimeImages = ({ route }: any) => {
   }, []);
 
   const fetchCategoryImages = async (reset = false) => {
-    if (!isConnected) { setLoading(false); return; }
+    if (!isConnected) { setLoading(false); return []; }
     if (reset) setLoading(true);
 
     try {
@@ -71,22 +71,26 @@ const PrimeImages = ({ route }: any) => {
       if (reset) {
         setImages(fetched);
         setHasMore(fetched.length === PAGE_SIZE);
+        return fetched;
       } else {
         setImages(prev => [...prev, ...fetched]);
         if (fetched.length < PAGE_SIZE) setHasMore(false);
+        return fetched;
       }
     } catch (e) {
       console.log('❌ Error fetching images:', e);
+      return [];
     } finally {
       if (reset) setLoading(false);
     }
   };
 
   const handleLoadMore = async () => {
-    if (!hasMore || loadingMore) return;
+    if (!hasMore || loadingMore) return [];
     setLoadingMore(true);
-    await fetchCategoryImages();
+    const newImgs = await fetchCategoryImages();
     setLoadingMore(false);
+    return newImgs || [];
   };
 
   const handleRefresh = async () => {
@@ -140,7 +144,7 @@ const PrimeImages = ({ route }: any) => {
           <TouchableOpacity
             key={`img-${i}`}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri })}
+            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri, images: images, initialIndex: images.indexOf(uri), onLoadMore: handleLoadMore })}
           >
             <Image source={{ uri }} style={styles.image} />
           </TouchableOpacity>

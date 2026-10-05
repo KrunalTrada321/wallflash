@@ -100,7 +100,7 @@ const SeasonalImages = () => {
   const fetchImages = useCallback(async (reset = false) => {
     if (!isConnected) {
       setLoading(false);
-      return;
+      return [];
     }
 
     try {
@@ -120,8 +120,10 @@ const SeasonalImages = () => {
 
       // 🔹 If fewer than PAGE_LIMIT images are returned, no more images
       setHasMore(fetchedImages.length === PAGE_SIZE);
+      return fetchedImages;
     } catch (error) {
       console.log('❌ Error fetching images:', error);
+      return [];
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -145,10 +147,12 @@ const SeasonalImages = () => {
   //   }
   // };
 
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     if (!loading && hasMore) {
-      fetchImages(false); // load next batch
+      const newImgs = await fetchImages(false); // load next batch
+      return newImgs || [];
     }
+    return [];
   };
 
 
@@ -177,7 +181,7 @@ const SeasonalImages = () => {
   //     rewardedAd.show();
   //   } else {
   //     console.warn("⚠️ Ad not loaded, navigating directly.");
-  //     navigation.navigate('FullImageScreen', { imageUri });
+  //     navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
   //   }
   // };
 
@@ -186,11 +190,11 @@ const SeasonalImages = () => {
     setSelectedImage(imageUri);
 
     if (rewardedLoaded) {
-      navigation.navigate('FullImageScreen', { imageUri });
+      navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
       rewardedAd.show().then(() => rewardedAd.load()) // Reload the ad after showing
         .catch((error) => {
           console.log("⚠️ Failed to show ad:", error);
-          navigation.navigate('FullImageScreen', { imageUri });
+          navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
           rewardedAd.load(); // Reload the ad in case of failure
         });
     } else {
@@ -200,10 +204,10 @@ const SeasonalImages = () => {
         if (rewardedLoaded) {
           rewardedAd.show()
             .then(() => rewardedAd.load())
-            .catch(() => navigation.navigate('FullImageScreen', { imageUri }));
+            .catch(() => navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore }));
         } else {
           console.log("⚠️ Ad still not loaded, navigating directly.");
-          navigation.navigate('FullImageScreen', { imageUri });
+          navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
         }
       }, 3000); // Wait 3 seconds before retrying
     }
@@ -267,7 +271,7 @@ const SeasonalImages = () => {
                   handleImagePress(item); // Show Ad if ready
                 } else {
                   console.log("⚠️ Ad not ready, navigating directly.");
-                  navigation.navigate('FullImageScreen', { imageUri: item }); // Navigate without Ad
+                  navigation.navigate('FullImageScreen', { imageUri: item, images: images, initialIndex: images.indexOf(item), onLoadMore: handleLoadMore }); // Navigate without Ad
                   rewardedAd.load(); // Load the ad for next time
                 }
               }}

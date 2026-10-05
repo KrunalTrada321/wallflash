@@ -381,17 +381,21 @@ const HomeScreen = () => {
   }, [isConnected]);
 
   const handleLoadMore = async () => {
-    if (!hasMore || loading) return;
+    if (!hasMore || loading) return [];
     setLoading(true);
     try {
       const more = await fetchImagesFromFirestore(collections);
       if (more.length === 0) {
         setHasMore(false);
+        return [];
       } else {
-        setImages(prev => [...prev, ...more.sort(() => Math.random() - 0.5)]);
+        const shuffled = more.sort(() => Math.random() - 0.5);
+        setImages(prev => [...prev, ...shuffled]);
+        return shuffled;
       }
     } catch (e) {
       console.log('❌ Error loading more:', e);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -443,7 +447,7 @@ const HomeScreen = () => {
           <TouchableOpacity
             key={`img-${i}`}
             activeOpacity={0.90}
-            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri })}
+            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri, images: images, initialIndex: images.indexOf(uri), onLoadMore: handleLoadMore })}
           >
             <Image source={{ uri }} style={styles.image} />
           </TouchableOpacity>

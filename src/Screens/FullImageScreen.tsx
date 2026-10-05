@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   ActivityIndicator,
   Text,
   Animated,
@@ -12,6 +13,7 @@ import {
   PermissionsAndroid,
   Platform,
   Modal,
+  FlatList,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "../Styling/colors";
@@ -32,12 +34,82 @@ const { width, height } = Dimensions.get("window");
 
 const FullImageScreen = () => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const { imageUri } = route.params;
+  const route = useRoute<any>();
+  const { imageUri, images = [], initialIndex = 0, onLoadMore } = route.params || {};
+  const { width, height } = Dimensions.get("window");
+
+  const [localImages, setLocalImages] = useState(images);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const currentImageUri = localImages.length > 0 ? localImages[currentIndex] : imageUri;
+  const scrollX = useRef(new Animated.Value(initialIndex * width)).current;
 
   const [isLiked, setIsLiked] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const lastTapRef = useRef(0);
+
+  const handleDoubleTap = async () => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
+      if (!isLiked) {
+        await toggleLike();
+      }
+      
+      Animated.sequence([
+        Animated.parallel([
+          Animated.spring(heartScale, {
+            toValue: 1,
+            friction: 5,
+            tension: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(heartOpacity, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.delay(500),
+        Animated.parallel([
+          Animated.timing(heartScale, {
+            toValue: 0.5,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(heartOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ])
+      ]).start(() => {
+        heartScale.setValue(0);
+      });
+    }
+    lastTapRef.current = now;
+  };
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSettingWallpaper, setisSettingWallpaper] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (images.length > 1) {
+      AsyncStorage.getItem("swipe_tutorial_seen").then(val => {
+        if (!val) {
+          setShowTutorial(true);
+        }
+      });
+    }
+  }, [images]);
+
+  const handleDismissTutorial = () => {
+    setShowTutorial(false);
+    AsyncStorage.setItem("swipe_tutorial_seen", "true");
+  };
 
   const [modalVisible, setModalVisible] = useState(false);
   const popupAnim = useRef(new Animated.Value(0)).current; // ✅ for animation
@@ -78,14 +150,14 @@ const FullImageScreen = () => {
       try {
         let likedImages = await AsyncStorage.getItem("likedImages");
         likedImages = likedImages ? JSON.parse(likedImages) : [];
-        setIsLiked(likedImages.includes(imageUri));
+        setIsLiked(likedImages.includes(currentImageUri));
       } catch (error) {
         console.log("Error fetching liked images:", error);
       }
     };
 
     checkLikedStatus();
-  }, []);
+  }, [currentImageUri]);
 
   const borderColor = borderColorAnim.interpolate({
     inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
@@ -134,7 +206,7 @@ const FullImageScreen = () => {
       const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
       const downloadResult = await RNFS.downloadFile({
-        fromUrl: imageUri,
+        fromUrl: currentImageUri,
         toFile: filePath,
       }).promise;
 
@@ -199,7 +271,7 @@ const FullImageScreen = () => {
       setModalVisible(false); // Close modal first
       console.log("Setting wallpaper:", type);
 
-      await applyWallpaper(imageUri, type);
+      await applyWallpaper(currentImageUri, type);
       setisSettingWallpaper(false);
       showMessage({
         message: "Success",
@@ -227,11 +299,11 @@ const FullImageScreen = () => {
 
       if (isLiked) {
         // Remove from liked images
-        const updatedImages = likedImages.filter(img => img !== imageUri);
+        const updatedImages = likedImages.filter((img: string) => img !== currentImageUri);
         await AsyncStorage.setItem("likedImages", JSON.stringify(updatedImages));
       } else {
         // Add to liked images
-        likedImages.push(imageUri);
+        likedImages.push(currentImageUri);
         await AsyncStorage.setItem("likedImages", JSON.stringify(likedImages));
       }
 
@@ -244,7 +316,120 @@ const FullImageScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: imageUri }} style={styles.fullImage} resizeMode="cover" />
+      {localImages.length > 0 ? (
+        <Animated.FlatList
+          data={localImages}
+          horizontal
+          pagingEnabled
+          initialScrollIndex={initialIndex}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item}
+          getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(event.nativeEvent.contentOffset.x / width);
+            setCurrentIndex(index);
+          }}
+          onEndReached={async () => {
+            if (onLoadMore && !isLoadingMore && hasMore) {
+              setIsLoadingMore(true);
+              const newImages = await onLoadMore();
+              if (newImages && newImages.length > 0) {
+                setLocalImages((prev: any) => [...prev, ...newImages]);
+              } else {
+                setHasMore(false);
+              }
+              setIsLoadingMore(false);
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => 
+            isLoadingMore ? (
+              <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={colors.white} />
+              </View>
+            ) : null
+          }
+          renderItem={({ item, index }) => {
+            const inputRange = [
+              (index - 1) * width,
+              index * width,
+              (index + 1) * width,
+            ];
+
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.85, 1, 0.85],
+              extrapolate: 'clamp',
+            });
+
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.3, 1, 0.3],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <TouchableWithoutFeedback onPress={handleDoubleTap}>
+                <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+                  <Animated.Image 
+                    source={{ uri: item }} 
+                    style={[
+                      styles.fullImage, 
+                      { transform: [{ scale }], opacity }
+                    ]} 
+                    resizeMode="cover" 
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            );
+          }}
+        />
+      ) : (
+        <TouchableWithoutFeedback onPress={handleDoubleTap}>
+          <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+            <Image source={{ uri: currentImageUri }} style={styles.fullImage} resizeMode="cover" />
+          </View>
+        </TouchableWithoutFeedback>
+      )}
+
+      {/* Global Animated Heart for Double Tap */}
+      <Animated.View style={[
+        styles.globalHeartContainer,
+        {
+          opacity: heartOpacity,
+          transform: [{ scale: heartScale }]
+        }
+      ]} pointerEvents="none">
+        <View style={styles.glassContainer}>
+          <Ionicons name="heart" size={scale(60)} color="#FF2D55" />
+        </View>
+      </Animated.View>
+
+      {showTutorial && (
+        <TouchableOpacity activeOpacity={1} style={styles.tutorialOverlay} onPress={handleDismissTutorial}>
+          <View style={styles.tutorialBox}>
+            <MaterialCommunityIcons name="gesture-swipe-horizontal" size={scale(50)} color={colors.white} />
+            <Text style={styles.tutorialText}>Swipe left or right to change wallpapers</Text>
+            <Text style={styles.tutorialSubText}>Tap anywhere to dismiss</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Dynamic gradients for visibility on white/bright backgrounds */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.5)', 'transparent']}
+        style={styles.topGradient}
+        pointerEvents="none"
+      />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.6)']}
+        style={styles.bottomGradient}
+        pointerEvents="none"
+      />
 
       <TouchableOpacity activeOpacity={0.65} style={styles.backButton} onPress={() => navigation.goBack()}>
         <View style={styles.iconContainer}>
@@ -263,91 +448,67 @@ const FullImageScreen = () => {
         <TouchableOpacity activeOpacity={0.60} onPress={() => {
           setModalVisible(true)
         }}>
-          <Animated.View style={[styles.wallpaperButton, { borderColor: borderColor }]}>
+          <View style={styles.glassButton}>
             {isSettingWallpaper ? (
               <View style={{ flexDirection: "row" }}>
-                <Text style={{ color: colors.white, fontSize: scale(18), paddingRight: scale(5) }}>Applying</Text>
+                <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold', paddingRight: scale(5) }}>Applying</Text>
                 <ActivityIndicator size="small" color={colors.white} />
               </View>
             ) : (
-              <Text style={{ color: colors.white, fontSize: scale(18) }}>Set Wallpaper</Text>
+              <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold' }}>Set Wallpaper</Text>
             )}
-          </Animated.View>
+          </View>
         </TouchableOpacity>
 
 
 
         <TouchableOpacity activeOpacity={0.60} onPress={downloadImage} disabled={isDownloading}>
-          <Animated.View style={[styles.downloadButton, { borderColor: borderColor }]}>
+          <View style={[styles.glassButton, { marginLeft: scale(10), paddingHorizontal: scale(12) }]}>
             {isDownloading ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <MaterialCommunityIcons name="download" size={scale(25)} color={colors.white} />
+              <MaterialCommunityIcons name="download" size={scale(24)} color={colors.white} />
             )}
-          </Animated.View>
+          </View>
         </TouchableOpacity>
  
       </View>
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View style={styles.modalContainer}>
-          <Animated.View style={[styles.modalContent, { borderColor: borderColor }]}>
+          <View style={styles.glassModalContent}>
             <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("home")}>
-              <LinearGradient
-                 colors={['#6A11CB', '#2575FC']} 
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientButton}
-              >
+              <View style={styles.glassModalButton}>
                 <View style={styles.buttonContent}>
-                  <Text style={styles.gradientText}>Set as Homescreen</Text>
+                  <Text style={styles.glassModalButtonText}>Set as Homescreen</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("lock")}>
-              <LinearGradient
-                colors={['#2575FC', '#6A11CB']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientButton}
-              >
+              <View style={styles.glassModalButton}>
                 <View style={styles.buttonContent}>
-                  <Text style={styles.gradientText}>Set as Lockscreen</Text>
+                  <Text style={styles.glassModalButtonText}>Set as Lockscreen</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
-
 
             <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("both")}>
-              <LinearGradient
-                colors={['#6A11CB', '#2575FC']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientButton}
-              >
+              <View style={styles.glassModalButton}>
                 <View style={styles.buttonContent}>
-
-                  <Text style={styles.gradientText}>Set as Both</Text>
+                  <Text style={styles.glassModalButtonText}>Set as Both</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
-
 
             <TouchableOpacity activeOpacity={0.85} onPress={() => setModalVisible(false)}>
-              <LinearGradient
-                colors={['#FF4B2B', '#FF416C']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.gradientButton}
-              >
+              <View style={[styles.glassModalButton, { backgroundColor: 'rgba(255, 50, 80, 0.3)', borderColor: 'rgba(255, 50, 80, 0.5)' }]}>
                 <View style={styles.buttonContent}>
-
-                  <Text style={styles.gradientText}>Close</Text>
+                  <Text style={styles.glassModalButtonText}>Close</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       </Modal>
       <FlashMessage position="top" />
@@ -358,6 +519,61 @@ const FullImageScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "black" },
   fullImage: { width: width, height: height },
+  tutorialOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  tutorialBox: {
+    alignItems: 'center',
+    padding: scale(20),
+  },
+  tutorialText: {
+    color: '#FFF',
+    fontSize: scale(18),
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: scale(15),
+  },
+  tutorialSubText: {
+    color: '#CCC',
+    fontSize: scale(14),
+    marginTop: scale(10),
+  },
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: scale(120),
+    zIndex: 1,
+  },
+  bottomGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: scale(180),
+    zIndex: 1,
+  },
+  globalHeartContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 50,
+  },
+  glassContainer: {
+    width: scale(110),
+    height: scale(110),
+    borderRadius: scale(55), // Perfect circle
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Frosty translucent white
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)', // Shiny glass rim
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   backButton: { position: "absolute", left: scale(20), top: scale(20) },
   heartButton: { position: "absolute", right: scale(20), top: scale(20) },
   iconContainer: {
@@ -370,15 +586,15 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   setWallpaperButton: { position: "absolute", bottom: scale(20), flexDirection: "row", alignSelf: "center" },
-  wallpaperButton: {
-    backgroundColor: colors.black_transparant,
+  glassButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 0.8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: scale(16),
     paddingVertical: scale(10),
-    borderRadius: 15,
-
+    borderRadius: 20,
   },
   modalContainer: {
     flex: 1,
@@ -386,59 +602,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
-  modalContent: {
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+  glassModalContent: {
+    backgroundColor: 'rgba(15, 15, 20, 0.75)',
     padding: scale(20),
-    borderRadius: 15,
+    borderRadius: 25,
     alignItems: "center",
-    borderWidth: 0.5,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    width: scale(260),
   },
-
-  modalButton: { padding: 8, width: 200, backgroundColor: colors.white, marginVertical: 5, borderRadius: 5, alignItems: "center" },
-  closeButton: { padding: 6, width: 200, backgroundColor: '#F78989', marginTop: 10, borderRadius: 5, alignItems: "center" },
-  modalText: { color: colors.primary, fontSize: scale(16), fontWeight: "500" },
-
-  gradientButton: {
+  glassModalButton: {
     paddingVertical: 12,
     width: 220,
     borderRadius: 25,
     alignItems: "center",
     marginVertical: 6,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-
-  buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  icon: {
-    marginRight: 8,
-  },
-
-  gradientText: {
+  glassModalButtonText: {
     color: "#fff",
     fontSize: scale(16),
     fontWeight: "600",
     letterSpacing: 0.5,
   },
-
-
-  downloadButton: {
-    backgroundColor: colors.black_transparant,
-    justifyContent: "center",
+  buttonContent: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 0.8,
-    marginLeft: scale(10),
-    padding: scale(10),
-    borderRadius: 15,
-
-  }
+    justifyContent: "center",
+  },
+  icon: {
+    marginRight: 8,
+  },
 });
 
 export default FullImageScreen 

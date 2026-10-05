@@ -13,26 +13,7 @@ import PrimeImages from '../Screens/PrimeImages';
 import MyTabs from './BottomTab';
 import SeasonalImages from '../Screens/SeasonalImages';
 import PrimeCategories from '../Screens/PrimeCategories';
-
-// 🎮 Import your game screens here
-import MemoryCardGame from '../Screens/games/Memorycardgame';
-import ReactionRush from '../Screens/games/ReactionRush';
-import ColorTrap from '../Screens/games/ColorTrap';
-import WhackAMoji from '../Screens/games/WhackAMoji';
-import Snakegame from '../Screens/games/Snakegame';
-import Twentyfortyeight from '../Screens/games/Twentyfortyeight';
-import StackTower from '../Screens/games/Stacktower';
-import Ballblast from '../Screens/games/Ballblast';
-import FlowFreeGame from '../Screens/games/flowFree';
-import HoleIO from '../Screens/games/Holeio';
-import TunnelRush from '../Screens/games/Tunnelrush';
-import EndlessRunner from '../Screens/games/Endlessrunner';
-import VampireSurvivorsGame from '../Screens/games/Vampiresurvivorsgame';
-import CutTheRopeGame from '../Screens/games/Cuttheropegame';
-import EscapeGame from '../Screens/games/Escapegame';
-import TicTacToe from '../Screens/games/Tictactoe';
-// import WordGuess from '../Screens/Games/WordGuess';       // add more as needed
-// import NumberPuzzle from '../Screens/Games/NumberPuzzle'; // add more as needed
+import TwinsConnect from '../Screens/games/TwinsConnect';
 
 const Stack = createStackNavigator();
 
@@ -96,43 +77,7 @@ const StackNav = () => {
                         close: { animation: 'timing', config: { duration: 300 } },
                     },
                 }} />
-
-            {/* 🎮 Game Screens — all use slide_from_bottom for a natural "launch" feel */}
-            <Stack.Screen
-                name="MemoryCardGame"
-                component={MemoryCardGame}
-                options={{
-                    animation: 'fade',
-                    transitionSpec: {
-                        open: { animation: 'timing', config: { duration: 400 } },
-                        close: { animation: 'timing', config: { duration: 400 } },
-                    }, 
-                }}
-            />
-
-            <Stack.Screen name="ReactionRush" component={ReactionRush} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} />
-
-            <Stack.Screen name="ColorTrap" component={ColorTrap} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} />
-            <Stack.Screen name="WhackAMoji" component={WhackAMoji} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} />
-            <Stack.Screen name="SnakeGame" component={Snakegame}
+            <Stack.Screen name="TwinsConnect" component={TwinsConnect}
                 options={{
                     animation: 'fade',
                     transitionSpec: {
@@ -140,49 +85,6 @@ const StackNav = () => {
                         close: { animation: 'timing', config: { duration: 400 } },
                     },
                 }} />
-            <Stack.Screen name="TwentyFortyEight" component={Twentyfortyeight} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} />
-
-
-            <Stack.Screen name="StackTower" component={StackTower} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} />
-            <Stack.Screen name="BallBlast" component={Ballblast} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} /> 
-
-             <Stack.Screen name="FlowFreeGame" component={FlowFreeGame} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} /> 
-
-         <Stack.Screen name="TicTacToe" component={TicTacToe} options={{
-                animation: 'fade',
-                transitionSpec: {
-                    open: { animation: 'timing', config: { duration: 400 } },
-                    close: { animation: 'timing', config: { duration: 400 } },
-                },
-            }} /> 
- 
- 
-   
-
 
         </Stack.Navigator>
     );

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, Text, View, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../Styling/colors';
@@ -12,6 +12,34 @@ import PremiumWrapper from '../Components/PremiumWrapper';
 import GamesScreen from '../Screens/GamesScreen';
 
 const Tab = createBottomTabNavigator();
+
+const AnimatedTabIcon = ({ focused, children }: any) => {
+  const scaleValue = React.useRef(new Animated.Value(focused ? 1.2 : 1)).current;
+  const translateYValue = React.useRef(new Animated.Value(focused ? -3 : 0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleValue, {
+        toValue: focused ? 1.2 : 1,
+        useNativeDriver: true,
+        friction: 4,
+        tension: 60,
+      }),
+      Animated.spring(translateYValue, {
+        toValue: focused ? -3 : 0,
+        useNativeDriver: true,
+        friction: 4,
+        tension: 60,
+      })
+    ]).start();
+  }, [focused]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleValue }, { translateY: translateYValue }] }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 function MyTabs() {
   return (
@@ -38,19 +66,21 @@ function MyTabs() {
         component={GamesScreen}
         options={{ 
           tabBarIcon: ({ color, size, focused }) => (
-            <Image
-              source={
-                focused 
-                  ? require("../assets/bottomTab/games.png") // active icon
-                  : require("../assets/bottomTab/games-o.png") // inactive icon
-              }
-              style={{
-                width: scale(25),
-                height: scale(25),
-                tintColor: focused ? colors.flashColor : colors.white,
-                resizeMode: "contain",
-              }}
-            />
+            <AnimatedTabIcon focused={focused}>
+              <Image
+                source={
+                  focused 
+                    ? require("../assets/bottomTab/games.png") // active icon
+                    : require("../assets/bottomTab/games-o.png") // inactive icon
+                }
+                style={{
+                  width: scale(25),
+                  height: scale(25),
+                  tintColor: focused ? colors.flashColor : colors.white,
+                  resizeMode: "contain",
+                }}
+              />
+            </AnimatedTabIcon>
           ),
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
@@ -62,19 +92,21 @@ function MyTabs() {
         component={HomeScreen}
      options={{ 
           tabBarIcon: ({ color, size, focused }) => (
-            <Image
-              source={
-                focused 
-                  ? require("../assets/bottomTab/gallery.png") // active icon
-                  : require("../assets/bottomTab/gallery-o.png") // inactive icon
-              }
-              style={{
-                width: scale(24),
-                height: scale(24), 
-                tintColor: focused ? colors.flashColor : colors.white,
-                resizeMode: "contain",
-              }}
-            />
+            <AnimatedTabIcon focused={focused}>
+              <Image
+                source={
+                  focused 
+                    ? require("../assets/bottomTab/gallery.png") // active icon
+                    : require("../assets/bottomTab/gallery-o.png") // inactive icon
+                }
+                style={{
+                  width: scale(24),
+                  height: scale(24), 
+                  tintColor: focused ? colors.flashColor : colors.white,
+                  resizeMode: "contain",
+                }}
+              />
+            </AnimatedTabIcon>
           ),
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
@@ -86,11 +118,13 @@ function MyTabs() {
         component={CategoriesScreen}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'grid' : 'grid-outline'}
-              size={scale(24)}
-              color={focused ? colors.flashColor : colors.white}
-            />
+            <AnimatedTabIcon focused={focused}>
+              <Ionicons
+                name={focused ? 'grid' : 'grid-outline'}
+                size={scale(24)}
+                color={focused ? colors.flashColor : colors.white}
+              />
+            </AnimatedTabIcon>
           ),
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
@@ -137,19 +171,21 @@ function MyTabs() {
         component={PremiumWrapper}
         options={{ 
           tabBarIcon: ({ color, size, focused }) => (
-            <Image
-              source={
-                focused 
-                  ? require("../assets/bottomTab/crown2.png") // active icon
-                  : require("../assets/bottomTab/crown-outline.png") // inactive icon
-              }
-              style={{
-                width: scale(25),
-                height: scale(25),
-                tintColor: focused ? colors.flashColor : colors.white,
-                resizeMode: "contain",
-              }}
-            />
+            <AnimatedTabIcon focused={focused}>
+              <Image
+                source={
+                  focused 
+                    ? require("../assets/bottomTab/crown2.png") // active icon
+                    : require("../assets/bottomTab/crown-outline.png") // inactive icon
+                }
+                style={{
+                  width: scale(25),
+                  height: scale(25),
+                  tintColor: focused ? colors.flashColor : colors.white,
+                  resizeMode: "contain",
+                }}
+              />
+            </AnimatedTabIcon>
           ),
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,

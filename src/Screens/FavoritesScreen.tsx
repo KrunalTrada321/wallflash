@@ -47,7 +47,7 @@ const FavoritesScreen = () => {
           keyExtractor={(item, index) => index.toString()}
           numColumns={2}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => navigation.navigate("FullImageScreen", { imageUri: item })}>
+            <TouchableOpacity onPress={() => navigation.navigate("FullImageScreen", { imageUri: item, images: likedImages, initialIndex: likedImages.indexOf(item) })}>
               <Image source={{ uri: item }} style={styles.image} />
             </TouchableOpacity>
           )}

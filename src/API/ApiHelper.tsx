@@ -7,6 +7,8 @@ import {
   startAfter,
   DocumentData,
   QueryDocumentSnapshot,
+  documentId,
+  where,
 } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 
@@ -59,7 +61,9 @@ export const fetchImagesFromFirestore = async (
       if (lastDoc) {
         q = query(collRef, limit(perCollectionLimit), startAfter(lastDoc));
       } else {
-        q = query(collRef, limit(perCollectionLimit));
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
+        q = query(collRef, where(documentId(), '>=', randomChar), limit(perCollectionLimit));
       }
 
       const snapshot = await getDocs(q);

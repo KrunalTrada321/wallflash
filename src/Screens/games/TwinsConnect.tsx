@@ -35,9 +35,10 @@ const THEMES = [
 ];
 
 function generateLevelData(levelIndex: number) {
-  // Increase difficulty as level goes up
-  const size = Math.min(9, Math.max(5, Math.floor(levelIndex / 10) + 5)); // 5x5 up to 9x9
-  const numPairs = Math.min(size + 2, 8);
+  // Start smaller (4x4) and increase size every 5 levels to grow difficulty
+  const size = Math.min(10, Math.max(4, 4 + Math.floor(levelIndex / 5)));
+  // Number of pairs increases with size and level, capped at 8 (max theme size)
+  const numPairs = Math.min(size + Math.floor(levelIndex / 8), 8);
   
   const themeIndex = levelIndex % THEMES.length;
   const theme = THEMES[themeIndex];
@@ -46,7 +47,8 @@ function generateLevelData(levelIndex: number) {
   let paths: {x:number, y:number}[][] = [];
   
   let attempts = 0;
-  while (attempts < 1000) {
+  // Increased attempts to find better (harder) layouts
+  while (attempts < 2500) {
     attempts++;
     grid = Array(size).fill(0).map(() => Array(size).fill(-1));
     paths = Array.from({length: numPairs}, () => []);
@@ -88,13 +90,15 @@ function generateLevelData(levelIndex: number) {
     }
     
     if (unvisited === 0) {
-       if (paths.every(p => p.length >= 2)) {
+       // Ensure pairs are far apart (minimum path length) to make it difficult
+       const minLength = size >= 6 ? 4 : 3;
+       if (paths.every(p => p.length >= minLength)) {
          break;
        }
     }
   }
   
-  if (attempts >= 1000) {
+  if (attempts >= 2500) {
      // Guaranteed solvable fallback: cut a snake into segments
      const snakePath: {x:number, y:number}[] = [];
      for (let y = 0; y < size; y++) {
@@ -139,7 +143,7 @@ export default function TwinsConnect() {
 
   const levelData = useMemo(() => generateLevelData(currentLevel), [currentLevel]);
   const cellSize = Math.floor(boardPixelSize / levelData.size);
-  const lineThickness = cellSize * 0.35;
+  const lineThickness = cellSize * 0.18; // Thinner lines as requested
 
   const pathsRef = useRef<Record<string, {x:number, y:number}[]>>({});
   const activeEmojiRef = useRef<string | null>(null);

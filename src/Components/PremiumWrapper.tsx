@@ -87,6 +87,11 @@ const PremiumWrapper = () => {
 
 
   useEffect(() => {
+    // Safety net: Force hide loader after 8 seconds to prevent infinite loading
+    const fallbackTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 8000);
+
     const initIAP = async () => {
       try {
         // 1️⃣ Check local storage first
@@ -94,6 +99,7 @@ const PremiumWrapper = () => {
         if (savedPurchase === 'true') {
           setIsPurchased(true);
           setIsLoading(false);
+          clearTimeout(fallbackTimeout);
           return;
         }
 
@@ -102,6 +108,7 @@ const PremiumWrapper = () => {
           console.log("Not installed from Play Store:", installer);
           setIsFromPlayStore(false);
           setIsLoading(false);
+          clearTimeout(fallbackTimeout);
           return;
         }
 
@@ -154,6 +161,7 @@ const PremiumWrapper = () => {
       } catch (err) {
         console.warn("IAP init error:", err);
       } finally {
+        clearTimeout(fallbackTimeout);
         setIsLoading(false);
       }
     };
@@ -161,6 +169,7 @@ const PremiumWrapper = () => {
     initIAP();
 
     return () => {
+      clearTimeout(fallbackTimeout);
       if (purchaseUpdateSub) purchaseUpdateSub.remove();
       if (purchaseErrorSub) purchaseErrorSub.remove();
     };

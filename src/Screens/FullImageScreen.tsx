@@ -12,8 +12,9 @@ import {
   Alert,
   PermissionsAndroid,
   Platform,
-  Modal,
   FlatList,
+  Easing,
+  BackHandler,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { colors } from "../Styling/colors";
@@ -111,57 +112,133 @@ const FullImageScreen = () => {
     AsyncStorage.setItem("swipe_tutorial_seen", "true");
   };
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const popupAnim = useRef(new Animated.Value(0)).current; // ✅ for animation
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const isAnimatingRef = useRef(false);
+  const genieProgress = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+
+  // Exact coordinates of the Set Wallpaper button relative to screen center
+  const [buttonOrigin, setButtonOrigin] = useState({
+    x: -scale(29),
+    y: height / 2 - scale(42),
+  });
+
+  const onButtonContainerLayout = (event: any) => {
+    const { y, height: h } = event.nativeEvent.layout;
+    if (h > 0) {
+      const btnCenterY = y + h / 2;
+      const screenCenterY = height / 2;
+      setButtonOrigin(prev => ({
+        ...prev,
+        y: btnCenterY - screenCenterY,
+      }));
+    }
+  };
+
+  const onSetWallpaperBtnLayout = (event: any) => {
+    const { width: btnW } = event.nativeEvent.layout;
+    if (btnW > 0) {
+      const gap = scale(10);
+      const downloadBtnW = scale(48);
+      const calculatedX = -(gap + downloadBtnW) / 2;
+      setButtonOrigin(prev => ({
+        ...prev,
+        x: calculatedX,
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const backAction = () => {
+      hidePopup();
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
+  }, [isModalOpen]);
 
   const showPopup = () => {
-    setModalVisible(true);
-    Animated.timing(popupAnim, {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+    setIsModalOpen(true);
+    genieProgress.setValue(0);
+
+    // Button squashes down slightly as the genie emerges from it
+    Animated.sequence([
+      Animated.timing(buttonScale, { toValue: 0.86, duration: 90, useNativeDriver: true }),
+      Animated.spring(buttonScale, { toValue: 1, friction: 5, tension: 85, useNativeDriver: true }),
+    ]).start();
+
+    // 460ms snappy yet visible genie emergence
+    Animated.timing(genieProgress, {
       toValue: 1,
-      duration: 250,
+      duration: 460,
+      easing: Easing.bezier(0.18, 0.9, 0.22, 1),
       useNativeDriver: true,
-    }).start();
+    }).start(() => {
+      isAnimatingRef.current = false;
+    });
   };
-  
+
   const hidePopup = () => {
-    Animated.timing(popupAnim, {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
+    // 380ms smooth suction directly into the button
+    Animated.timing(genieProgress, {
       toValue: 0,
-      duration: 200,
+      duration: 380,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       useNativeDriver: true,
-    }).start(() => setModalVisible(false));
+    }).start(() => {
+      setIsModalOpen(false);
+      isAnimatingRef.current = false;
+
+      // Button absorbs genie with an elastic spring catch
+      Animated.sequence([
+        Animated.timing(buttonScale, { toValue: 0.88, duration: 80, useNativeDriver: true }),
+        Animated.spring(buttonScale, { toValue: 1, friction: 4, tension: 90, useNativeDriver: true }),
+      ]).start();
+    });
   };
-  
 
+  // Interpolations for the Genie transformation
+  const animOpacity = genieProgress.interpolate({
+    inputRange: [0, 0.12, 1],
+    outputRange: [0, 1, 1],
+  });
 
-  const borderColorAnim = useRef(new Animated.Value(0)).current;
+  const backdropOpacity = genieProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.timing(borderColorAnim, {
-        toValue: 1,
-        duration: 12000,
-        useNativeDriver: false,
-      })
-    ).start();
-  }, []);
+  // Moves from the Set Wallpaper button's exact position to screen center (0, 0)
+  const animTranslateX = genieProgress.interpolate({
+    inputRange: [0, 0.4, 0.75, 1],
+    outputRange: [buttonOrigin.x, buttonOrigin.x * 0.4, buttonOrigin.x * 0.08, 0],
+  });
 
-  useEffect(() => {
-    const checkLikedStatus = async () => {
-      try {
-        let likedImages = await AsyncStorage.getItem("likedImages");
-        likedImages = likedImages ? JSON.parse(likedImages) : [];
-        setIsLiked(likedImages.includes(currentImageUri));
-      } catch (error) {
-        console.log("Error fetching liked images:", error);
-      }
-    };
+  // Vertical movement strictly coordinated with scaleY to ensure the bottom edge stays above/at the button
+  const animTranslateY = genieProgress.interpolate({
+    inputRange: [0, 0.25, 0.65, 1],
+    outputRange: [buttonOrigin.y, buttonOrigin.y * 0.65, buttonOrigin.y * 0.15, 0],
+  });
 
-    checkLikedStatus();
-  }, [currentImageUri]);
+  // Scale X: narrow at button, widens smoothly as it ascends
+  const animScaleX = genieProgress.interpolate({
+    inputRange: [0, 0.25, 0.65, 1],
+    outputRange: [0.06, 0.26, 0.85, 1],
+  });
 
-  const borderColor = borderColorAnim.interpolate({
-    inputRange: [0, 0.2, 0.4, 0.6, 0.8, 1],
-    outputRange: ["#FF8BF9", "#FFF200", "#FF0000", "#8AF7BB", "#8CFCFC", "#00F000"],
+  // Scale Y: compresses as it descends, so bottom NEVER overshoots or goes outside the button!
+  const animScaleY = genieProgress.interpolate({
+    inputRange: [0, 0.25, 0.65, 1],
+    outputRange: [0.04, 0.35, 0.90, 1],
   });
 
 
@@ -267,8 +344,8 @@ const FullImageScreen = () => {
 
   const setWallpaper = async (type: any) => {
     try {
+      hidePopup();
       setisSettingWallpaper(true);
-      setModalVisible(false); // Close modal first
       console.log("Setting wallpaper:", type);
 
       await applyWallpaper(currentImageUri, type);
@@ -339,8 +416,6 @@ const FullImageScreen = () => {
               const newImages = await onLoadMore();
               if (newImages && newImages.length > 0) {
                 setLocalImages((prev: any) => [...prev, ...newImages]);
-              } else {
-                setHasMore(false);
               }
               setIsLoadingMore(false);
             }
@@ -362,27 +437,56 @@ const FullImageScreen = () => {
 
             const scale = scrollX.interpolate({
               inputRange,
-              outputRange: [0.85, 1, 0.85],
+              outputRange: [0.8, 1, 0.8],
               extrapolate: 'clamp',
             });
 
             const opacity = scrollX.interpolate({
               inputRange,
-              outputRange: [0.3, 1, 0.3],
+              outputRange: [0.4, 1, 0.4],
+              extrapolate: 'clamp',
+            });
+
+            const rotateY = scrollX.interpolate({
+              inputRange,
+              outputRange: ['25deg', '0deg', '-25deg'],
+              extrapolate: 'clamp',
+            });
+
+            const borderRadius = scrollX.interpolate({
+              inputRange,
+              outputRange: [60, 0, 60],
               extrapolate: 'clamp',
             });
 
             return (
               <TouchableWithoutFeedback onPress={handleDoubleTap}>
                 <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
-                  <Animated.Image 
-                    source={{ uri: item }} 
-                    style={[
-                      styles.fullImage, 
-                      { transform: [{ scale }], opacity }
-                    ]} 
-                    resizeMode="cover" 
-                  />
+                  <Animated.View 
+                    style={{ 
+                      width, 
+                      height, 
+                      transform: [
+                        { perspective: 1000 },
+                        { scale },
+                        { rotateY }
+                      ], 
+                      opacity,
+                      borderRadius,
+                      overflow: 'hidden',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 25 },
+                      shadowOpacity: 0.8,
+                      shadowRadius: 30,
+                      elevation: 15,
+                    }}
+                  >
+                    <Image 
+                      source={{ uri: item }} 
+                      style={styles.fullImage} 
+                      resizeMode="cover" 
+                    />
+                  </Animated.View>
                 </View>
               </TouchableWithoutFeedback>
             );
@@ -444,23 +548,26 @@ const FullImageScreen = () => {
       </TouchableOpacity>
 
 
-      <View style={styles.setWallpaperButton}>
-        <TouchableOpacity activeOpacity={0.60} onPress={() => {
-          setModalVisible(true)
-        }}>
-          <View style={styles.glassButton}>
-            {isSettingWallpaper ? (
-              <View style={{ flexDirection: "row" }}>
-                <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold', paddingRight: scale(5) }}>Applying</Text>
-                <ActivityIndicator size="small" color={colors.white} />
+      <View 
+        style={styles.setWallpaperButton}
+        onLayout={onButtonContainerLayout}
+      >
+        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+          <View onLayout={onSetWallpaperBtnLayout}>
+            <TouchableOpacity activeOpacity={0.60} onPress={showPopup}>
+              <View style={styles.glassButton}>
+                {isSettingWallpaper ? (
+                  <View style={{ flexDirection: "row" }}>
+                    <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold', paddingRight: scale(5) }}>Applying</Text>
+                    <ActivityIndicator size="small" color={colors.white} />
+                  </View>
+                ) : (
+                  <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold' }}>Set Wallpaper</Text>
+                )}
               </View>
-            ) : (
-              <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold' }}>Set Wallpaper</Text>
-            )}
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-
-
+        </Animated.View>
 
         <TouchableOpacity activeOpacity={0.60} onPress={downloadImage} disabled={isDownloading}>
           <View style={[styles.glassButton, { marginLeft: scale(10), paddingHorizontal: scale(12) }]}>
@@ -471,12 +578,40 @@ const FullImageScreen = () => {
             )}
           </View>
         </TouchableOpacity>
- 
       </View>
 
-      <Modal visible={modalVisible} transparent={true} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.glassModalContent}>
+      <View 
+        style={styles.modalOverlay} 
+        pointerEvents={isModalOpen ? "auto" : "none"}
+      >
+        <Animated.View
+          style={[
+            styles.modalBackdrop,
+            { opacity: backdropOpacity },
+          ]}
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            style={StyleSheet.absoluteFillObject} 
+            onPress={hidePopup}
+          />
+        </Animated.View>
+
+        <View style={styles.modalCenterWrapper} pointerEvents="box-none">
+          <Animated.View
+            style={[
+              styles.glassModalContent,
+              {
+                opacity: animOpacity,
+                transform: [
+                  { translateX: animTranslateX },
+                  { translateY: animTranslateY },
+                  { scaleX: animScaleX },
+                  { scaleY: animScaleY },
+                ],
+              },
+            ]}
+          >
             <TouchableOpacity activeOpacity={0.85} onPress={() => setWallpaper("home")}>
               <View style={styles.glassModalButton}>
                 <View style={styles.buttonContent}>
@@ -501,16 +636,16 @@ const FullImageScreen = () => {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.85} onPress={() => setModalVisible(false)}>
+            <TouchableOpacity activeOpacity={0.85} onPress={hidePopup}>
               <View style={[styles.glassModalButton, { backgroundColor: 'rgba(255, 50, 80, 0.3)', borderColor: 'rgba(255, 50, 80, 0.5)' }]}>
                 <View style={styles.buttonContent}>
                   <Text style={styles.glassModalButtonText}>Close</Text>
                 </View>
               </View>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
-      </Modal>
+      </View>
       <FlashMessage position="top" />
     </View>
   );
@@ -596,41 +731,49 @@ const styles = StyleSheet.create({
     paddingVertical: scale(10),
     borderRadius: 20,
   },
-  modalContainer: {
-    flex: 1,
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+  },
+  modalCenterWrapper: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   glassModalContent: {
     backgroundColor: 'rgba(15, 15, 20, 0.75)',
     padding: scale(20),
     borderRadius: 25,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     width: scale(260),
+    overflow: 'hidden',
   },
   glassModalButton: {
     paddingVertical: 12,
     width: 220,
     borderRadius: 25,
-    alignItems: "center",
+    alignItems: 'center',
     marginVertical: 6,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderWidth: 1.2,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   glassModalButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: scale(16),
-    fontWeight: "600",
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   buttonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
     marginRight: 8,

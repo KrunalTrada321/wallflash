@@ -32,12 +32,12 @@ export default function GamesScreen() {
         onPress={() => navigation.navigate('TwinsConnect')}
       >
         <ImageBackground 
-          source={require('../assets/game/flow_free.jpg')} 
+          source={require('../assets/game/twins_connect.png')} 
           style={styles.imageBg}
           imageStyle={{ borderRadius: scale(20) }}
         >
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.85)']}
+            colors={['transparent', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,1)']}
             style={styles.gradient}
           >
             <View style={styles.contentWrapper}>
@@ -54,8 +54,12 @@ export default function GamesScreen() {
         </ImageBackground>
       </TouchableOpacity>
 
-      <View style={{ alignItems: 'center', marginTop: scale(10) }}>
+      <View style={{ alignItems: 'center', marginTop: scale(15) }}>
         <ShortBanner />
+      </View>
+
+      <View style={styles.comingSoonContainer}>
+        <Text style={styles.comingSoonText}>More games coming soon...</Text>
       </View>
     </SafeAreaView>
   );
@@ -85,7 +89,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     width: '100%',
-    height: '60%',
+    height: '75%',
     justifyContent: 'flex-end',
     borderRadius: scale(20),
   },
@@ -123,5 +127,18 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: scale(14),
     fontWeight: 'bold',
+  },
+  comingSoonContainer: {
+    marginTop: scale(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: scale(20),
+  },
+  comingSoonText: {
+    color: '#000000',
+    fontSize: scale(13),
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   }
 });

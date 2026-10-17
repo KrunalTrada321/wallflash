@@ -33,27 +33,35 @@ const App = () => {
 
   const checkForUpdate = async () => {
     try {
-      const isNeeded = await VersionCheck.needUpdate();
+      const isNeeded = await VersionCheck.needUpdate({
+        packageName: 'com.wallflash',
+      });
+
+      console.log('🔍 Version Check Result:', isNeeded);
 
       if (isNeeded?.isNeeded) {
+        const storeUrl =
+          isNeeded.storeUrl ||
+          'https://play.google.com/store/apps/details?id=com.wallflash';
 
-        const storeUrl = "https://play.google.com/store/apps/details?id=com.wallflash";
-        console.log('🛒 Store URL:', storeUrl); // Debug log
         Alert.alert(
           'Update Available',
-          'A new version of this app is available. Please update to continue.',
+          `A new version (${isNeeded.latestVersion || 'latest'}) of Wallflash is available on Google Play. Please update to enjoy the newest wallpapers and improvements!`,
           [
+            {
+              text: 'Later',
+              style: 'cancel',
+            },
             {
               text: 'Update Now',
               onPress: () => {
-                // const storeUrl = VersionCheck.getStoreUrl({
-                //   appID: 'com.wallflash', // Replace with your actual package name
-                // });
-                Linking.openURL(storeUrl);
+                Linking.openURL(storeUrl).catch(err => {
+                  console.log('Error opening store URL:', err);
+                });
               },
             },
           ],
-          { cancelable: false }
+          { cancelable: true }
         );
       }
     } catch (error) {
@@ -64,10 +72,10 @@ const App = () => {
   useEffect(() => {
     const splashTimeout = setTimeout(() => {
       SplashScreen.hide(); // Hide splash screen after 2.4 seconds
+      checkForUpdate(); // Show update popup if new update is available
     }, 2400);
 
     Orientation.lockToPortrait();
-    // checkForUpdate();
     initRewardedPremiumAd();
 
     return () => {

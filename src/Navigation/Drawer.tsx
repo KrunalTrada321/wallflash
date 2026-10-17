@@ -179,8 +179,6 @@ const MyDrawer = () => {
     outputRange: ["#F73B00", "#F7E300", "#00DF72", "#00AAF6", "#CE00F2", "#F7A6C9"],
   });
 
-
-
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />} // ✅ Inject custom drawer 
@@ -199,8 +197,6 @@ const MyDrawer = () => {
         },
         headerStyle: {
           backgroundColor: colors.primary, // Set primary color for header background
-          // borderBottomLeftRadius: 25, // Rounded bottom-left corner
-          // borderBottomRightRadius: 25, // Rounded bottom-right corner
           borderBottomColor: borderColor,
           borderWidth: 2, // Increase border width for better visibility
           shadowColor: borderColor, // Dynamic animated shadow color
@@ -208,8 +204,6 @@ const MyDrawer = () => {
           shadowOpacity: 1, // Make shadow fully visible
           shadowRadius: 50, // Increase blur effect for a glowing effect
           elevation: 50, // Stronger shadow effect on Android
-          // borderLeftColor: borderColor,
-          // borderRightColor: borderColor,  // ✅ Animated right border
         },
         headerTintColor: colors.white,
         headerTitleAlign: 'center',
@@ -221,21 +215,15 @@ const MyDrawer = () => {
         options={{
           drawerItemStyle: { display: 'none' }, // Hide drawer item
           headerTitle: () => (
-            <View style={{ flexDirection: 'row' }}>
-              <Image
-                source={require('../assets/wallflash-logo.png')} // Update with your logo path
-                style={{ width: scale(220), height: scale(60), resizeMode: 'contain', alignSelf: 'center', marginLeft: scale(10) }}
-              />
-
-              <Image
-                source={require('../assets/flashed.png')} // Update with your logo path
-                style={{ width: scale(30), height: scale(30), resizeMode: 'contain', alignSelf: 'center' }}
-              />
-
-
-
-            </View>
-
+            <Image
+              source={require('../assets/wallflash-logo.png')}
+              style={{
+                width: scale(220),
+                height: scale(50),
+                resizeMode: 'contain',
+                alignSelf: 'center',
+              }}
+            />
           ),
         }}
       />

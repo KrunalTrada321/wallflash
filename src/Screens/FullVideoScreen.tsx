@@ -17,6 +17,7 @@ import { CameraRoll } from "@react-native-camera-roll/camera-roll";
 import { colors } from "../Styling/colors";
 import { scale } from "react-native-size-matters";
 import { showMessage } from "react-native-flash-message";
+import GameSound from "../Utils/GameSoundEffects";
 
 const { width, height } = Dimensions.get("window");
 
@@ -105,6 +106,7 @@ const FullVideoScreen = ({ route, navigation }: any) => {
       });
 
       console.log("Saved to Gallery:", savedUri);
+      GameSound.playDownloadSuccess();
       showMessage({
         message: "Success 🎉",
         description: "Video saved to Gallery!",

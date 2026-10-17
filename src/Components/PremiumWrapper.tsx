@@ -28,6 +28,7 @@ import LinearGradient from "react-native-linear-gradient";
 import { colors } from "../Styling/colors";
 import PremiumCard from "./PremiumCard";
 import { checkTempPremiumStatus, initRewardedPremiumAd, showRewardedPremiumAd, TEMP_PREMIUM_KEY } from "./RewardedPremiumAd";
+import GameSound from "../Utils/GameSoundEffects";
 
 const PREMIUM_PRODUCT_ID = "premium_wallpapers_product";
 
@@ -144,6 +145,7 @@ const PremiumWrapper = () => {
               console.warn("Finish transaction error:", err);
             }
 
+            GameSound.playPremiumUnlocked();
             Alert.alert(
               "Success",
               "You unlocked Premium Wallpapers!",
@@ -187,6 +189,7 @@ const PremiumWrapper = () => {
 
     initRewardedPremiumAd(() => {
       setHasTempPremium(true);
+      GameSound.playPremiumUnlocked();
     });
   }, []);
 

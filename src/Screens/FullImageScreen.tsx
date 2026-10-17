@@ -28,6 +28,7 @@ import { showMessage } from "react-native-flash-message";
 import FlashMessage from "react-native-flash-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LinearGradient from "react-native-linear-gradient";
+import GameSound from "../Utils/GameSoundEffects";
 
 
 
@@ -162,6 +163,7 @@ const FullImageScreen = () => {
   }, [isModalOpen]);
 
   const showPopup = () => {
+    GameSound.playClick();
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
     setIsModalOpen(true);
@@ -317,6 +319,7 @@ const FullImageScreen = () => {
       await RNFS.moveFile(filePath, destPath);
       RNFetchBlob.fs.scanFile([{ path: destPath, mime: "image/jpeg" }])
         .then(() => {
+          GameSound.playDownloadSuccess();
           showMessage({
             message: "Success",
             description: "Image saved to gallery!",
@@ -344,12 +347,14 @@ const FullImageScreen = () => {
 
   const setWallpaper = async (type: any) => {
     try {
+      GameSound.playClick();
       hidePopup();
       setisSettingWallpaper(true);
       console.log("Setting wallpaper:", type);
 
       await applyWallpaper(currentImageUri, type);
       setisSettingWallpaper(false);
+      GameSound.playSetWallpaperSuccess();
       showMessage({
         message: "Success",
         description: "Wallpaper set successfully!",
@@ -382,6 +387,7 @@ const FullImageScreen = () => {
         // Add to liked images
         likedImages.push(currentImageUri);
         await AsyncStorage.setItem("likedImages", JSON.stringify(likedImages));
+        GameSound.playLike();
       }
 
       setIsLiked(!isLiked);
@@ -416,6 +422,8 @@ const FullImageScreen = () => {
               const newImages = await onLoadMore();
               if (newImages && newImages.length > 0) {
                 setLocalImages((prev: any) => [...prev, ...newImages]);
+              } else {
+                setHasMore(false);
               }
               setIsLoadingMore(false);
             }

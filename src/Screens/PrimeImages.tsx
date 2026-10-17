@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, FlatList, Image, StyleSheet, RefreshControl, TouchableOpacity, Text, Dimensions,
   ActivityIndicator
@@ -36,12 +36,15 @@ const PrimeImages = ({ route }: any) => {
   const [hasMore, setHasMore]         = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const isLoadingMoreRef = useRef(false);
 
   const navigation = useNavigation();
 
   useEffect(() => {
+    let isMounted = true;
     const checkInternetOnStart = async () => {
       const netState = await NetInfo.fetch();
+      if (!isMounted) return;
       setIsConnected(netState.isConnected);
       if (!netState.isConnected) {
         showMessage({ message: "No Internet Connection", description: "Please check your internet and try again.", type: "danger" });
@@ -53,14 +56,20 @@ const PrimeImages = ({ route }: any) => {
     checkInternetOnStart();
 
     const unsubscribe = NetInfo.addEventListener(state => {
+      if (!isMounted) return;
       setIsConnected(state.isConnected);
       if (!state.isConnected) {
         showMessage({ message: "No Internet Connection", description: "Please check your internet and try again.", type: "danger" });
+      } else if (images.length === 0) {
+        fetchCategoryImages(true);
       }
     });
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [categoryName]);
 
   const fetchCategoryImages = async (reset = false) => {
     if (!isConnected) { setLoading(false); return []; }
@@ -73,7 +82,13 @@ const PrimeImages = ({ route }: any) => {
         setHasMore(fetched.length === PAGE_SIZE);
         return fetched;
       } else {
-        setImages(prev => [...prev, ...fetched]);
+        if (fetched.length > 0) {
+          setImages(prev => {
+            const existing = new Set(prev);
+            const uniqueNew = fetched.filter(url => !existing.has(url));
+            return [...prev, ...uniqueNew];
+          });
+        }
         if (fetched.length < PAGE_SIZE) setHasMore(false);
         return fetched;
       }
@@ -86,11 +101,16 @@ const PrimeImages = ({ route }: any) => {
   };
 
   const handleLoadMore = async () => {
-    if (!hasMore || loadingMore) return [];
+    if (!hasMore || loadingMore || loading || refreshing || isLoadingMoreRef.current) return [];
+    isLoadingMoreRef.current = true;
     setLoadingMore(true);
-    const newImgs = await fetchCategoryImages();
-    setLoadingMore(false);
-    return newImgs || [];
+    try {
+      const newImgs = await fetchCategoryImages(false);
+      return newImgs || [];
+    } finally {
+      isLoadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
   };
 
   const handleRefresh = async () => {

@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { Image, Text, View, Animated } from 'react-native';
+import { Image, Text, View, Animated, TouchableOpacity, StyleSheet, Easing } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useNavigationState } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../Styling/colors';
 import { scale } from 'react-native-size-matters';
 import HomeScreen from '../Screens/HomeScreen';
@@ -10,6 +12,7 @@ import VideoScreen from '../Screens/VideoScreen';
 import PrimeCategories from '../Screens/PrimeCategories';
 import PremiumWrapper from '../Components/PremiumWrapper';
 import GamesScreen from '../Screens/GamesScreen';
+import TrendingScreen from '../Screens/TrendingScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -41,6 +44,120 @@ const AnimatedTabIcon = ({ focused, children }: any) => {
   );
 };
 
+// 🔥 Centered Floating Big Fire Button with Distinctive Selected State & Tasteful Flame Animation
+const TrendingCenterButton = ({ focused }: { focused: boolean }) => {
+  const flameScale = React.useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    const breathAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(flameScale, {
+          toValue: focused ? 1.12 : 1.05,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(flameScale, {
+          toValue: 1.0,
+          duration: 1100,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    breathAnimation.start();
+
+    return () => {
+      breathAnimation.stop();
+    };
+  }, [focused]);
+
+  return (
+    <View style={styles.centerButtonWrapper}>
+      {/* Outer active glow halo when selected */}
+      {focused && <View style={styles.activeGlowHalo} />}
+
+      {/* Raised circular hero button with linear gradient */}
+      <LinearGradient
+        colors={
+          focused
+            ? ['#FF1E27', '#FF5E00', '#FFAE00'] // Intense selected fire gradient
+            : ['#251528', '#181222'] // Inactive sleek dark glass
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.centerCircle,
+          {
+            borderColor: focused ? '#FFFFFF' : 'rgba(255, 255, 255, 0.22)',
+            borderWidth: focused ? scale(2.8) : scale(1.6),
+            shadowColor: focused ? '#FF3B30' : '#000',
+            shadowOpacity: focused ? 0.95 : 0.25,
+            shadowRadius: focused ? 12 : 4,
+            elevation: focused ? 16 : 4,
+            transform: [{ scale: focused ? 1.08 : 0.95 }],
+          },
+        ]}
+      >
+        {/* Animated Smooth Flame Icon */}
+        <Animated.View
+          style={{
+            transform: [{ scale: flameScale }],
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          {/* Base Fire */}
+          <Ionicons
+            name={focused ? "flame" : "flame-outline"}
+            size={scale(28)}
+            color={focused ? '#FFFFFF' : '#9CA3AF'}
+          />
+          {/* Inner Golden Fire Core (visible when focused) */}
+          {focused && (
+            <View style={styles.innerFlameOverlay}>
+              <Ionicons
+                name="flame"
+                size={scale(16)}
+                color="#FFE57F"
+              />
+            </View>
+          )}
+        </Animated.View>
+      </LinearGradient>
+    </View>
+  );
+};
+
+// Custom Tab Bar Button for Trending (Floating Centerpiece)
+const TrendingTabBarButton = (props: any) => {
+  const currentRouteName = useNavigationState(state => {
+    if (!state) return '';
+    const route = state.routes[state.index];
+    return route?.name;
+  });
+
+  const focused = currentRouteName === 'Trending' || Boolean(props.accessibilityState?.selected);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onPress={props.onPress}
+      onLongPress={props.onLongPress}
+      style={[
+        props.style,
+        styles.trendingButtonOuter,
+        {
+          top: focused ? scale(-18) : scale(-12),
+        },
+      ]}
+    >
+      <TrendingCenterButton focused={focused} />
+    </TouchableOpacity>
+  );
+};
+
 function MyTabs() {
   return (
     <Tab.Navigator
@@ -49,15 +166,14 @@ function MyTabs() {
         tabBarShowLabel: false,
 
         tabBarStyle: {
-          height: scale(55), // Increase the height of the bottom tab bar
-          paddingTop: scale(10),
-          backgroundColor: colors.primary, // Optional: Change background color
-          // borderTopLeftRadius: scale(20), // Optional: Add rounded corners
-          // borderTopRightRadius: scale(20),
+          height: scale(58),
+          paddingTop: scale(8),
+          paddingBottom: scale(6),
+          backgroundColor: colors.primary,
           borderColor: colors.flashColor,
           borderTopWidth: 1.5,
-          // borderLeftWidth: 1.5,
-          // borderRightWidth: 1.5,
+          overflow: 'visible',
+          elevation: 12,
         },
       }}>
 
@@ -110,6 +226,14 @@ function MyTabs() {
           ),
           tabBarActiveTintColor: colors.white,
           tabBarInactiveTintColor: colors.white,
+        }}
+      />
+
+      <Tab.Screen
+        name="Trending"
+        component={TrendingScreen}
+        options={{
+          tabBarButton: (props) => <TrendingTabBarButton {...props} />,
         }}
       />
 
@@ -198,8 +322,39 @@ function MyTabs() {
   );
 }
 
-
-
-
+const styles = StyleSheet.create({
+  trendingButtonOuter: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  centerButtonWrapper: {
+    width: scale(62),
+    height: scale(56),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeGlowHalo: {
+    position: 'absolute',
+    top: scale(0),
+    width: scale(58),
+    height: scale(58),
+    borderRadius: scale(29),
+    backgroundColor: 'rgba(255, 94, 0, 0.28)',
+  },
+  centerCircle: {
+    width: scale(52),
+    height: scale(52),
+    borderRadius: scale(26),
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 4 },
+  },
+  innerFlameOverlay: {
+    position: 'absolute',
+    bottom: scale(0.5),
+    alignSelf: 'center',
+  },
+});
 
 export default MyTabs;

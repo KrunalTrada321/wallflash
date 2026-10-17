@@ -7,8 +7,6 @@ import {
   startAfter,
   DocumentData,
   QueryDocumentSnapshot,
-  documentId,
-  where,
 } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 
@@ -27,11 +25,15 @@ const db = getFirestore(app);
 
 // ✅ Function to Check if Image Exists
 const isValidImage = async (url: string): Promise<boolean> => {
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) return false;
   try {
-    const response = await fetch(url, { method: 'HEAD' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeout);
     return response.ok;
   } catch {
-    return false;
+    return true;
   }
 };
 
@@ -61,9 +63,7 @@ export const fetchImagesFromFirestore = async (
       if (lastDoc) {
         q = query(collRef, limit(perCollectionLimit), startAfter(lastDoc));
       } else {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const randomChar = chars.charAt(Math.floor(Math.random() * chars.length));
-        q = query(collRef, where(documentId(), '>=', randomChar), limit(perCollectionLimit));
+        q = query(collRef, limit(perCollectionLimit));
       }
 
       const snapshot = await getDocs(q);
@@ -72,11 +72,11 @@ export const fetchImagesFromFirestore = async (
         lastDocs[collectionName] = snapshot.docs[snapshot.docs.length - 1];
       }
 
-      const urls = snapshot.docs.map(doc => doc.data().url);
+      const urls = snapshot.docs.map(doc => doc.data()?.url).filter(Boolean);
       const validUrls = await Promise.all(
         urls.map(async (url) => (await isValidImage(url)) ? url : null)
       );
-      return validUrls.filter(Boolean);
+      return validUrls.filter(Boolean) as string[];
     });
 
     const allResults = await Promise.all(fetchPromises);
@@ -88,3 +88,35 @@ export const fetchImagesFromFirestore = async (
     return [];
   }
 };
+
+export interface SeasonData {
+  title?: string;
+  stitle?: string;
+  description?: string;
+  imageUrl?: string;
+  simageUrl?: string;
+  tag?: string;
+}
+
+export const fetchSeasonData = async (): Promise<SeasonData | null> => {
+  try {
+    const collRef = collection(db, 'SeasonData');
+    const snapshot = await getDocs(query(collRef, limit(1)));
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      return {
+        title: data?.title || '',
+        stitle: data?.stitle || '',
+        description: data?.description || '',
+        imageUrl: data?.imageUrl || '',
+        simageUrl: data?.simageUrl || '',
+        tag: data?.tag || '',
+      };
+    }
+    return null;
+  } catch (error) {
+    console.log('❌ Error fetching SeasonData:', error);
+    return null;
+  }
+};
+

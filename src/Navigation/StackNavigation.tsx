@@ -14,6 +14,7 @@ import MyTabs from './BottomTab';
 import SeasonalImages from '../Screens/SeasonalImages';
 import PrimeCategories from '../Screens/PrimeCategories';
 import TwinsConnect from '../Screens/games/TwinsConnect';
+import NeonFruitSlasher from '../Screens/games/NeonFruitSlasher';
 
 const Stack = createStackNavigator();
 
@@ -78,6 +79,14 @@ const StackNav = () => {
                     },
                 }} />
             <Stack.Screen name="TwinsConnect" component={TwinsConnect}
+                options={{
+                    animation: 'fade',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 400 } },
+                        close: { animation: 'timing', config: { duration: 400 } },
+                    },
+                }} />
+            <Stack.Screen name="NeonFruitSlasher" component={NeonFruitSlasher}
                 options={{
                     animation: 'fade',
                     transitionSpec: {

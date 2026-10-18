@@ -7,54 +7,67 @@ import {
   TouchableOpacity,
   Text
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import Ionicons from "react-native-vector-icons/Ionicons";
 import { colors } from "../Styling/colors";
 import { scale } from "react-native-size-matters";
 import Back from "../Components/Back";
+import FavoritesManager from "../Utils/FavoritesManager";
 
 const FavoritesScreen = () => {
-  const [likedImages, setLikedImages] = useState([]);
-  const navigation = useNavigation();
+  const [likedImages, setLikedImages] = useState<string[]>([]);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const fetchLikedImages = async () => {
       try {
-        const images = await AsyncStorage.getItem("likedImages");
-        setLikedImages(images ? JSON.parse(images) : []);
+        const images = await FavoritesManager.getLikedImages();
+        setLikedImages(images);
       } catch (error) {
         console.log("Error fetching liked images:", error);
       }
     };
 
     fetchLikedImages();
+    const unsubscribeListener = FavoritesManager.addListener((likedSet) => {
+      setLikedImages(Array.from(likedSet));
+    });
     const focusListener = navigation.addListener("focus", fetchLikedImages);
-    return focusListener;
-  }, []);
+
+    return () => {
+      unsubscribeListener();
+      focusListener();
+    };
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
-    <Back categoryName={"Favorites"}/>
-       <View style={{flex: 1 ,padding: scale(8)}}>
-      {likedImages.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No liked images yet!</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={likedImages}
-          keyExtractor={(item, index) => index.toString()}
-          numColumns={2}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => navigation.navigate("FullImageScreen", { imageUri: item, images: likedImages, initialIndex: likedImages.indexOf(item) })}>
-              <Image source={{ uri: item }} style={styles.image} />
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      <Back categoryName={"Favorites"} />
+      <View style={{ flex: 1, padding: scale(8) }}>
+        {likedImages.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No liked images yet!</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={likedImages}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            numColumns={2}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("FullImageScreen", {
+                    imageUri: item,
+                    images: likedImages,
+                    initialIndex: index,
+                  })
+                }
+              >
+                <Image source={{ uri: item }} style={styles.image} />
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
-
     </View>
   );
 };

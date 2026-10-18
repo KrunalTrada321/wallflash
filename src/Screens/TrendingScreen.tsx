@@ -232,7 +232,7 @@ const TrendingScreen = () => {
 
               <View style={styles.cleanAdTextCol}>
                 <Text style={styles.cleanAdTitle}>Custom Apps & Websites</Text>
-                <Text style={styles.cleanAdSubtitle} numberOfLines={1}>
+                <Text style={styles.cleanAdSubtitle}>
                   Apps, websites, 4K wallpapers & video creation
                 </Text>
               </View>
@@ -624,8 +624,9 @@ const styles = StyleSheet.create({
   },
   cleanAdSubtitle: {
     fontSize: scale(10),
+    lineHeight: scale(14),
     color: '#CBD5E1',
-    marginTop: scale(1.5),
+    marginTop: scale(2),
   },
   cleanAdActionBtn: {
     flexDirection: 'row',

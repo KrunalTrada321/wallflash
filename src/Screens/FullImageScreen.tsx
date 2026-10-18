@@ -29,6 +29,7 @@ import FlashMessage from "react-native-flash-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LinearGradient from "react-native-linear-gradient";
 import GameSound from "../Utils/GameSoundEffects";
+import FavoritesManager from "../Utils/FavoritesManager";
 
 
 
@@ -38,17 +39,58 @@ const FullImageScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { imageUri, images = [], initialIndex = 0, onLoadMore } = route.params || {};
-  const { width, height } = Dimensions.get("window");
 
   const [localImages, setLocalImages] = useState(images);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const currentImageUri = localImages.length > 0 ? localImages[currentIndex] : imageUri;
-  const scrollX = useRef(new Animated.Value(initialIndex * width)).current;
+  const safeInitialIndex =
+    typeof initialIndex === "number" && initialIndex >= 0 && initialIndex < images.length
+      ? initialIndex
+      : (imageUri && images.length > 0 && images.indexOf(imageUri) >= 0 ? images.indexOf(imageUri) : 0);
 
-  const [isLiked, setIsLiked] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(safeInitialIndex);
+  const currentImageUri =
+    localImages.length > 0 && localImages[currentIndex]
+      ? localImages[currentIndex]
+      : (imageUri || (localImages.length > 0 ? localImages[0] : ""));
+  const scrollX = useRef(new Animated.Value(safeInitialIndex * width)).current;
+
+  const [isLiked, setIsLiked] = useState<boolean>(() => {
+    return currentImageUri ? FavoritesManager.isLikedSync(currentImageUri) : false;
+  });
+
+  // Ensure isLiked synchronizes when the viewed image changes
+  useEffect(() => {
+    if (!currentImageUri) {
+      setIsLiked(false);
+      return;
+    }
+    // Instant sync check from memory cache
+    setIsLiked(FavoritesManager.isLikedSync(currentImageUri));
+
+    let isMounted = true;
+    FavoritesManager.isLikedAsync(currentImageUri).then((liked) => {
+      if (isMounted) {
+        setIsLiked(liked);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentImageUri]);
+
+  // Subscribe to changes from FavoritesManager
+  useEffect(() => {
+    const unsubscribe = FavoritesManager.addListener((likedSet) => {
+      if (currentImageUri) {
+        setIsLiked(likedSet.has(currentImageUri));
+      }
+    });
+    return unsubscribe;
+  }, [currentImageUri]);
+
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
@@ -313,7 +355,7 @@ const FullImageScreen = () => {
 
 
 
-  const saveImageToGalleryAndroid = async (filePath, fileName) => {
+  const saveImageToGalleryAndroid = async (filePath: string, fileName: string) => {
     try {
       const destPath = `${RNFS.PicturesDirectoryPath}/${fileName}`;
       await RNFS.moveFile(filePath, destPath);
@@ -375,22 +417,13 @@ const FullImageScreen = () => {
 
 
   const toggleLike = async () => {
+    if (!currentImageUri) return;
     try {
-      let likedImages = await AsyncStorage.getItem("likedImages");
-      likedImages = likedImages ? JSON.parse(likedImages) : [];
-
-      if (isLiked) {
-        // Remove from liked images
-        const updatedImages = likedImages.filter((img: string) => img !== currentImageUri);
-        await AsyncStorage.setItem("likedImages", JSON.stringify(updatedImages));
-      } else {
-        // Add to liked images
-        likedImages.push(currentImageUri);
-        await AsyncStorage.setItem("likedImages", JSON.stringify(likedImages));
+      const newStatus = await FavoritesManager.toggleLike(currentImageUri);
+      setIsLiked(newStatus);
+      if (newStatus) {
         GameSound.playLike();
       }
-
-      setIsLiked(!isLiked);
     } catch (error) {
       console.log("Error updating liked images:", error);
     }
@@ -404,17 +437,20 @@ const FullImageScreen = () => {
           data={localImages}
           horizontal
           pagingEnabled
-          initialScrollIndex={initialIndex}
+          initialScrollIndex={safeInitialIndex}
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item}
+          keyExtractor={(item, index) => `${item}-${index}`}
           getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
+          onScrollToIndexFailed={() => {}}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: true }
           )}
           onMomentumScrollEnd={(event) => {
             const index = Math.round(event.nativeEvent.contentOffset.x / width);
-            setCurrentIndex(index);
+            if (index >= 0 && index < localImages.length) {
+              setCurrentIndex(index);
+            }
           }}
           onEndReached={async () => {
             if (onLoadMore && !isLoadingMore && hasMore) {

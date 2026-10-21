@@ -134,6 +134,9 @@ export default function NeonFruitSlasher() {
   // --- Power-ups State ---
   const [isFrozen, setIsFrozen] = useState(false);
   const [isFrenzy, setIsFrenzy] = useState(false);
+  const [isComboFever, setIsComboFever] = useState(false);
+  const isComboFeverRef = useRef(false);
+  const comboFeverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Modals State ---
   const [isWinModalOpen, setIsWinModalOpen] = useState(false);
@@ -241,7 +244,16 @@ export default function NeonFruitSlasher() {
       // Avoid spawning 2 simultaneous bombs in the same wave
       const hasBombAlready = newItems.some(it => it.type === 'bomb');
       const isBomb = !hasBombAlready && Math.random() < lvl.bombChance;
-      let type = isBomb ? 'bomb' : lvl.allowedFruits[Math.floor(Math.random() * lvl.allowedFruits.length)];
+
+      // Occasionally spawn a special Combo Fruit (~20% chance if not a bomb)
+      const hasComboAlready = newItems.some(it => it.type === 'combo');
+      const isCombo = !isBomb && !hasComboAlready && Math.random() < 0.22;
+
+      let type = isBomb
+        ? 'bomb'
+        : isCombo
+        ? 'combo'
+        : lvl.allowedFruits[Math.floor(Math.random() * lvl.allowedFruits.length)];
       const cfg = FRUIT_CONFIGS[type] || FRUIT_CONFIGS.watermelon;
 
       // Horizontal spacing
@@ -332,23 +344,82 @@ export default function NeonFruitSlasher() {
     item.isSliced = true;
     currentSwipeHits.current += 1;
 
-    // Instant slice flash
+    // Instant slice flash - accurately centered on the sliced fruit along the cut angle (NEVER shoots off-screen!)
+    const flashLen = item.radius * 1.35;
+    const fx1 = item.x - Math.cos(sliceAngle) * flashLen;
+    const fy1 = item.y - Math.sin(sliceAngle) * flashLen;
+    const fx2 = item.x + Math.cos(sliceAngle) * flashLen;
+    const fy2 = item.y + Math.sin(sliceAngle) * flashLen;
+
     flashesRef.current = [
       {
         id: Math.random(),
-        x1: cutP1.x,
-        y1: cutP1.y,
-        x2: cutP2.x,
-        y2: cutP2.y,
-        opacity: 0.9,
+        x1: Math.max(scale(5), Math.min(SCREEN_WIDTH - scale(5), fx1)),
+        y1: Math.max(scale(120), Math.min(SCREEN_HEIGHT, fy1)),
+        x2: Math.max(scale(5), Math.min(SCREEN_WIDTH - scale(5), fx2)),
+        y2: Math.max(scale(120), Math.min(SCREEN_HEIGHT, fy2)),
+        opacity: 0.95,
       },
     ];
 
-    // Spawn 6-8 clean particles
+    // Spawn clean particle burst
     spawnExplodingParticles(item.x, item.y, cfg.pulpColors || [cfg.color, cfg.rindColor]);
 
     // Power-up triggers
-    if (cfg.isSpecial === 'freeze') {
+    if (cfg.isSpecial === 'combo') {
+      GameSound.playCelestialMerge(1.85, 35);
+      triggerScreenShake(8);
+      if (Platform.OS === 'android') Vibration.vibrate([0, 25, 35, 50]);
+
+      // Activate Combo Fever for 4.5 seconds (doubles all slice scores!)
+      setIsComboFever(true);
+      isComboFeverRef.current = true;
+      if (comboFeverTimeoutRef.current) clearTimeout(comboFeverTimeoutRef.current);
+      comboFeverTimeoutRef.current = setTimeout(() => {
+        setIsComboFever(false);
+        isComboFeverRef.current = false;
+      }, 4500);
+
+      // Fountain cluster: bursts into 3-4 mini combo fruits for an epic multi-slash chain!
+      const clusterTypes = ['strawberry', 'banana', 'orange', 'kiwi'];
+      const clusterCount = 3 + Math.floor(Math.random() * 2);
+      const clusterItems: ActiveItem[] = [];
+      for (let c = 0; c < clusterCount; c++) {
+        const cType = clusterTypes[c % clusterTypes.length];
+        const cCfg = FRUIT_CONFIGS[cType] || FRUIT_CONFIGS.watermelon;
+        const spreadAngle = -Math.PI / 2 + (c - (clusterCount - 1) / 2) * 0.42;
+        const burstSpeed = scale(12.5 + Math.random() * 2.5);
+        clusterItems.push({
+          id: itemIdCounter.current++,
+          type: cType,
+          x: Math.max(scale(40), Math.min(SCREEN_WIDTH - scale(40), item.x + (c - 1) * scale(16))),
+          y: Math.max(scale(140), item.y - scale(10)),
+          vx: Math.cos(spreadAngle) * burstSpeed * 0.5,
+          vy: Math.sin(spreadAngle) * burstSpeed,
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 6,
+          radius: scale(cCfg.radius * 0.82),
+          hitsLeft: 1,
+          maxHits: 1,
+          isSliced: false,
+          opacity: 1,
+        });
+      }
+      itemsRef.current = [...itemsRef.current, ...clusterItems];
+
+      // Floating Combo Burst Alert
+      comboAlertsRef.current = [
+        ...comboAlertsRef.current.slice(-2),
+        {
+          id: Math.random(),
+          text: '🌟 COMBO BURST! 2X FEVER!',
+          x: item.x,
+          y: Math.max(scale(130), item.y - scale(30)),
+          color: '#FBBF24',
+          opacity: 1,
+        },
+      ];
+    } else if (cfg.isSpecial === 'freeze') {
       setIsFrozen(true);
       GameSound.playDownloadSuccess();
       if (Platform.OS === 'android') Vibration.vibrate([0, 30, 40, 60]);
@@ -370,15 +441,44 @@ export default function NeonFruitSlasher() {
       GameSound.playCelestialMerge(1.2 + currentSwipeHits.current * 0.12, 16);
     }
 
-    // Two Halves with Perpendicular Ejection Impulse (Capped max 4 on screen)
+    // Real-time multi-fruit combo chain feedback on consecutive cuts in the same swipe!
+    if (currentSwipeHits.current >= 2 && cfg.isSpecial !== 'combo') {
+      const comboBonus = (currentSwipeHits.current - 1) * 20;
+      const comboColors = ['#38BDF8', '#FACC15', '#FB923C', '#EC4899', '#A855F7'];
+      const alertColor = comboColors[Math.min(currentSwipeHits.current - 2, comboColors.length - 1)];
+      const alertText =
+        currentSwipeHits.current >= 5
+          ? `👑 ${currentSwipeHits.current}x GODLIKE! +${comboBonus}`
+          : currentSwipeHits.current >= 4
+          ? `🔥 ${currentSwipeHits.current}x MEGA! +${comboBonus}`
+          : currentSwipeHits.current >= 3
+          ? `⚡ ${currentSwipeHits.current}x COMBO! +${comboBonus}`
+          : `✨ 2x COMBO! +${comboBonus}`;
+
+      GameSound.playStep(currentSwipeHits.current);
+
+      comboAlertsRef.current = [
+        ...comboAlertsRef.current.slice(-2),
+        {
+          id: Math.random(),
+          text: alertText,
+          x: item.x,
+          y: Math.max(scale(130), item.y - scale(25)),
+          color: alertColor,
+          opacity: 1,
+        },
+      ];
+    }
+
+    // Two Halves with Perpendicular Ejection Impulse (Capped max 4 on screen, bounded safely)
     const perpAngle = sliceAngle + Math.PI / 2;
-    const splitSpeed = scale(4.0);
+    const splitSpeed = scale(3.5);
     const halfA: SlicedHalf = {
       id: Math.random(),
       type: item.type,
-      x: item.x,
+      x: Math.max(scale(15), Math.min(SCREEN_WIDTH - scale(15), item.x)),
       y: item.y,
-      vx: item.vx + Math.cos(perpAngle) * splitSpeed,
+      vx: Math.max(-scale(6), Math.min(scale(6), item.vx + Math.cos(perpAngle) * splitSpeed)),
       vy: item.vy - scale(2.0),
       rotation: item.rotation,
       rotSpeed: 6.0,
@@ -390,9 +490,9 @@ export default function NeonFruitSlasher() {
     const halfB: SlicedHalf = {
       id: Math.random(),
       type: item.type,
-      x: item.x,
+      x: Math.max(scale(15), Math.min(SCREEN_WIDTH - scale(15), item.x)),
       y: item.y,
-      vx: item.vx - Math.cos(perpAngle) * splitSpeed,
+      vx: Math.max(-scale(6), Math.min(scale(6), item.vx - Math.cos(perpAngle) * splitSpeed)),
       vy: item.vy - scale(2.0),
       rotation: item.rotation,
       rotSpeed: -6.0,
@@ -404,8 +504,12 @@ export default function NeonFruitSlasher() {
 
     halvesRef.current = [...halvesRef.current.slice(-2), halfA, halfB];
 
-    // Score & Slices Count
-    const addedPoints = cfg.points * (currentSwipeHits.current >= 3 ? 2 : 1);
+    // Score & Slices Count (with Combo Multiplier and Combo Fever bonus)
+    const feverMultiplier = isComboFeverRef.current ? 2 : 1;
+    const comboMultiplier = currentSwipeHits.current >= 3 ? 2 : 1;
+    const streakBonus = currentSwipeHits.current >= 2 ? (currentSwipeHits.current - 1) * 20 : 0;
+    const addedPoints = cfg.points * feverMultiplier * comboMultiplier + streakBonus;
+
     setScore(s => {
       const updated = s + addedPoints;
       setHighScore(h => {
@@ -454,74 +558,85 @@ export default function NeonFruitSlasher() {
         onMoveShouldSetPanResponder: (evt) => evt.nativeEvent.locationY > scale(115),
         onPanResponderGrant: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
-          trailRef.current = [{ x: locationX, y: locationY, time: Date.now() }];
+          const clampedX = Math.max(scale(10), Math.min(SCREEN_WIDTH - scale(10), locationX));
+          const clampedY = Math.max(scale(120), Math.min(SCREEN_HEIGHT - scale(10), locationY));
+          trailRef.current = [{ x: clampedX, y: clampedY, time: Date.now() }];
           currentSwipeHits.current = 0;
         },
         onPanResponderMove: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
+          const clampedX = Math.max(scale(10), Math.min(SCREEN_WIDTH - scale(10), locationX));
+          const clampedY = Math.max(scale(120), Math.min(SCREEN_HEIGHT - scale(10), locationY));
           const now = Date.now();
           const prev = trailRef.current[trailRef.current.length - 1];
 
-          if (now - lastWhooshTime.current > 300) {
-            GameSound.playCelestialDrop();
-            lastWhooshTime.current = now;
-          }
-
           if (prev) {
-            const dx = locationX - prev.x;
-            const dy = locationY - prev.y;
+            const dx = clampedX - prev.x;
+            const dy = clampedY - prev.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
+            const dt = Math.max(1, now - prev.time);
+            const speed = dist / dt; // px per ms
 
-            if (dist > 20) {
-              const steps = Math.min(3, Math.floor(dist / 16));
-              for (let s = 1; s <= steps; s++) {
-                const interpX = prev.x + (dx * s) / (steps + 1);
-                const interpY = prev.y + (dy * s) / (steps + 1);
-                trailRef.current.push({ x: interpX, y: interpY, time: now });
-              }
+            // Blade whoosh sound: ONLY during fast, active blade movement!
+            // NEVER when stationary or holding touch or moving slowly!
+            if (dist > scale(24) && speed > 0.42 && now - lastWhooshTime.current > 260) {
+              GameSound.playCelestialDrop();
+              lastWhooshTime.current = now;
             }
 
-            trailRef.current.push({ x: locationX, y: locationY, time: now });
-
-            // Keep fresh 8 points for silky smooth 60 FPS performance
-            if (trailRef.current.length > 8) {
-              trailRef.current.splice(0, trailRef.current.length - 8);
-            }
-
-            const sliceAngle = Math.atan2(dy, dx);
-
-            // Check slice against active items
-            itemsRef.current.forEach(item => {
-              if (item.isSliced) return;
-              if (item.isGhost && item.opacity < 0.6) return;
-
-              if (checkSliceIntersection(prev, { x: locationX, y: locationY, time: now }, item)) {
-                handleItemSliced(item, sliceAngle, prev, { x: locationX, y: locationY, time: now });
+            // Only add points and test intersection if there is true movement (avoids ghost slashes when holding touch)
+            if (dist > 8) {
+              if (dist > 20) {
+                const steps = Math.min(3, Math.floor(dist / 16));
+                for (let s = 1; s <= steps; s++) {
+                  const interpX = prev.x + (dx * s) / (steps + 1);
+                  const interpY = prev.y + (dy * s) / (steps + 1);
+                  trailRef.current.push({ x: interpX, y: interpY, time: now });
+                }
               }
-            });
 
-            // Hazard Check: Touching rotating laser spikes costs 1 heart
-            if (spikePositions.length > 0 && now - lastSpikeHitTime.current > 1200) {
-              for (const spk of spikePositions) {
-                const distSq = (spk.x - locationX) ** 2 + (spk.y - locationY) ** 2;
-                if (distSq < scale(26) ** 2) {
-                  lastSpikeHitTime.current = now;
-                  triggerScreenShake(12);
-                  GameSound.playIncomplete();
-                  if (Platform.OS === 'android') Vibration.vibrate(60);
-                  setLives(prev => {
-                    const next = Math.max(0, prev - 1);
-                    if (next <= 0) {
-                      setIsGameOverModalOpen(true);
-                    }
-                    return next;
-                  });
-                  break;
+              trailRef.current.push({ x: clampedX, y: clampedY, time: now });
+
+              // Keep fresh 8 points for silky smooth 60 FPS performance
+              if (trailRef.current.length > 8) {
+                trailRef.current.splice(0, trailRef.current.length - 8);
+              }
+
+              const sliceAngle = Math.atan2(dy, dx);
+
+              // Check slice against active items
+              itemsRef.current.forEach(item => {
+                if (item.isSliced) return;
+                if (item.isGhost && item.opacity < 0.6) return;
+
+                if (checkSliceIntersection(prev, { x: clampedX, y: clampedY, time: now }, item)) {
+                  handleItemSliced(item, sliceAngle, prev, { x: clampedX, y: clampedY, time: now });
+                }
+              });
+
+              // Hazard Check: Touching rotating laser spikes costs 1 heart
+              if (spikePositions.length > 0 && now - lastSpikeHitTime.current > 1200) {
+                for (const spk of spikePositions) {
+                  const distSq = (spk.x - clampedX) ** 2 + (spk.y - clampedY) ** 2;
+                  if (distSq < scale(26) ** 2) {
+                    lastSpikeHitTime.current = now;
+                    triggerScreenShake(12);
+                    GameSound.playIncomplete();
+                    if (Platform.OS === 'android') Vibration.vibrate(60);
+                    setLives(prevLives => {
+                      const next = Math.max(0, prevLives - 1);
+                      if (next <= 0) {
+                        setIsGameOverModalOpen(true);
+                      }
+                      return next;
+                    });
+                    break;
+                  }
                 }
               }
             }
           } else {
-            trailRef.current.push({ x: locationX, y: locationY, time: now });
+            trailRef.current.push({ x: clampedX, y: clampedY, time: now });
           }
         },
         onPanResponderRelease: () => {
@@ -536,6 +651,7 @@ export default function NeonFruitSlasher() {
                 : `⚡ ${currentSwipeHits.current}x COMBO!`;
 
             comboAlertsRef.current = [
+              ...comboAlertsRef.current.slice(-2),
               {
                 id: Math.random(),
                 text: comboText,
@@ -548,6 +664,10 @@ export default function NeonFruitSlasher() {
             GameSound.playStep(6);
           }
 
+          trailRef.current = [];
+          currentSwipeHits.current = 0;
+        },
+        onPanResponderTerminate: () => {
           trailRef.current = [];
           currentSwipeHits.current = 0;
         },
@@ -572,6 +692,12 @@ export default function NeonFruitSlasher() {
       clearTimeout(freezeTimeoutRef.current);
       freezeTimeoutRef.current = null;
     }
+    setIsComboFever(false);
+    isComboFeverRef.current = false;
+    if (comboFeverTimeoutRef.current) {
+      clearTimeout(comboFeverTimeoutRef.current);
+      comboFeverTimeoutRef.current = null;
+    }
 
     itemsRef.current = [];
     halvesRef.current = [];
@@ -592,6 +718,7 @@ export default function NeonFruitSlasher() {
     startLevel(currentLevelIndex);
     return () => {
       if (freezeTimeoutRef.current) clearTimeout(freezeTimeoutRef.current);
+      if (comboFeverTimeoutRef.current) clearTimeout(comboFeverTimeoutRef.current);
     };
   }, []);
 
@@ -672,7 +799,7 @@ export default function NeonFruitSlasher() {
 
       // Update Sliced Halves Physics
       halvesRef.current = halvesRef.current
-        .filter(h => h.y < SCREEN_HEIGHT + scale(40))
+        .filter(h => h.y < SCREEN_HEIGHT + scale(40) && h.x > -scale(40) && h.x < SCREEN_WIDTH + scale(40))
         .map(h => ({
           ...h,
           x: h.x + h.vx * timeScale,
@@ -694,10 +821,10 @@ export default function NeonFruitSlasher() {
           .filter(p => p.opacity > 0);
       }
 
-      // Update Slice Flashes (Crisp 0.07s burst)
+      // Update Slice Flashes (Crisp 0.08s burst)
       if (flashesRef.current.length > 0) {
         flashesRef.current = flashesRef.current
-          .map(f => ({ ...f, opacity: f.opacity - delta * 14 }))
+          .map(f => ({ ...f, opacity: f.opacity - delta * 12 }))
           .filter(f => f.opacity > 0);
       }
 
@@ -710,6 +837,11 @@ export default function NeonFruitSlasher() {
             opacity: c.opacity - 0.025,
           }))
           .filter(c => c.opacity > 0);
+      }
+
+      // Age out blade trail points so holding touch or stopping vanishes the trail cleanly (never stuck on screen)
+      if (trailRef.current.length > 0) {
+        trailRef.current = trailRef.current.filter(pt => now - pt.time < 140);
       }
 
       // --- Batched 60 FPS Render Update (Butter smooth & optimistic) ---
@@ -861,6 +993,25 @@ export default function NeonFruitSlasher() {
               ]}
             >
               <Text style={{ fontSize: item.radius * 1.35 }}>{cfg.emoji}</Text>
+
+              {/* Combo Fruit Special Glowing Aura & Tag */}
+              {cfg.isSpecial === 'combo' && (
+                <>
+                  <View
+                    style={[
+                      styles.comboAuraRing,
+                      {
+                        width: item.radius * 2.3,
+                        height: item.radius * 2.3,
+                        borderRadius: item.radius * 1.15,
+                      },
+                    ]}
+                  />
+                  <View style={styles.comboFruitBadge}>
+                    <Text style={styles.comboFruitBadgeText}>COMBO</Text>
+                  </View>
+                </>
+              )}
 
               {/* Armored Coconut Shell */}
               {item.hitsLeft > 1 && (
@@ -1029,6 +1180,13 @@ export default function NeonFruitSlasher() {
             <Text style={styles.scoreValue}>{highScore}</Text>
           </View>
         </View>
+
+        {/* Combo Fever Active Notification Strip */}
+        {isComboFever && (
+          <View style={styles.comboFeverBanner} pointerEvents="none">
+            <Text style={styles.comboFeverBannerText}>⚡ 2X COMBO FEVER ACTIVE! 🌟</Text>
+          </View>
+        )}
       </SafeAreaView>
 
 
@@ -1439,6 +1597,46 @@ const styles = StyleSheet.create({
   },
   comboAlertText: {
     fontSize: scale(13),
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  comboAuraRing: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  comboFruitBadge: {
+    position: 'absolute',
+    top: -scale(14),
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(2),
+    borderRadius: scale(6),
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  comboFruitBadgeText: {
+    color: '#000',
+    fontSize: scale(8),
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  comboFeverBanner: {
+    alignSelf: 'center',
+    marginTop: scale(6),
+    backgroundColor: 'rgba(245, 158, 11, 0.92)',
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(4),
+    borderRadius: scale(12),
+    borderWidth: 1.5,
+    borderColor: '#FEF08A',
+    elevation: 8,
+  },
+  comboFeverBannerText: {
+    color: '#000',
+    fontSize: scale(11),
     fontWeight: '900',
     letterSpacing: 0.8,
   },

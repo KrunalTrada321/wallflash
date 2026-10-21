@@ -23,6 +23,7 @@ export default function GamesScreen() {
 
   const [bladeLevel, setBladeLevel] = useState(1);
   const [twinsLevel, setTwinsLevel] = useState(1);
+  const [zombieLevel, setZombieLevel] = useState(1);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -34,6 +35,15 @@ export default function GamesScreen() {
       AsyncStorage.getItem('@twinsconnect_level').then(lvl => {
         if (lvl) {
           setTwinsLevel(parseInt(lvl, 10) + 1);
+        }
+      });
+      Promise.all([
+        AsyncStorage.getItem('@zombie_attack_current_level'),
+        AsyncStorage.getItem('@zombie_attack_unlocked_level'),
+      ]).then(([curLvl, unlckLvl]) => {
+        const target = curLvl || unlckLvl;
+        if (target) {
+          setZombieLevel(Math.min(50, Math.max(1, parseInt(target, 10))));
         }
       });
     }, [])
@@ -110,6 +120,43 @@ export default function GamesScreen() {
                     />
                   </View>
                   <Text style={styles.levelText}>Level {twinsLevel} / 50</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* --- Game 3: Zombie Stickman Archer --- */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardContainer}
+          onPress={() => navigation.navigate('ZombieAttack', { initialLevel: zombieLevel })}
+        >
+          <ImageBackground
+            source={require('../assets/game/zombie_attack.jpg')}
+            style={styles.imageBg}
+            imageStyle={{ borderRadius: scale(20) }}
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(15, 23, 42, 0.75)', 'rgba(2, 6, 23, 0.98)']}
+              style={styles.gradient}
+            >
+              <View style={styles.contentWrapper}>
+                <Text style={styles.gameTitle}>Zombie Stickman Archer</Text>
+
+                <View style={styles.progressRow}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.min(100, (zombieLevel / 50) * 100)}%`,
+                          backgroundColor: '#84CC16',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.levelText}>Level {zombieLevel} / 50</Text>
                 </View>
               </View>
             </LinearGradient>

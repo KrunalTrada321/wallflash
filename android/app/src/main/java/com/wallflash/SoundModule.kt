@@ -2,20 +2,38 @@ package com.wallflash
 
 import android.media.AudioAttributes
 import android.media.SoundPool
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.util.Locale
 
-class SoundModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class SoundModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), TextToSpeech.OnInitListener {
     private var soundPool: SoundPool? = null
     private val soundMap = HashMap<String, Int>()
     private var isMuted = false
+    private var tts: TextToSpeech? = null
+    private var isTtsReady = false
 
     override fun getName(): String = "SoundModule"
 
     init {
         initSoundPool()
+        try {
+            tts = TextToSpeech(reactContext, this)
+        } catch (e: Exception) {
+            Log.e("SoundModule", "Failed to initialize TTS: ${e.message}")
+        }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale.US
+            tts?.setPitch(0.72f) // Deep male voice
+            tts?.setSpeechRate(1.1f)
+            isTtsReady = true
+        }
     }
 
     private fun initSoundPool() {
@@ -42,6 +60,7 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
             loadSound("set_success", R.raw.tc_set_success)
             loadSound("like", R.raw.tc_like)
             loadSound("premium", R.raw.tc_premium)
+            loadSound("headshot", R.raw.tc_headshot)
         } catch (e: Exception) {
             Log.e("SoundModule", "Failed to initialize SoundPool: ${e.message}", e)
         }
@@ -66,10 +85,26 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
     @ReactMethod
     fun playSound(name: String, rate: Double, volume: Double) {
         if (isMuted) return
-        val soundId = soundMap[name] ?: return
-        val vol = volume.toFloat().coerceIn(0f, 1f)
-        val playbackRate = rate.toFloat().coerceIn(0.5f, 2.0f)
-        soundPool?.play(soundId, vol, vol, 1, 0, playbackRate)
+        val soundId = soundMap[name]
+        if (soundId != null) {
+            val vol = volume.toFloat().coerceIn(0f, 1f)
+            val playbackRate = rate.toFloat().coerceIn(0.5f, 2.0f)
+            soundPool?.play(soundId, vol, vol, 1, 0, playbackRate)
+        } else if (name == "headshot" && isTtsReady) {
+            speak("Headshot")
+        }
+    }
+
+    @ReactMethod
+    fun speak(text: String) {
+        if (isMuted) return
+        try {
+            tts?.setPitch(0.72f) // Deep male announcer tone
+            tts?.setSpeechRate(1.12f)
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_${System.currentTimeMillis()}")
+        } catch (e: Exception) {
+            Log.e("SoundModule", "TTS error: ${e.message}")
+        }
     }
 
     @ReactMethod
@@ -80,5 +115,6 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
     @ReactMethod
     fun stopAll() {
         soundPool?.autoPause()
+        tts?.stop()
     }
 }

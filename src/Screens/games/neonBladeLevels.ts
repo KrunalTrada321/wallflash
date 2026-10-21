@@ -8,7 +8,7 @@ export interface FruitConfig {
   points: number;
   radius: number;
   maxHits?: number;
-  isSpecial?: 'freeze' | 'frenzy' | 'boss';
+  isSpecial?: 'freeze' | 'frenzy' | 'boss' | 'combo';
   isObstacle?: boolean;
 }
 
@@ -155,6 +155,17 @@ export const FRUIT_CONFIGS: Record<string, FruitConfig> = {
     points: 40,
     radius: 35,
     isSpecial: 'frenzy',
+  },
+  combo: {
+    type: 'combo',
+    name: 'Rainbow Combo Fruit',
+    emoji: '🌟',
+    color: '#F59E0B',
+    rindColor: '#EC4899',
+    pulpColors: ['#FDE047', '#EC4899', '#38BDF8', '#8B5CF6', '#FFFFFF'],
+    points: 60,
+    radius: 36,
+    isSpecial: 'combo',
   },
   titan: {
     type: 'titan',

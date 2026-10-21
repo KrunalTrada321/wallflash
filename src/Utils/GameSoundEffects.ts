@@ -261,6 +261,27 @@ class SoundEffectsService {
   }
 
   /**
+   * Played when an enemy is defeated via headshot.
+   * Plays man voice saying "Headshot" with heavy impact vibration.
+   */
+  public playHeadshotVoice() {
+    if (this.muted) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('headshot', 1.0, 1.0);
+      }
+      if (SoundModule?.speak) {
+        SoundModule.speak('Headshot');
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate([0, 30, 25, 60]);
+      }
+    } catch (e) {
+      // safe fallback
+    }
+  }
+
+  /**
    * Played when premium is unlocked via IAP purchase or rewarded ad.
    */
   public playPremiumUnlocked() {

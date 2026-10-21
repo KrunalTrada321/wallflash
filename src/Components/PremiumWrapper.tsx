@@ -199,14 +199,14 @@ const PremiumWrapper = () => {
 
 
 
-const handleWatchAdUnlock = () => {
-  showRewardedPremiumAd();
+  const handleWatchAdUnlock = () => {
+    showRewardedPremiumAd();
 
-  // 🔥 force re-check after ad closes
-  setTimeout(() => {
-    refreshTempPremium();
-  }, 500);
-};
+    // 🔥 force re-check after ad closes
+    setTimeout(() => {
+      refreshTempPremium();
+    }, 500);
+  };
 
 
   const handlePurchase = async () => {
@@ -237,7 +237,7 @@ const handleWatchAdUnlock = () => {
             color: "#FFD700",
             textShadowColor: "rgba(0,0,0,0.5)",
             textShadowOffset: { width: 2, height: 2 },
-            textShadowRadius: 4, 
+            textShadowRadius: 4,
           }}
         >👑</Text>
         <LinearGradient
@@ -288,7 +288,7 @@ const handleWatchAdUnlock = () => {
         onWatchAdPress={handleWatchAdUnlock}
       />
     </View>
-  ); 
+  );
 };
 
 export default PremiumWrapper;

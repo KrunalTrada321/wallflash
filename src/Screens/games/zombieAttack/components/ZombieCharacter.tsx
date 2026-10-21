@@ -6,7 +6,7 @@ interface ZombieCharacterProps {
   zombie: ZombieEntity;
 }
 
-export const ZombieCharacter: React.FC<ZombieCharacterProps> = React.memo(({ zombie }) => {
+export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
   const {
     body,
     type,
@@ -26,19 +26,51 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = React.memo(({ zom
   const x = body.position.x;
   const y = body.position.y;
 
-  // Flash color if hit
+  // Flash / Elemental color states
+  const isFrozen = !!zombie.isFrozen;
+  const isBurning = !!zombie.isBurning;
   const isHitFlash = hitFlashTimer > 0;
-  const skinColor = isHitFlash ? '#FFFFFF' : '#84CC16'; // Cartoon zombie lime green
-  const stickColor = isHitFlash ? '#FFFFFF' : '#4D7C0F'; // Darker olive green for limbs
-  const shirtColor = isHitFlash ? '#E2E8F0' : '#334155'; // Tattered dark slate shirt
-  const pantsColor = isHitFlash ? '#CBD5E1' : '#475569'; // Torn ragged trousers
 
-  // Dynamic limp / drag shambling walk animation (authentic zombie gait!)
-  const isWalking = state === 'walk';
-  const legAngle1 = isWalking ? Math.sin(walkCycle) * 26 : 0;
-  const legAngle2 = isWalking ? Math.sin(walkCycle - 1.4) * 18 + 6 : 0; // Limp drag stride
-  const shambleBobY = isWalking ? Math.sin(walkCycle * 2) * 2.2 : 0;
-  const shambleTilt = isWalking ? Math.sin(walkCycle) * 4 : 0;
+  const skinColor = isFrozen ? '#BAE6FD' : isBurning ? '#F97316' : isHitFlash ? '#FFFFFF' : '#84CC16';
+  const stickColor = isFrozen ? '#38BDF8' : isBurning ? '#C2410C' : isHitFlash ? '#FFFFFF' : '#4D7C0F';
+  const shirtColor = isFrozen ? '#0284C7' : isBurning ? '#7C2D12' : isHitFlash ? '#E2E8F0' : '#334155';
+  const pantsColor = isFrozen ? '#0369A1' : isBurning ? '#431407' : isHitFlash ? '#CBD5E1' : '#475569';
+
+  // Dynamic locomotion animations: walk, climb, jump
+  const isWalking = state === 'walk' && !isFrozen;
+  const isClimbing = state === 'climb' && !isFrozen;
+  const isJumping = state === 'jump' && !isFrozen;
+
+  const legAngle1 = isClimbing
+    ? Math.sin(walkCycle * 2) * 26
+    : isJumping
+    ? 26
+    : isWalking
+    ? Math.sin(walkCycle) * 26
+    : 0;
+
+  const legAngle2 = isClimbing
+    ? -Math.sin(walkCycle * 2) * 26
+    : isJumping
+    ? 36
+    : isWalking
+    ? Math.sin(walkCycle - 1.4) * 18 + 6
+    : 0;
+
+  const shambleBobY = isClimbing
+    ? Math.sin(walkCycle * 3) * 1.5
+    : isWalking
+    ? Math.sin(walkCycle * 2) * 2.2
+    : 0;
+
+  const shambleTilt = isClimbing
+    ? -10 // Leaning chest against the wall while scrambling up
+    : isJumping
+    ? -14 // Leaning forward in mid-air leap
+    : isWalking
+    ? Math.sin(walkCycle) * 4
+    : 0;
+
   const armBob = isWalking ? Math.cos(walkCycle) * 7 : 0;
 
   // Facing direction multiplier
@@ -67,6 +99,26 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = React.memo(({ zom
             rx="3"
             fill={health > 1 ? '#EF4444' : '#F59E0B'}
           />
+        </G>
+      )}
+
+      {/* Solid Ice Block Overlay when Frozen */}
+      {isFrozen && (
+        <G transform={`translate(${-width / 2 - 5}, ${-height / 2 - 6})`}>
+          <Rect
+            x="0"
+            y="0"
+            width={width + 10}
+            height={height + 12}
+            rx="8"
+            fill="rgba(56, 189, 248, 0.4)"
+            stroke="#BAE6FD"
+            strokeWidth="2.2"
+          />
+          {/* Frosted glint corners */}
+          <Line x1="4" y1="4" x2={width * 0.4} y2="4" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+          <Line x1="4" y1="4" x2="4" y2={height * 0.28} stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+          <Line x1={width + 6} y1={height + 8} x2={width + 6} y2={height * 0.72} stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
         </G>
       )}
 
@@ -230,6 +282,68 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = React.memo(({ zom
                 {/* Sharp Blood-Tipped Claws */}
                 <Line x1="24" y1="-16" x2="29" y2="-19" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" />
                 <Line x1="28" y1="-8" x2="33" y2="-10" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
+              </G>
+            ) : state === 'climb' ? (
+              // Wall Scrambling: arms reaching straight up clutching the wall!
+              <G>
+                <Line
+                  x1="0"
+                  y1="0"
+                  x2="8"
+                  y2={-torsoHeight * 0.72 + Math.sin(walkCycle * 2.5) * 5}
+                  stroke={stickColor}
+                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeLinecap="round"
+                />
+                <Line
+                  x1="0"
+                  y1="2"
+                  x2="14"
+                  y2={-torsoHeight * 0.72 - Math.sin(walkCycle * 2.5) * 5}
+                  stroke={stickColor}
+                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeLinecap="round"
+                />
+                <Line
+                  x1="8"
+                  y1={-torsoHeight * 0.72 + Math.sin(walkCycle * 2.5) * 5}
+                  x2="14"
+                  y2={-torsoHeight * 0.72 + Math.sin(walkCycle * 2.5) * 5 - 4}
+                  stroke="#365314"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <Line
+                  x1="14"
+                  y1={-torsoHeight * 0.72 - Math.sin(walkCycle * 2.5) * 5}
+                  x2="20"
+                  y2={-torsoHeight * 0.72 - Math.sin(walkCycle * 2.5) * 5 - 4}
+                  stroke="#365314"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </G>
+            ) : state === 'jump' ? (
+              // High Leap: arms outstretched forward/downward
+              <G>
+                <Line
+                  x1="0"
+                  y1="0"
+                  x2={isBoss ? 30 : isGiant ? 24 : 18}
+                  y2="-8"
+                  stroke={stickColor}
+                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeLinecap="round"
+                />
+                <Line
+                  x1="0"
+                  y1="2"
+                  x2={isBoss ? 28 : isGiant ? 22 : 16}
+                  y2="0"
+                  stroke={stickColor}
+                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeLinecap="round"
+                />
               </G>
             ) : (
               // Relentless reaching undead arms with drooping elbows
@@ -509,4 +623,4 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = React.memo(({ zom
       </G>
     </G>
   );
-});
+};

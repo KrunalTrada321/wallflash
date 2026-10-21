@@ -16,6 +16,7 @@ import { scale } from 'react-native-size-matters';
 import Svg, { Path, Circle } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import GameSound from '../../Utils/GameSoundEffects';
+import { useGameInterstitialAd } from '../../Components/Useinterstitialad';
 
 const TOTAL_LEVELS = 50;
 
@@ -221,17 +222,21 @@ export default function TwinsConnect() {
     forceUpdate();
   };
 
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
+
   const handleNextLevel = () => {
-    GameSound.playTap();
-    setShowWin(false);
-    if (currentLevel < TOTAL_LEVELS - 1) {
-      const next = currentLevel + 1;
-      setCurrentLevel(next);
-      AsyncStorage.setItem('@twinsconnect_current_level', next.toString());
-    }
-    pathsRef.current = {};
-    setShowIncompleteMsg(false);
-    forceUpdate();
+    showNaturalAd(() => {
+      GameSound.playTap();
+      setShowWin(false);
+      if (currentLevel < TOTAL_LEVELS - 1) {
+        const next = currentLevel + 1;
+        setCurrentLevel(next);
+        AsyncStorage.setItem('@twinsconnect_current_level', next.toString());
+      }
+      pathsRef.current = {};
+      setShowIncompleteMsg(false);
+      forceUpdate();
+    });
   };
 
   const checkWinCondition = () => {

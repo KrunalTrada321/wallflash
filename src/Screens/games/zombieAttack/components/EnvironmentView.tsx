@@ -23,10 +23,11 @@ interface StaticEnvironmentProps {
   worldWidth: number;
   worldHeight: number;
   platforms: PlatformConfig[];
+  weather?: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic';
 }
 
 export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
-  ({ worldWidth, worldHeight, platforms }) => {
+  ({ worldWidth, worldHeight, platforms, weather = 'clear' }) => {
     // Precalculate platform paths once per level layout
     const precomputedPlatforms = useMemo(() => {
       return platforms
@@ -62,14 +63,47 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
         });
     }, [platforms]);
 
+    // Precalculate atmospheric weather visual elements
+    const weatherElements = useMemo(() => {
+      if (weather === 'clear') return null;
+
+      const items = [];
+      const count = weather === 'rain' ? 36 : weather === 'snow' ? 28 : 22;
+      for (let i = 0; i < count; i++) {
+        items.push({
+          id: i,
+          x: Math.round(((i * 137.5) % (worldWidth + 200)) - 100),
+          y: Math.round((i * 47) % (worldHeight - 40) + 15),
+          size: (i % 4) + 2,
+        });
+      }
+      return items;
+    }, [weather, worldWidth, worldHeight]);
+
+    // Weather sky colors
+    const skyColors = useMemo(() => {
+      switch (weather) {
+        case 'rain':
+          return { top: '#1E293B', mid: '#334155', bot: '#475569' };
+        case 'snow':
+          return { top: '#BFDBFE', mid: '#DBEAFE', bot: '#EFF6FF' };
+        case 'hellfire':
+          return { top: '#450A0A', mid: '#7F1D1D', bot: '#991B1B' };
+        case 'toxic':
+          return { top: '#064E3B', mid: '#065F46', bot: '#047857' };
+        default:
+          return { top: '#BAE6FD', mid: '#E0F2FE', bot: '#F0FDFA' };
+      }
+    }, [weather]);
+
     return (
       <G>
         <Defs>
-          {/* Sky Gradient */}
+          {/* Dynamic Weather Sky Gradient */}
           <SvgGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor="#BAE6FD" />
-            <Stop offset="50%" stopColor="#E0F2FE" />
-            <Stop offset="100%" stopColor="#F0FDFA" />
+            <Stop offset="0%" stopColor={skyColors.top} />
+            <Stop offset="50%" stopColor={skyColors.mid} />
+            <Stop offset="100%" stopColor={skyColors.bot} />
           </SvgGradient>
 
           {/* Mountain Gradient */}
@@ -80,8 +114,8 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
 
           {/* Grass Platform Gradient */}
           <SvgGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor="#84CC16" />
-            <Stop offset="100%" stopColor="#65A30D" />
+            <Stop offset="0%" stopColor={weather === 'snow' ? '#E0F2FE' : '#84CC16'} />
+            <Stop offset="100%" stopColor={weather === 'snow' ? '#93C5FD' : '#65A30D'} />
           </SvgGradient>
 
           {/* Slate Soil Gradient */}
@@ -112,7 +146,7 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
         <Rect x="-400" y="0" width={Math.max(worldWidth + 800, 2400)} height={worldHeight} fill="url(#skyGrad)" />
 
         {/* 2. Soft Background Clouds */}
-        <G opacity={0.85}>
+        <G opacity={weather === 'rain' || weather === 'toxic' ? 0.35 : 0.85}>
           {[0.08, 0.35, 0.62, 0.88].map((ratio, idx) => (
             <G key={`cloud_${idx}`} transform={`translate(${worldWidth * ratio}, ${45 + (idx % 2) * 35})`}>
               <Circle cx="0" cy="0" r="22" fill="#FFFFFF" />
@@ -122,6 +156,44 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
             </G>
           ))}
         </G>
+
+        {/* Atmospheric Weather Overlay */}
+        {weatherElements && (
+          <G opacity={0.65}>
+            {weather === 'rain' &&
+              weatherElements.map(w => (
+                <Line
+                  key={`rain_${w.id}`}
+                  x1={w.x}
+                  y1={w.y}
+                  x2={w.x - 7}
+                  y2={w.y + 14}
+                  stroke="#93C5FD"
+                  strokeWidth="1.5"
+                  opacity={0.8}
+                />
+              ))}
+            {weather === 'snow' &&
+              weatherElements.map(w => (
+                <Circle key={`snow_${w.id}`} cx={w.x} cy={w.y} r={w.size} fill="#FFFFFF" opacity={0.85} />
+              ))}
+            {weather === 'hellfire' &&
+              weatherElements.map(w => (
+                <Circle
+                  key={`ember_${w.id}`}
+                  cx={w.x}
+                  cy={w.y}
+                  r={w.size}
+                  fill={w.id % 2 === 0 ? '#F97316' : '#EF4444'}
+                  opacity={0.7}
+                />
+              ))}
+            {weather === 'toxic' &&
+              weatherElements.map(w => (
+                <Circle key={`tox_${w.id}`} cx={w.x} cy={w.y} r={w.size} fill="#A3E635" opacity={0.6} />
+              ))}
+          </G>
+        )}
 
         {/* 3. Mountain Silhouette */}
         <Path
@@ -135,9 +207,9 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
             const treeX = worldWidth * ratio;
             return (
               <G key={`tree_${idx}`} transform={`translate(${treeX}, 335)`}>
-                <Path d="M 0 -50 L 16 -16 L -16 -16 Z" fill="#2DD4BF" />
-                <Path d="M 0 -72 L 13 -40 L -13 -40 Z" fill="#5EEAD4" />
-                <Path d="M 0 -90 L 10 -60 L -10 -60 Z" fill="#99F6E4" />
+                <Path d="M 0 -50 L 16 -16 L -16 -16 Z" fill={weather === 'snow' ? '#93C5FD' : '#2DD4BF'} />
+                <Path d="M 0 -72 L 13 -40 L -13 -40 Z" fill={weather === 'snow' ? '#BFDBFE' : '#5EEAD4'} />
+                <Path d="M 0 -90 L 10 -60 L -10 -60 Z" fill={weather === 'snow' ? '#FFFFFF' : '#99F6E4'} />
                 <Rect x="-2.5" y="-16" width="5" height="20" fill="#134E4A" />
               </G>
             );

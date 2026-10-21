@@ -37,14 +37,18 @@ class ZombieAudioService {
 
   public playBowDraw() {
     if (!this.soundEnabled) return;
-    GameSound.playStep(3); // Tactile bowstring draw / notch sound
-    this.vibrate(12);
+    GameSound.playBowStretch(0.2);
+  }
+
+  public playBowStretch(tension: number = 0.5) {
+    if (!this.soundEnabled) return;
+    GameSound.playBowStretch(tension);
   }
 
   public playBowTension(notch: number = 1) {
     if (!this.soundEnabled) return;
-    GameSound.playStep(notch);
-    this.vibrate(8);
+    const tension = Math.min(1.0, 0.3 + (notch / 10) * 0.7);
+    GameSound.playBowStretch(tension);
   }
 
   public playBowRelease() {
@@ -88,16 +92,60 @@ class ZombieAudioService {
     this.vibrate([0, 30, 20, 35]);
   }
 
-  public playExplosion() {
+  public playBombThrow() {
     if (!this.soundEnabled) return;
-    GameSound.playSupernovaExplosion();
-    this.vibrate([0, 50, 40, 80, 50, 100]);
+    GameSound.playBombThrow();
+    this.vibrate(20);
+  }
+
+  public playBombBlast() {
+    if (!this.soundEnabled) return;
+    GameSound.playBombBlast();
+    this.vibrate([0, 60, 45, 110, 50, 180]);
+  }
+
+  public playExplosion() {
+    this.playBombBlast();
   }
 
   public playBounce() {
     if (!this.soundEnabled) return;
     GameSound.playStep(8);
     this.vibrate(15);
+  }
+
+  public playFireArrowLaunch() {
+    if (!this.soundEnabled) return;
+    GameSound.playCut();
+    GameSound.playStep(6);
+    this.vibrate(22);
+  }
+
+  public playFireExplosion() {
+    if (!this.soundEnabled) return;
+    GameSound.playSupernovaExplosion();
+    this.vibrate([0, 40, 30, 70]);
+  }
+
+  public playFreezeArrowLaunch() {
+    if (!this.soundEnabled) return;
+    GameSound.playCut();
+    GameSound.playStep(11);
+    this.vibrate(18);
+  }
+
+  public playFreezeImpact() {
+    if (!this.soundEnabled) return;
+    GameSound.playStep(14);
+    GameSound.playConnect();
+    this.vibrate([0, 20, 20, 45]);
+  }
+
+  public playIceShatter() {
+    if (!this.soundEnabled) return;
+    GameSound.playStep(12);
+    GameSound.playStep(14);
+    this.vibrate([0, 30, 15, 30, 15, 60]);
   }
 
   public playSwitchTrigger() {

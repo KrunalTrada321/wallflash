@@ -37,13 +37,9 @@ export default function GamesScreen() {
           setTwinsLevel(parseInt(lvl, 10) + 1);
         }
       });
-      Promise.all([
-        AsyncStorage.getItem('@zombie_attack_current_level'),
-        AsyncStorage.getItem('@zombie_attack_unlocked_level'),
-      ]).then(([curLvl, unlckLvl]) => {
-        const target = curLvl || unlckLvl;
-        if (target) {
-          setZombieLevel(Math.min(50, Math.max(1, parseInt(target, 10))));
+      AsyncStorage.getItem('@zombie_attack_unlocked_level').then(lvl => {
+        if (lvl) {
+          setZombieLevel(parseInt(lvl, 10));
         }
       });
     }, [])
@@ -55,44 +51,7 @@ export default function GamesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- Game 1: Neon Fruit Slasher --- */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardContainer}
-          onPress={() => navigation.navigate('NeonFruitSlasher')}
-        >
-          <ImageBackground
-            source={require('../assets/game/neon_blade.jpg')}
-            style={styles.imageBg}
-            imageStyle={{ borderRadius: scale(20) }}
-          >
-            <LinearGradient
-              colors={['transparent', 'rgba(15, 10, 35, 0.75)', 'rgba(9, 6, 20, 0.98)']}
-              style={styles.gradient}
-            >
-              <View style={styles.contentWrapper}>
-                <Text style={styles.gameTitle}>Neon Fruit Slasher</Text>
-
-                <View style={styles.progressRow}>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${Math.min(100, (bladeLevel / 50) * 100)}%`,
-                          backgroundColor: '#38BDF8',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.levelText}>Level {bladeLevel} / 50</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </ImageBackground>
-        </TouchableOpacity>
-
-        {/* --- Game 2: Twins Connect --- */}
+        {/* --- Game 1: Twins Connect --- */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.cardContainer}
@@ -126,11 +85,11 @@ export default function GamesScreen() {
           </ImageBackground>
         </TouchableOpacity>
 
-        {/* --- Game 3: Zombie Stickman Archer --- */}
+        {/* --- Game 2: Zombie Stickman Archer --- */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.cardContainer}
-          onPress={() => navigation.navigate('ZombieAttack', { initialLevel: zombieLevel })}
+          onPress={() => navigation.navigate('ZombieAttack')}
         >
           <ImageBackground
             source={require('../assets/game/zombie_attack.jpg')}
@@ -157,6 +116,43 @@ export default function GamesScreen() {
                     />
                   </View>
                   <Text style={styles.levelText}>Level {zombieLevel} / 50</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* --- Game 3: Neon Fruit Slasher --- */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardContainer}
+          onPress={() => navigation.navigate('NeonFruitSlasher')}
+        >
+          <ImageBackground
+            source={require('../assets/game/neon_blade.jpg')}
+            style={styles.imageBg}
+            imageStyle={{ borderRadius: scale(20) }}
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(15, 10, 35, 0.75)', 'rgba(9, 6, 20, 0.98)']}
+              style={styles.gradient}
+            >
+              <View style={styles.contentWrapper}>
+                <Text style={styles.gameTitle}>Neon Fruit Slasher</Text>
+
+                <View style={styles.progressRow}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.min(100, (bladeLevel / 50) * 100)}%`,
+                          backgroundColor: '#38BDF8',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.levelText}>Level {bladeLevel} / 50</Text>
                 </View>
               </View>
             </LinearGradient>

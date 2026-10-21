@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
-  UNLOCKED_LEVEL: '@zombie_attack_unlocked_level',
   CURRENT_LEVEL: '@zombie_attack_current_level',
+  UNLOCKED_LEVEL: '@zombie_attack_unlocked_level',
   STARS: '@zombie_attack_stars',
   SCORES: '@zombie_attack_scores',
   COINS: '@zombie_attack_coins',
@@ -12,8 +12,8 @@ const STORAGE_KEYS = {
 };
 
 export interface ZombieGameProgress {
-  unlockedLevel: number;
   currentLevel: number;
+  unlockedLevel: number;
   stars: Record<number, number>;
   scores: Record<number, number>;
   coins: number;
@@ -25,10 +25,10 @@ export interface ZombieGameProgress {
 export const ZombieStorageService = {
   async getProgress(): Promise<ZombieGameProgress> {
     try {
-      const [unlocked, currentStr, starsStr, scoresStr, coinsStr, soundStr, musicStr, hapticsStr] =
+      const [currentLevelStr, unlocked, starsStr, scoresStr, coinsStr, soundStr, musicStr, hapticsStr] =
         await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.UNLOCKED_LEVEL),
           AsyncStorage.getItem(STORAGE_KEYS.CURRENT_LEVEL),
+          AsyncStorage.getItem(STORAGE_KEYS.UNLOCKED_LEVEL),
           AsyncStorage.getItem(STORAGE_KEYS.STARS),
           AsyncStorage.getItem(STORAGE_KEYS.SCORES),
           AsyncStorage.getItem(STORAGE_KEYS.COINS),
@@ -37,14 +37,14 @@ export const ZombieStorageService = {
           AsyncStorage.getItem(STORAGE_KEYS.HAPTICS_ENABLED),
         ]);
 
-      const parsedUnlocked = unlocked ? Math.max(1, parseInt(unlocked, 10)) : 1;
-      const parsedCurrent = currentStr
-        ? Math.max(1, parseInt(currentStr, 10))
-        : parsedUnlocked;
+      const unlockedLevel = unlocked ? Math.max(1, parseInt(unlocked, 10)) : 1;
+      const currentLevel = currentLevelStr
+        ? Math.max(1, Math.min(50, parseInt(currentLevelStr, 10)))
+        : Math.min(unlockedLevel, 50);
 
       return {
-        unlockedLevel: parsedUnlocked,
-        currentLevel: Math.min(50, Math.max(1, parsedCurrent)),
+        currentLevel,
+        unlockedLevel,
         stars: starsStr ? JSON.parse(starsStr) : {},
         scores: scoresStr ? JSON.parse(scoresStr) : {},
         coins: coinsStr ? parseInt(coinsStr, 10) : 0,
@@ -55,8 +55,8 @@ export const ZombieStorageService = {
     } catch (e) {
       console.warn('[ZombieStorage] Failed to read progress:', e);
       return {
-        unlockedLevel: 1,
         currentLevel: 1,
+        unlockedLevel: 1,
         stars: {},
         scores: {},
         coins: 0,
@@ -67,10 +67,10 @@ export const ZombieStorageService = {
     }
   },
 
-  async setCurrentLevel(levelId: number): Promise<void> {
+  async saveCurrentLevel(levelId: number): Promise<void> {
     try {
-      const bounded = Math.min(50, Math.max(1, levelId));
-      await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_LEVEL, bounded.toString());
+      const clamped = Math.max(1, Math.min(50, levelId));
+      await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_LEVEL, clamped.toString());
     } catch (e) {
       console.warn('[ZombieStorage] Failed to save current level:', e);
     }
@@ -96,8 +96,8 @@ export const ZombieStorageService = {
       const updatedScores = { ...progress.scores, [levelId]: bestScore };
 
       await Promise.all([
-        AsyncStorage.setItem(STORAGE_KEYS.UNLOCKED_LEVEL, nextLevel.toString()),
         AsyncStorage.setItem(STORAGE_KEYS.CURRENT_LEVEL, nextLevel.toString()),
+        AsyncStorage.setItem(STORAGE_KEYS.UNLOCKED_LEVEL, nextLevel.toString()),
         AsyncStorage.setItem(STORAGE_KEYS.STARS, JSON.stringify(updatedStars)),
         AsyncStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(updatedScores)),
         AsyncStorage.setItem(STORAGE_KEYS.COINS, totalCoins.toString()),

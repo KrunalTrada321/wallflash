@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, { Circle, Line, Path, G, Ellipse, Rect } from 'react-native-svg';
+import { ArrowType } from '../types/gameTypes';
 
 interface PlayerArcherProps {
   x: number;
@@ -7,6 +8,7 @@ interface PlayerArcherProps {
   aimAngle: number;
   pullDistance: number; // 0 to 1
   isAiming: boolean;
+  weaponType?: ArrowType;
   isVictorious?: boolean;
   isDefeated?: boolean;
   nearestZombieDist?: number;
@@ -18,19 +20,22 @@ export const PlayerArcher: React.FC<PlayerArcherProps> = React.memo(({
   aimAngle,
   pullDistance,
   isAiming,
+  weaponType = 'regular',
   isVictorious = false,
   isDefeated = false,
   nearestZombieDist = 999,
 }) => {
   const isScared = nearestZombieDist < 160 && !isVictorious && !isDefeated;
+  const isBomb = weaponType === 'bomb';
 
   const bowRadius = 24;
   const pullOffset = pullDistance * 20;
   const angleDeg = (aimAngle * 180) / Math.PI;
 
-  // Archer leans backwards when pulling bowstring (authentic reverse-pull tension!)
-  const leanBackX = isAiming ? -pullDistance * 6 : 0;
-  const leanBackY = isAiming ? pullDistance * 1.5 : 0;
+  // Archer leans backwards when pulling bowstring / winding up bomb throw
+  const leanBackMult = isBomb ? 8 : 6;
+  const leanBackX = isAiming ? -pullDistance * leanBackMult : 0;
+  const leanBackY = isAiming ? pullDistance * (isBomb ? 2.2 : 1.5) : 0;
 
   // Solid hip joint anchored to the torso base
   const hipX = leanBackX;
@@ -107,13 +112,25 @@ export const PlayerArcher: React.FC<PlayerArcherProps> = React.memo(({
 
       {/* Torso & Head (leans backwards with archery draw tension) */}
       <G transform={`translate(${leanBackX}, ${leanBackY})`}>
-        {/* Quiver on Back */}
-        <G transform="translate(-10, -4) rotate(22)">
-          <Path d="M -5 -16 L 5 -16 L 4 14 L -4 14 Z" fill="#92400E" stroke="#78350F" strokeWidth="1.5" />
-          <Line x1="-2" y1="-16" x2="-2" y2="-22" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
-          <Line x1="1" y1="-16" x2="2" y2="-24" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
-          <Line x1="-4" y1="-12" x2="4" y2="-12" stroke="#FBBF24" strokeWidth="1.5" />
-        </G>
+        {/* Weapon Storage on Back: Bomb Pouch or Arrow Quiver */}
+        {isBomb ? (
+          <G transform="translate(-10, -2) rotate(16)">
+            {/* Tactical Leather Bomb Satchel */}
+            <Path d="M -6 -12 L 6 -12 L 7 12 L -7 12 Z" fill="#334155" stroke="#1E293B" strokeWidth="1.5" />
+            <Path d="M -6 -12 L 6 -12 L 5 -2 L -5 -2 Z" fill="#475569" stroke="#1E293B" strokeWidth="1" />
+            <Rect x="-2.5" y="-4" width="5" height="3" rx="0.6" fill="#FBBF24" stroke="#D97706" strokeWidth="0.8" />
+            {/* Spare Bomb Fuse sticking out */}
+            <Path d="M 2 -12 Q 5 -18 1 -21" stroke="#EAB308" strokeWidth="2" fill="none" />
+            <Circle cx="1" cy="-21" r="2" fill="#EF4444" />
+          </G>
+        ) : (
+          <G transform="translate(-10, -4) rotate(22)">
+            <Path d="M -5 -16 L 5 -16 L 4 14 L -4 14 Z" fill="#92400E" stroke="#78350F" strokeWidth="1.5" />
+            <Line x1="-2" y1="-16" x2="-2" y2="-22" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
+            <Line x1="1" y1="-16" x2="2" y2="-24" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
+            <Line x1="-4" y1="-12" x2="4" y2="-12" stroke="#FBBF24" strokeWidth="1.5" />
+          </G>
+        )}
 
         {/* Stickman Spine Base */}
         <Line x1="0" y1="-12" x2="0" y2="18" stroke="#111827" strokeWidth="4.5" strokeLinecap="round" />
@@ -191,8 +208,107 @@ export const PlayerArcher: React.FC<PlayerArcherProps> = React.memo(({
           )}
         </G>
 
-        {/* Arms & Bow */}
-        {!isDefeated && (
+        {/* Dynamic Weapon & Arms */}
+        {!isDefeated && isBomb ? (
+          /* ========================================================
+             BOMB THROWING ANIMATION: Dynamic windup stance & iron bomb
+             ======================================================== */
+          isAiming ? (
+            <G transform={`rotate(${angleDeg}, 0, -4)`}>
+              {/* Front Guide Arm pointing straight forward along aim angle */}
+              <Line
+                x1="0"
+                y1="-4"
+                x2="24"
+                y2="0"
+                stroke="#111827"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
+              <Circle cx="24" cy="0" r="2.5" fill="#111827" />
+              {/* Pointing index finger */}
+              <Line x1="24" y1="0" x2="28" y2="0" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
+
+              {/* Back Throwing Arm wound back overhead with burning bomb */}
+              {(() => {
+                const elbowX = -12 - pullOffset * 0.7;
+                const elbowY = -14 - pullOffset * 0.35;
+                const handX = -24 - pullOffset * 0.9;
+                const handY = -16 - pullOffset * 0.45;
+                return (
+                  <G>
+                    {/* Upper arm to cocked back elbow */}
+                    <Line
+                      x1="0"
+                      y1="-4"
+                      x2={elbowX}
+                      y2={elbowY}
+                      stroke="#111827"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                    {/* Forearm extending to raised throwing hand */}
+                    <Line
+                      x1={elbowX}
+                      y1={elbowY}
+                      x2={handX}
+                      y2={handY}
+                      stroke="#111827"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                    <Circle cx={elbowX} cy={elbowY} r="2.2" fill="#111827" />
+                    <Circle cx={handX} cy={handY} r="2.6" fill="#111827" />
+
+                    {/* Sizzling Iron Bomb in Hand */}
+                    <G transform={`translate(${handX}, ${handY})`}>
+                      {/* Heavy Spherical Cast Iron Bomb */}
+                      <Circle cx="0" cy="0" r="8.5" fill="#09090B" stroke="#27272A" strokeWidth="1.2" />
+                      {/* Metallic curve sheen */}
+                      <Path d="M -4 -4 Q -2 -6 2 -5" stroke="#94A3B8" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                      {/* Brass fuse collar */}
+                      <Rect x="-2" y="-11" width="4" height="3" rx="0.6" fill="#D97706" />
+                      {/* Burning fuse cord */}
+                      <Path d="M 0 -11 Q 4 -17 1 -20" stroke="#EAB308" strokeWidth="2" fill="none" />
+                      {/* Sizzling red and yellow spark */}
+                      <Circle cx="1" cy="-20" r="3.2" fill="#EF4444" />
+                      <Circle cx="1" cy="-20" r="1.6" fill="#FEF08A" />
+                      {/* Spark rays */}
+                      <Line x1="-1" y1="-22" x2="3" y2="-18" stroke="#FEF08A" strokeWidth="1.2" />
+                      <Line x1="3" y1="-22" x2="-1" y2="-18" stroke="#FEF08A" strokeWidth="1.2" />
+                    </G>
+                  </G>
+                );
+              })()}
+            </G>
+          ) : (
+            /* Idle Ready Bomb Stance: Holding ready bomb at chest level */
+            <G>
+              {/* Left Arm relaxed down */}
+              <Line x1="0" y1="-4" x2="8" y2="10" stroke="#111827" strokeWidth="3.5" strokeLinecap="round" />
+              <Circle cx="8" cy="10" r="2.4" fill="#111827" />
+
+              {/* Right Arm poised holding bomb in front */}
+              <Line x1="0" y1="-4" x2="10" y2="2" stroke="#111827" strokeWidth="3.5" strokeLinecap="round" />
+              <Line x1="10" y1="2" x2="16" y2="-3" stroke="#111827" strokeWidth="3.5" strokeLinecap="round" />
+              <Circle cx="10" cy="2" r="2.2" fill="#111827" />
+              <Circle cx="16" cy="-3" r="2.6" fill="#111827" />
+
+              {/* Ready Bomb in Hand */}
+              <G transform="translate(18, -6)">
+                <Circle cx="0" cy="0" r="7.5" fill="#09090B" stroke="#27272A" strokeWidth="1.2" />
+                <Path d="M -3 -3 Q -1 -5 2 -4" stroke="#94A3B8" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                <Rect x="-1.8" y="-9.5" width="3.6" height="2.5" rx="0.5" fill="#D97706" />
+                <Path d="M 0 -9.5 Q 3 -14 1 -17" stroke="#EAB308" strokeWidth="1.8" fill="none" />
+                <Circle cx="1" cy="-17" r="2.5" fill="#EF4444" />
+                <Circle cx="1" cy="-17" r="1.2" fill="#FEF08A" />
+              </G>
+            </G>
+          )
+        ) : !isDefeated ? (
+          /* ========================================================
+             REGULAR ARCHERY ANIMATION: Recurve bow and drawn string
+             ======================================================== */
           <G transform={`rotate(${angleDeg}, 0, -4)`}>
             {/* Front Arm Holding Bow Handle */}
             <Line
@@ -300,7 +416,7 @@ export const PlayerArcher: React.FC<PlayerArcherProps> = React.memo(({
               </G>
             )}
           </G>
-        )}
+        ) : null}
       </G>
     </G>
   );

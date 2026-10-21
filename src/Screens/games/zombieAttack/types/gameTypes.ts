@@ -61,6 +61,8 @@ export interface ZombieConfig {
   patrolMax?: number;
 }
 
+export type ArrowType = 'regular' | 'bomb';
+
 export interface LevelConfig {
   id: number;
   title: string;
@@ -76,12 +78,14 @@ export interface LevelConfig {
   gravity?: { x: number; y: number };
   wind?: { x: number; y: number };
   description?: string;
+  weather?: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic';
 }
 
 export interface TrajectoryPoint {
   x: number;
   y: number;
   isBounce?: boolean;
+  isTargetingZombie?: boolean;
 }
 
 export interface ParticleEntity {
@@ -95,7 +99,7 @@ export interface ParticleEntity {
   opacity: number;
   life: number;
   maxLife: number;
-  shape?: 'circle' | 'star' | 'splat' | 'wood' | 'smoke' | 'spark' | 'skull' | 'bone';
+  shape?: 'circle' | 'star' | 'splat' | 'wood' | 'smoke' | 'spark' | 'ice' | 'flame' | 'shockwave';
 }
 
 export interface FloatText {
@@ -122,6 +126,7 @@ export interface ArrowEntity {
   penetration?: number;
   bounces?: number;
   maxBounces?: number;
+  arrowType?: ArrowType;
 }
 
 export interface ZombieEntity {
@@ -131,7 +136,7 @@ export interface ZombieEntity {
   health: number;
   maxHealth: number;
   speed: number;
-  state: 'idle' | 'walk' | 'jump' | 'attack' | 'dead';
+  state: 'idle' | 'walk' | 'jump' | 'attack' | 'dead' | 'climb';
   facingLeft: boolean;
   attackTimer: number;
   hitFlashTimer: number;
@@ -143,7 +148,12 @@ export interface ZombieEntity {
   patrolMin?: number;
   patrolMax?: number;
   jumpCooldown?: number;
+  climbCooldown?: number;
   flyPhase?: number;
+  isFrozen?: boolean;
+  freezeTimer?: number;
+  isBurning?: boolean;
+  burnTimer?: number;
 }
 
 export interface ObstacleEntity {

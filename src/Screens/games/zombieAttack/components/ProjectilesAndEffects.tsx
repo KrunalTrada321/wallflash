@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import Svg, { Circle, Line, Path, G, Rect, Text as SvgText } from 'react-native-svg';
-import { ArrowEntity, TrajectoryPoint, ParticleEntity, FloatText } from '../types/gameTypes';
+import Svg, { Circle, Line, Path, G, Rect, Polygon } from 'react-native-svg';
+import { ArrowEntity, TrajectoryPoint, ParticleEntity, FloatText, ArrowType } from '../types/gameTypes';
 
 interface ProjectilesAndEffectsProps {
   arrows: ArrowEntity[];
   trajectory: TrajectoryPoint[];
   isAiming: boolean;
+  arrowType?: ArrowType;
   particles?: ParticleEntity[];
   floatTexts?: FloatText[];
 }
@@ -14,9 +15,18 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
   arrows,
   trajectory,
   isAiming,
+  arrowType = 'regular',
   particles = [],
   floatTexts = [],
 }) => {
+  // Color trajectory and crosshair according to active arrow type
+  const themeColor = useMemo(() => {
+    if (arrowType === 'bomb') {
+      return '#FACC15';
+    }
+    return '#38BDF8';
+  }, [arrowType]);
+
   // Precompute single continuous dashed trajectory path (1 native SVG node)
   const trajectoryPath = useMemo(() => {
     if (!isAiming || trajectory.length < 2) return '';
@@ -29,15 +39,15 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
 
   return (
     <G>
-      {/* 1. Single Continuous Dashed Trajectory Line with Ricochet Reflections */}
+      {/* 1. Single Continuous Dashed Trajectory Line with Obstacle Ricochet Reflections */}
       {trajectoryPath ? (
         <Path
           d={trajectoryPath}
-          stroke="#38BDF8"
-          strokeWidth="2.8"
+          stroke={themeColor}
+          strokeWidth="3"
           strokeDasharray="6, 8"
           fill="none"
-          opacity={0.88}
+          opacity={0.92}
         />
       ) : null}
 
@@ -53,12 +63,12 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
                 cy="0"
                 r="13"
                 fill="none"
-                stroke="#F59E0B"
+                stroke={themeColor}
                 strokeWidth="2.2"
                 strokeDasharray="4, 3"
               />
-              {/* Inner glowing amber core */}
-              <Circle cx="0" cy="0" r="5.5" fill="#F59E0B" opacity={0.95} />
+              {/* Inner glowing core */}
+              <Circle cx="0" cy="0" r="5.5" fill={themeColor} opacity={0.95} />
               {/* White impact center */}
               <Circle cx="0" cy="0" r="2.2" fill="#FFFFFF" />
             </G>
@@ -68,111 +78,130 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
       {/* 3. Target Crosshair at the Endpoint */}
       {targetPoint && (
         <G transform={`translate(${targetPoint.x}, ${targetPoint.y})`}>
-          <Circle cx="0" cy="0" r="14" fill="none" stroke="#38BDF8" strokeWidth="2" strokeDasharray="5, 3" />
-          <Circle cx="0" cy="0" r="3.5" fill="none" stroke="#38BDF8" strokeWidth="1.5" />
-          <Line x1="-16" y1="0" x2="-6" y2="0" stroke="#38BDF8" strokeWidth="2" />
-          <Line x1="6" y1="0" x2="16" y2="0" stroke="#38BDF8" strokeWidth="2" />
-          <Line x1="0" y1="-16" x2="0" y2="-6" stroke="#38BDF8" strokeWidth="2" />
-          <Line x1="0" y1="6" x2="0" y2="16" stroke="#38BDF8" strokeWidth="2" />
+          <Circle cx="0" cy="0" r="14" fill="none" stroke={themeColor} strokeWidth="2" strokeDasharray="5, 3" />
+          <Circle cx="0" cy="0" r="3.5" fill="none" stroke={themeColor} strokeWidth="1.5" />
+          <Line x1="-16" y1="0" x2="-6" y2="0" stroke={themeColor} strokeWidth="2" />
+          <Line x1="6" y1="0" x2="16" y2="0" stroke={themeColor} strokeWidth="2" />
+          <Line x1="0" y1="-16" x2="0" y2="-6" stroke={themeColor} strokeWidth="2" />
+          <Line x1="0" y1="6" x2="0" y2="16" stroke={themeColor} strokeWidth="2" />
         </G>
       )}
 
-      {/* 4. Arrow Motion Blur Speed Trails */}
-      {arrows.map(arrow => {
-        if (!arrow.inFlight || !arrow.trail || arrow.trail.length < 2) return null;
-        let d = `M ${arrow.trail[0].x} ${arrow.trail[0].y}`;
-        for (let i = 1; i < arrow.trail.length; i++) {
-          d += ` L ${arrow.trail[i].x} ${arrow.trail[i].y}`;
-        }
-        return (
-          <Path
-            key={`trail_${arrow.id}`}
-            d={d}
-            stroke="#EF4444"
-            strokeWidth="2.8"
-            strokeOpacity={0.65}
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      })}
-
-      {/* 5. Arrows (In-Flight & Stuck on living targets) */}
+      {/* 4. Projectiles: In-Flight Arrows & Thrown Bombs */}
       {arrows.map(arrow => {
         const x = arrow.body.position.x;
         const y = arrow.body.position.y;
         const deg = (arrow.angle * 180) / Math.PI;
+        const type = arrow.arrowType || 'regular';
 
+        if (type === 'bomb') {
+          return (
+            <G key={`arr_${arrow.id}`} transform={`translate(${x}, ${y}) rotate(${deg})`}>
+              {/* Heavy Cast Iron Round Bomb */}
+              <Circle cx="0" cy="0" r="9" fill="#09090B" stroke="#27272A" strokeWidth="1.5" />
+              {/* Specular curved reflection sheen */}
+              <Path d="M -4 -4 Q -2 -7 3 -6" stroke="#94A3B8" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+              {/* Cylindrical Brass Neck / Cap */}
+              <Rect x="-2.5" y="-12" width="5" height="3.5" rx="0.8" fill="#D97706" stroke="#92400E" strokeWidth="0.8" />
+              {/* Sizzling Braided Fuse Cord */}
+              <Path d="M 0 -12 Q 5 -18 2 -22" stroke="#EAB308" strokeWidth="2.2" fill="none" />
+              {/* Burning Fuse Sparks */}
+              <Circle cx="2" cy="-22" r="3.5" fill="#EF4444" />
+              <Circle cx="2" cy="-22" r="2" fill="#FEF08A" />
+              {/* Crackle Spark Rays */}
+              <Line x1="-1" y1="-25" x2="5" y2="-19" stroke="#FEF08A" strokeWidth="1.4" />
+              <Line x1="5" y1="-25" x2="-1" y2="-19" stroke="#FEF08A" strokeWidth="1.4" />
+            </G>
+          );
+        }
+
+        // Default Regular Steel Arrow
         return (
           <G key={`arr_${arrow.id}`} transform={`translate(${x}, ${y}) rotate(${deg})`}>
             {/* Wooden Shaft */}
             <Line x1="-22" y1="0" x2="14" y2="0" stroke="#78350F" strokeWidth="3" strokeLinecap="round" />
             {/* Steel Arrowhead */}
             <Path d="M 22 0 L 12 -5 L 14 0 L 12 5 Z" fill="#94A3B8" stroke="#475569" strokeWidth="1" />
-            {/* Feathers */}
+            {/* Red Feathers */}
             <Path d="M -22 0 L -28 -5 L -20 -1 Z" fill="#DC2626" />
             <Path d="M -22 0 L -28 5 L -20 1 Z" fill="#DC2626" />
           </G>
         );
       })}
 
-      {/* 5. Visceral Blood, Slime, Sparks, Flying Skull & Bone Particles */}
+      {/* 5. Smooth, High-Performance Particles (Blast Shockwaves, Smoke Clouds, Sparks) */}
       {particles.map(p => {
+        if (p.shape === 'shockwave') {
+          const progress = p.life / p.maxLife;
+          const currentRadius = p.size + progress * 80;
+          const strokeW = Math.max(1.2, 5.5 * (1 - progress));
+          return (
+            <Circle
+              key={`part_${p.id}`}
+              cx={p.x}
+              cy={p.y}
+              r={currentRadius}
+              stroke={p.color}
+              strokeWidth={strokeW}
+              fill="none"
+              opacity={p.opacity}
+            />
+          );
+        }
+
+        if (p.shape === 'smoke') {
+          const progress = p.life / p.maxLife;
+          const r = p.size * (1 + progress * 0.85);
+          return (
+            <G key={`part_${p.id}`} opacity={p.opacity * 0.85}>
+              <Circle cx={p.x} cy={p.y} r={r} fill={p.color} />
+              <Circle cx={p.x + r * 0.4} cy={p.y - r * 0.3} r={r * 0.65} fill={p.color} />
+              <Circle cx={p.x - r * 0.35} cy={p.y - r * 0.25} r={r * 0.6} fill={p.color} />
+            </G>
+          );
+        }
+
         if (p.shape === 'spark') {
-          // Golden Ricochet Spark or Blood Claw Slash
           return (
             <Line
               key={`part_${p.id}`}
-              x1={p.x - 7}
-              y1={p.y - 7}
-              x2={p.x + 7}
-              y2={p.y + 7}
+              x1={p.x - 6}
+              y1={p.y - 6}
+              x2={p.x + 6}
+              y2={p.y + 6}
               stroke={p.color}
-              strokeWidth="3.2"
+              strokeWidth="2.8"
               strokeLinecap="round"
               opacity={p.opacity}
             />
           );
         }
 
-        if (p.shape === 'skull') {
-          // Decapitated flying cartoon zombie skull with pink brain patch and dead X eyes!
-          const rot = (p.life * 14) % 360;
+        if (p.shape === 'flame') {
+          const r = Math.max(1.5, p.size * (1 - p.life / p.maxLife));
           return (
-            <G key={`part_${p.id}`} transform={`translate(${p.x}, ${p.y}) rotate(${rot})`} opacity={p.opacity}>
-              {/* Green skull base */}
-              <Circle cx="0" cy="0" r={p.size} fill="#84CC16" stroke="#15803D" strokeWidth="2" />
-              {/* Exposed pink brain patch */}
-              <Path d="M -6 -11 Q 0 -18 6 -11 Q 0 -7 -6 -11 Z" fill="#F472B6" stroke="#BE185D" strokeWidth="1" />
-              {/* Dead X Eyes */}
-              <Line x1="-7" y1="-3" x2="-2" y2="2" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
-              <Line x1="-2" y1="-3" x2="-7" y2="2" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
-              <Line x1="2" y1="-3" x2="7" y2="2" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
-              <Line x1="7" y1="-3" x2="2" y2="2" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
-              {/* Grinning bone teeth */}
-              <Rect x="-6" y="5" width="12" height="4" rx="1.5" fill="#FFFFFF" stroke="#15803D" strokeWidth="1" />
-              <Line x1="-2" y1="5" x2="-2" y2="9" stroke="#15803D" strokeWidth="1" />
-              <Line x1="2" y1="5" x2="2" y2="9" stroke="#15803D" strokeWidth="1" />
-            </G>
+            <Circle
+              key={`part_${p.id}`}
+              cx={p.x}
+              cy={p.y}
+              r={r}
+              fill={p.color}
+              opacity={p.opacity}
+            />
           );
         }
 
-        if (p.shape === 'bone') {
-          // Flying bone fragment
-          const rot = (p.life * 18) % 360;
+        if (p.shape === 'ice') {
+          // Diamond ice crystal shard
+          const s = Math.max(1.5, p.size * (1 - p.life / p.maxLife));
           return (
-            <G key={`part_${p.id}`} transform={`translate(${p.x}, ${p.y}) rotate(${rot})`} opacity={p.opacity}>
-              <Line x1="-6" y1="0" x2="6" y2="0" stroke="#F8FAFC" strokeWidth="3" strokeLinecap="round" />
-              <Circle cx="-6" cy="-2" r="2" fill="#F8FAFC" />
-              <Circle cx="-6" cy="2" r="2" fill="#F8FAFC" />
-              <Circle cx="6" cy="-2" r="2" fill="#F8FAFC" />
-              <Circle cx="6" cy="2" r="2" fill="#F8FAFC" />
+            <G key={`part_${p.id}`} transform={`translate(${p.x}, ${p.y}) rotate(45)`} opacity={p.opacity}>
+              <Rect x={-s / 2} y={-s / 2} width={s} height={s} fill={p.color} stroke="#FFFFFF" strokeWidth="0.6" />
             </G>
           );
         }
 
         if (p.shape === 'splat') {
-          // Irregular cartoon blood/slime splat
           const r = Math.max(1, p.size * (1 - p.life / (p.maxLife * 1.5)));
           return (
             <G key={`part_${p.id}`} opacity={p.opacity}>
@@ -183,7 +212,7 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
           );
         }
 
-        // Standard blood drop
+        // Standard crisp circle particle
         const r = Math.max(1, p.size * (1 - p.life / (p.maxLife * 1.5)));
         return (
           <Circle
@@ -196,6 +225,23 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
           />
         );
       })}
+
+      {/* 6. Floating Text Badges */}
+      {floatTexts.map(ft => (
+        <G key={`ft_${ft.id}`} transform={`translate(${ft.x}, ${ft.y})`} opacity={ft.opacity}>
+          <Rect
+            x="-65"
+            y="-14"
+            width="130"
+            height="22"
+            rx="11"
+            fill="rgba(15, 23, 42, 0.88)"
+            stroke={ft.color}
+            strokeWidth="1.2"
+          />
+          <Line x1="-40" y1="8" x2="40" y2="8" stroke={ft.color} strokeWidth="1" opacity={0.6} />
+        </G>
+      ))}
     </G>
   );
 });

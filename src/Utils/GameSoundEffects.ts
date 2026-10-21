@@ -108,6 +108,72 @@ class SoundEffectsService {
   }
 
   /**
+   * Played when the player draws / pulls back the bowstring to aim at zombies.
+   * Produces an authentic wood creak & tight string stretch sensation!
+   * Pitch and intensity scale dynamically with tension (0.1 to 1.0).
+   */
+  public playBowStretch(tension: number = 0.5) {
+    if (this.muted) return;
+    try {
+      const clamped = Math.max(0.1, Math.min(1.0, tension));
+
+      if (SoundModule?.playStretch) {
+        SoundModule.playStretch(clamped, 0.85);
+      } else if (SoundModule?.playSound) {
+        // High-precision fallback: pitch ascends with tension
+        const pitch = 0.68 + clamped * 0.95;
+        const volume = 0.55 + clamped * 0.4;
+        SoundModule.playSound('click', pitch, volume);
+        if (clamped > 0.45) {
+          SoundModule.playSound('cut', 0.5 + clamped * 0.35, volume * 0.35);
+        }
+      }
+
+      if (Platform.OS === 'android') {
+        Vibration.vibrate(Math.round(8 + clamped * 12));
+      }
+    } catch (e) {
+      // safe fallback
+    }
+  }
+
+  /**
+   * Played when throwing a bomb projectile with aerodynamic toss whoosh.
+   */
+  public playBombThrow() {
+    if (this.muted) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('cut', 0.8, 0.9);
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate(20);
+      }
+    } catch (e) {
+      // safe fallback
+    }
+  }
+
+  /**
+   * Deep concussive bomb detonation blast with rumble vibration.
+   */
+  public playBombBlast() {
+    if (this.muted) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('connect', 0.55, 1.0);
+        SoundModule.playSound('premium', 0.65, 1.0);
+        SoundModule.playSound('cut', 0.5, 0.85);
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate([0, 60, 40, 110, 50, 180]);
+      }
+    } catch (e) {
+      // safe fallback
+    }
+  }
+
+  /**
    * Played when the player successfully connects two matching endpoints.
    */
   public playConnect() {

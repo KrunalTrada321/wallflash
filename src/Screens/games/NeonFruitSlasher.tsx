@@ -27,6 +27,7 @@ import { scale } from 'react-native-size-matters';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import GameSound from '../../Utils/GameSoundEffects';
+import { useGameInterstitialAd } from '../../Components/Useinterstitialad';
 import {
   FRUIT_CONFIGS,
   BLADE_LEVELS,
@@ -116,6 +117,7 @@ interface GameRenderState {
 
 export default function NeonFruitSlasher() {
   const navigation = useNavigation<any>();
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
 
   // --- Campaign / Level State ---
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -229,40 +231,66 @@ export default function NeonFruitSlasher() {
     particlesRef.current = [...particlesRef.current.slice(-4), ...newParticles];
   }, []);
 
-  // --- Controlled, Rhythmic Spawner (Progressive Scaling Across Levels 1 to 50) ---
+  // --- Controlled, Rhythmic Spawner (Multi-fruit Combo Throws & Balanced Campaign Scaling) ---
   const spawnWave = useCallback(() => {
     const lvl = currentLevel;
-    // As levels increase, frequency of 2-item waves grows smoothly
-    const singleFruitProb = Math.max(0.35, 0.65 - (lvl.id / 50) * 0.3);
-    const waveCount = isFrenzy ? 2 : Math.random() < singleFruitProb ? 1 : 2;
-    const newItems: ActiveItem[] = [];
+    // Multi-fruit combo opportunity: ~32% chance (or 100% in Frenzy) to launch a multi-fruit volley!
+    // Instead of throwing a single star, throw MULTIPLE fruits at the same time so player can combo-slice!
+    const isComboWave = isFrenzy || Math.random() < 0.32;
 
-    // Subtle momentum scaling with level (up to +20%)
-    const speedScale = 1.0 + (lvl.id / 50) * 0.2;
+    // In combo waves, throw 3 to 5 fruits simultaneously!
+    // In normal waves, throw 1 to 2 fruits.
+    const waveCount = isFrenzy
+      ? 3 + Math.floor(Math.random() * 2)
+      : isComboWave
+      ? 3 + (lvl.id > 12 ? Math.floor(Math.random() * 2) : 0)
+      : Math.random() < Math.max(0.35, 0.65 - (lvl.id / 50) * 0.3)
+      ? 1
+      : 2;
+
+    const newItems: ActiveItem[] = [];
+    const speedScale = 1.0 + (lvl.id / 50) * 0.18;
+
+    // Filter allowed fruits to real fruits only (exclude bombs/spikes and no stars)
+    const validFruits = lvl.allowedFruits.filter(f => f !== 'bomb' && f !== 'spike');
+    const fruitPool = validFruits.length > 0 ? validFruits : ['watermelon', 'banana', 'apple', 'orange'];
+
+    // Distribute launch slots across the screen so fruits rise together in a beautiful synchronized arc
+    const minX = scale(45);
+    const maxX = SCREEN_WIDTH - scale(45);
+    const stepX = (maxX - minX) / Math.max(1, waveCount);
 
     for (let i = 0; i < waveCount; i++) {
-      // Avoid spawning 2 simultaneous bombs in the same wave
-      const hasBombAlready = newItems.some(it => it.type === 'bomb');
-      const isBomb = !hasBombAlready && Math.random() < lvl.bombChance;
+      // In combo waves, never make the first 2 items bombs so player can comfortably combo-slash
+      const canBeBomb = (!isComboWave || i >= 2) && !newItems.some(it => it.type === 'bomb');
+      const isBomb = canBeBomb && Math.random() < lvl.bombChance;
 
-      // Occasionally spawn a special Combo Fruit (~20% chance if not a bomb)
-      const hasComboAlready = newItems.some(it => it.type === 'combo');
-      const isCombo = !isBomb && !hasComboAlready && Math.random() < 0.22;
+      let type: string;
+      if (isBomb) {
+        type = 'bomb';
+      } else {
+        // Pick varied fruits across the pool for a colorful multi-fruit volley
+        type = fruitPool[(i + Math.floor(Math.random() * fruitPool.length)) % fruitPool.length];
+      }
 
-      let type = isBomb
-        ? 'bomb'
-        : isCombo
-        ? 'combo'
-        : lvl.allowedFruits[Math.floor(Math.random() * lvl.allowedFruits.length)];
       const cfg = FRUIT_CONFIGS[type] || FRUIT_CONFIGS.watermelon;
 
-      // Horizontal spacing
-      const startX = scale(55 + Math.random() * (SCREEN_WIDTH - 110));
-      const targetCenterX = SCREEN_WIDTH / 2;
-      const vx = ((targetCenterX - startX) / SCREEN_WIDTH) * scale((3.0 + Math.random() * 2.0) * speedScale);
+      // Staggered horizontal launch points across the screen
+      let startX: number;
+      if (waveCount > 1) {
+        const slotCenter = minX + (i + 0.5) * stepX;
+        startX = slotCenter + (Math.random() - 0.5) * scale(18);
+      } else {
+        startX = scale(55 + Math.random() * (SCREEN_WIDTH - 110));
+      }
+      startX = Math.max(scale(35), Math.min(SCREEN_WIDTH - scale(35), startX));
 
-      // Tuned impulse: reaches apex safely at y ≈ scale(170) to scale(200) (below header, NEVER off-screen!)
-      const vy = -scale(17.8 + Math.random() * 1.6);
+      // Parabolic trajectories: aimed towards center screen so they hang in the air together for a combo swipe!
+      const targetCenterX = SCREEN_WIDTH / 2 + (Math.random() - 0.5) * scale(50);
+      const vx = ((targetCenterX - startX) / SCREEN_WIDTH) * scale((2.4 + Math.random() * 2.2) * speedScale);
+
+      // Tuned impulse: reaches apex safely at y ≈ scale(175) to scale(215)
+      const vy = -scale(17.5 + Math.random() * 1.6);
 
       newItems.push({
         id: itemIdCounter.current++,
@@ -278,9 +306,13 @@ export default function NeonFruitSlasher() {
         maxHits: cfg.maxHits || 1,
         isSliced: false,
         opacity: 1,
-        isGhost: lvl.hasGhostFruits && Math.random() < 0.3,
+        isGhost: lvl.hasGhostFruits && Math.random() < 0.25,
         ghostPhase: Math.random() * Math.PI * 2,
       });
+    }
+
+    if (waveCount >= 3) {
+      GameSound.playStep(2);
     }
 
     itemsRef.current = [...itemsRef.current, ...newItems];
@@ -366,60 +398,7 @@ export default function NeonFruitSlasher() {
     spawnExplodingParticles(item.x, item.y, cfg.pulpColors || [cfg.color, cfg.rindColor]);
 
     // Power-up triggers
-    if (cfg.isSpecial === 'combo') {
-      GameSound.playCelestialMerge(1.85, 35);
-      triggerScreenShake(8);
-      if (Platform.OS === 'android') Vibration.vibrate([0, 25, 35, 50]);
-
-      // Activate Combo Fever for 4.5 seconds (doubles all slice scores!)
-      setIsComboFever(true);
-      isComboFeverRef.current = true;
-      if (comboFeverTimeoutRef.current) clearTimeout(comboFeverTimeoutRef.current);
-      comboFeverTimeoutRef.current = setTimeout(() => {
-        setIsComboFever(false);
-        isComboFeverRef.current = false;
-      }, 4500);
-
-      // Fountain cluster: bursts into 3-4 mini combo fruits for an epic multi-slash chain!
-      const clusterTypes = ['strawberry', 'banana', 'orange', 'kiwi'];
-      const clusterCount = 3 + Math.floor(Math.random() * 2);
-      const clusterItems: ActiveItem[] = [];
-      for (let c = 0; c < clusterCount; c++) {
-        const cType = clusterTypes[c % clusterTypes.length];
-        const cCfg = FRUIT_CONFIGS[cType] || FRUIT_CONFIGS.watermelon;
-        const spreadAngle = -Math.PI / 2 + (c - (clusterCount - 1) / 2) * 0.42;
-        const burstSpeed = scale(12.5 + Math.random() * 2.5);
-        clusterItems.push({
-          id: itemIdCounter.current++,
-          type: cType,
-          x: Math.max(scale(40), Math.min(SCREEN_WIDTH - scale(40), item.x + (c - 1) * scale(16))),
-          y: Math.max(scale(140), item.y - scale(10)),
-          vx: Math.cos(spreadAngle) * burstSpeed * 0.5,
-          vy: Math.sin(spreadAngle) * burstSpeed,
-          rotation: Math.random() * 360,
-          rotSpeed: (Math.random() - 0.5) * 6,
-          radius: scale(cCfg.radius * 0.82),
-          hitsLeft: 1,
-          maxHits: 1,
-          isSliced: false,
-          opacity: 1,
-        });
-      }
-      itemsRef.current = [...itemsRef.current, ...clusterItems];
-
-      // Floating Combo Burst Alert
-      comboAlertsRef.current = [
-        ...comboAlertsRef.current.slice(-2),
-        {
-          id: Math.random(),
-          text: '🌟 COMBO BURST! 2X FEVER!',
-          x: item.x,
-          y: Math.max(scale(130), item.y - scale(30)),
-          color: '#FBBF24',
-          opacity: 1,
-        },
-      ];
-    } else if (cfg.isSpecial === 'freeze') {
+    if (cfg.isSpecial === 'freeze') {
       setIsFrozen(true);
       GameSound.playDownloadSuccess();
       if (Platform.OS === 'android') Vibration.vibrate([0, 30, 40, 60]);
@@ -442,7 +421,7 @@ export default function NeonFruitSlasher() {
     }
 
     // Real-time multi-fruit combo chain feedback on consecutive cuts in the same swipe!
-    if (currentSwipeHits.current >= 2 && cfg.isSpecial !== 'combo') {
+    if (currentSwipeHits.current >= 2) {
       const comboBonus = (currentSwipeHits.current - 1) * 20;
       const comboColors = ['#38BDF8', '#FACC15', '#FB923C', '#EC4899', '#A855F7'];
       const alertColor = comboColors[Math.min(currentSwipeHits.current - 2, comboColors.length - 1)];
@@ -456,6 +435,17 @@ export default function NeonFruitSlasher() {
           : `✨ 2x COMBO! +${comboBonus}`;
 
       GameSound.playStep(currentSwipeHits.current);
+
+      // On 3+ fruit cuts in a single swipe, trigger 2X Combo Fever!
+      if (currentSwipeHits.current >= 3 && !isComboFeverRef.current) {
+        setIsComboFever(true);
+        isComboFeverRef.current = true;
+        if (comboFeverTimeoutRef.current) clearTimeout(comboFeverTimeoutRef.current);
+        comboFeverTimeoutRef.current = setTimeout(() => {
+          setIsComboFever(false);
+          isComboFeverRef.current = false;
+        }, 4500);
+      }
 
       comboAlertsRef.current = [
         ...comboAlertsRef.current.slice(-2),
@@ -994,25 +984,6 @@ export default function NeonFruitSlasher() {
             >
               <Text style={{ fontSize: item.radius * 1.35 }}>{cfg.emoji}</Text>
 
-              {/* Combo Fruit Special Glowing Aura & Tag */}
-              {cfg.isSpecial === 'combo' && (
-                <>
-                  <View
-                    style={[
-                      styles.comboAuraRing,
-                      {
-                        width: item.radius * 2.3,
-                        height: item.radius * 2.3,
-                        borderRadius: item.radius * 1.15,
-                      },
-                    ]}
-                  />
-                  <View style={styles.comboFruitBadge}>
-                    <Text style={styles.comboFruitBadgeText}>COMBO</Text>
-                  </View>
-                </>
-              )}
-
               {/* Armored Coconut Shell */}
               {item.hitsLeft > 1 && (
                 <View
@@ -1184,7 +1155,7 @@ export default function NeonFruitSlasher() {
         {/* Combo Fever Active Notification Strip */}
         {isComboFever && (
           <View style={styles.comboFeverBanner} pointerEvents="none">
-            <Text style={styles.comboFeverBannerText}>⚡ 2X COMBO FEVER ACTIVE! 🌟</Text>
+            <Text style={styles.comboFeverBannerText}>⚡ 2X COMBO FEVER ACTIVE! ⚡</Text>
           </View>
         )}
       </SafeAreaView>
@@ -1243,7 +1214,11 @@ export default function NeonFruitSlasher() {
                   <TouchableOpacity
                     style={styles.modalPrimaryBtn}
                     activeOpacity={0.8}
-                    onPress={() => startLevel(currentLevelIndex + 1)}
+                    onPress={() => {
+                      showNaturalAd(() => {
+                        startLevel(currentLevelIndex + 1);
+                      });
+                    }}
                   >
                     <Text style={styles.modalBtnText}>NEXT LEVEL ➔</Text>
                   </TouchableOpacity>
@@ -1303,7 +1278,11 @@ export default function NeonFruitSlasher() {
                 <TouchableOpacity
                   style={[styles.modalPrimaryBtn, { backgroundColor: '#EF4444' }]}
                   activeOpacity={0.8}
-                  onPress={() => startLevel(currentLevelIndex)}
+                  onPress={() => {
+                    showNaturalAd(() => {
+                      startLevel(currentLevelIndex);
+                    });
+                  }}
                 >
                   <Ionicons name="refresh" size={scale(18)} color="#FFF" />
                   <Text style={styles.modalBtnText}>TRY AGAIN</Text>

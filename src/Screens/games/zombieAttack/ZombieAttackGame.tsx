@@ -11,7 +11,7 @@ import {
   BackHandler,
 } from 'react-native';
 import Svg, { G } from 'react-native-svg';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Orientation from 'react-native-orientation-locker';
 import {
   GestureHandlerRootView,
@@ -28,6 +28,7 @@ import {
   TrajectoryPoint,
   ParticleEntity,
   FloatText,
+  ArrowType,
 } from './types/gameTypes';
 import { ZOMBIE_50_LEVELS } from './levels/all50Levels';
 import { adaptLevelForLandscape, LANDSCAPE_WORLD_HEIGHT } from './levels/landscapeLevelAdapter';
@@ -36,10 +37,6 @@ import { PlayerArcher } from './components/PlayerArcher';
 import { ZombieCharacter } from './components/ZombieCharacter';
 import { StaticEnvironment, DynamicObstacles } from './components/EnvironmentView';
 import { ProjectilesAndEffects } from './components/ProjectilesAndEffects';
-import {
-  SkiaProjectilesAndEffects,
-  isSkiaRenderingSupported,
-} from './components/SkiaProjectilesAndEffects';
 import { GameHUD } from './components/GameHUD';
 import {
   VictoryModal,
@@ -49,6 +46,7 @@ import {
 } from './components/GameModals';
 import { ZombieStorageService } from './services/zombieStorage';
 import ZombieAudio from './services/zombieAudio';
+import { useGameInterstitialAd } from '../../../Components/Useinterstitialad';
 
 interface RenderFrameState {
   cameraX: number;
@@ -67,8 +65,6 @@ interface RenderFrameState {
 
 export default function ZombieAttackGame() {
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const isSkiaAvailable = useMemo(() => isSkiaRenderingSupported(), []);
 
   // --- Dynamic Landscape Screen Dimensions ---
   const { width: winWidth, height: winHeight } = useWindowDimensions();
@@ -83,10 +79,44 @@ export default function ZombieAttackGame() {
     navigation.goBack();
   }, [navigation]);
 
+  // --- Strict Persistent Landscape Lock on Mount, Focus & Resume ---
+  useFocusEffect(
+    useCallback(() => {
+      Orientation.lockToLandscape();
+      StatusBar.setHidden(true, 'none');
+
+      // If device orientation changes toward portrait while playing, immediately re-lock to landscape
+      const onOrientationChange = (orientation: string) => {
+        if (orientation.includes('PORTRAIT')) {
+          Orientation.lockToLandscape();
+        }
+      };
+      Orientation.addOrientationListener(onOrientationChange);
+
+      return () => {
+        Orientation.removeOrientationListener(onOrientationChange);
+        Orientation.lockToPortrait();
+        StatusBar.setHidden(false, 'none');
+      };
+    }, [])
+  );
+
   useEffect(() => {
     Orientation.lockToLandscape();
+    StatusBar.setHidden(true, 'none');
+
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        Orientation.lockToLandscape();
+        StatusBar.setHidden(true, 'none');
+      }
+    };
+    const appSub = AppState.addEventListener('change', handleAppState);
+
     return () => {
+      appSub.remove();
       Orientation.lockToPortrait();
+      StatusBar.setHidden(false, 'none');
     };
   }, []);
 
@@ -144,6 +174,11 @@ export default function ZombieAttackGame() {
   const [isLevelSelectOpen, setIsLevelSelectOpen] = useState(false);
   const [earnedStars, setEarnedStars] = useState(1);
 
+  // Tactical Arrow Ability State (Unlocked level-wise: Steel L1, Fire L3, Freeze L6, Bomb L10)
+  const [selectedArrowType, setSelectedArrowType] = useState<ArrowType>('regular');
+  const selectedArrowTypeRef = useRef<ArrowType>('regular');
+  selectedArrowTypeRef.current = selectedArrowType;
+
   // Center Headshot Simple Emoji Banner
   const [headshotEmojiPop, setHeadshotEmojiPop] = useState({ id: 0, visible: false });
   const headshotTimeoutRef = useRef<any>(null);
@@ -171,6 +206,11 @@ export default function ZombieAttackGame() {
     trajectory: [] as TrajectoryPoint[],
   });
 
+  // Dynamic Bowstring Stretch Audio Refs
+  const lastStretchPowerRef = useRef(0.2);
+  const lastStretchTimeRef = useRef(0);
+  const wasTargetingZombieRef = useRef(false);
+
   // Consolidated 60 FPS Render Frame State
   const [frame, setFrame] = useState<RenderFrameState>({
     cameraX: 0,
@@ -187,9 +227,12 @@ export default function ZombieAttackGame() {
     nearestZombieDist: 999,
   });
 
-  // --- Load Progress & Restore Level ---
+  // --- Load Progress (Resumes Saved Current Level so it NEVER restarts from 1!) ---
   useEffect(() => {
     ZombieStorageService.getProgress().then(prog => {
+      if (prog.currentLevel) {
+        setCurrentLevelId(prog.currentLevel);
+      }
       setUnlockedLevel(prog.unlockedLevel);
       setLevelStars(prog.stars);
       setLevelScores(prog.scores);
@@ -198,13 +241,15 @@ export default function ZombieAttackGame() {
       setMusicEnabled(prog.musicEnabled);
       setHapticsEnabled(prog.hapticsEnabled);
       ZombieAudio.init(prog.soundEnabled, prog.musicEnabled, prog.hapticsEnabled);
-
-      const targetLevel =
-        route.params?.initialLevel ?? prog.currentLevel ?? prog.unlockedLevel ?? 1;
-      const validLevel = Math.min(50, Math.max(1, targetLevel));
-      setCurrentLevelId(validLevel);
     });
-  }, [route.params?.initialLevel]);
+  }, []);
+
+  // Clamp arrow type to available unlocks if level drops below required level (Bomb unlocks at L2)
+  useEffect(() => {
+    if (currentLevelId < 2 && selectedArrowType !== 'regular') {
+      setSelectedArrowType('regular');
+    }
+  }, [currentLevelId, selectedArrowType]);
 
   // --- AppState Handling ---
   useEffect(() => {
@@ -390,7 +435,7 @@ export default function ZombieAttackGame() {
           lastRenderTime = now;
           const aim = aimRef.current;
           setFrame({
-            cameraX: Math.round(cameraXRef.current * 10) / 10,
+            cameraX: cameraXRef.current,
             aimAngle: aim.angle,
             pullDistance: aim.pullDistance,
             isAiming: aim.isAiming,
@@ -432,6 +477,9 @@ export default function ZombieAttackGame() {
         .runOnJS(true)
         .enabled(!isPauseOpen && !isVictoryOpen && !isDefeatOpen && !isLevelSelectOpen)
         .onBegin(e => {
+          lastStretchPowerRef.current = 0.2;
+          lastStretchTimeRef.current = Date.now();
+          wasTargetingZombieRef.current = false;
           ZombieAudio.playBowDraw();
           const layout = canvasLayoutRef.current;
           const touchX = Math.max(0, e.x);
@@ -464,16 +512,35 @@ export default function ZombieAttackGame() {
             let angle = Math.atan2(pullDy, pullDx);
             angle = Math.max(-1.32, Math.min(0.55, angle));
             const power = Math.min(1.0, Math.max(0.2, dist / 110));
-            const prevPower = aimRef.current.power;
-            if (power >= 0.5 && prevPower < 0.5) {
-              ZombieAudio.playBowTension(4);
-            } else if (power >= 0.82 && prevPower < 0.82) {
-              ZombieAudio.playBowTension(7);
-            }
 
             const launchX = currentLevel.playerPos.x + 22;
             const launchY = currentLevel.playerPos.y - 4;
-            const traj = world.calculateTrajectory(launchX, launchY, angle, power);
+            const traj = world.calculateTrajectory(launchX, launchY, angle, power, selectedArrowTypeRef.current);
+
+            // Check if trajectory locks onto a zombie
+            const isTargetingZombie = traj.some(pt => pt.isTargetingZombie);
+
+            const now = Date.now();
+            const powerDelta = Math.abs(power - lastStretchPowerRef.current);
+
+            // Dynamic Arrow Stretch & Targeting Sound:
+            // Continuous realistic wood creak & string stretching audio as power changes or when targeting zombie
+            if (
+              (powerDelta >= 0.07 ||
+                (power >= 0.92 && lastStretchPowerRef.current < 0.92) ||
+                (isTargetingZombie && !wasTargetingZombieRef.current)) &&
+              now - lastStretchTimeRef.current > 65
+            ) {
+              if (selectedArrowTypeRef.current === 'bomb') {
+                ZombieAudio.playClick();
+              } else {
+                ZombieAudio.playBowStretch(power);
+              }
+              lastStretchPowerRef.current = power;
+              lastStretchTimeRef.current = now;
+            }
+
+            wasTargetingZombieRef.current = isTargetingZombie;
 
             aimRef.current.angle = angle;
             aimRef.current.power = power;
@@ -495,7 +562,8 @@ export default function ZombieAttackGame() {
                 launchX,
                 launchY,
                 currentAim.angle,
-                currentAim.power
+                currentAim.power,
+                selectedArrowTypeRef.current
               );
 
               setArrowsShot(prev => prev + 1);
@@ -550,12 +618,16 @@ export default function ZombieAttackGame() {
     ZombieStorageService.setSoundSetting('haptics', next);
   };
 
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
+
   const handleNextLevel = () => {
-    if (currentLevelId < 50) {
-      const next = currentLevelId + 1;
-      setCurrentLevelId(next);
-      ZombieStorageService.setCurrentLevel(next);
-    }
+    showNaturalAd(() => {
+      if (currentLevelId < 50) {
+        const next = currentLevelId + 1;
+        setCurrentLevelId(next);
+        ZombieStorageService.saveCurrentLevel(next);
+      }
+    });
   };
 
   const handleSelectLevel = (lvlId: number) => {
@@ -563,7 +635,7 @@ export default function ZombieAttackGame() {
     setIsVictoryOpen(false);
     setIsDefeatOpen(false);
     setIsPauseOpen(false);
-    ZombieStorageService.setCurrentLevel(lvlId);
+    ZombieStorageService.saveCurrentLevel(lvlId);
     if (currentLevelId === lvlId) {
       initLevel(currentLevel);
     } else {
@@ -583,6 +655,8 @@ export default function ZombieAttackGame() {
           arrowsRemaining={arrowsRemaining}
           totalArrows={currentLevel.arrowLimit}
           score={score}
+          selectedArrowType={selectedArrowType}
+          onSelectArrowType={setSelectedArrowType}
           onBack={handleBack}
           onRestart={() => initLevel(currentLevel)}
           onPause={() => setIsPauseOpen(true)}
@@ -617,6 +691,7 @@ export default function ZombieAttackGame() {
                   worldWidth={currentLevel.worldWidth}
                   worldHeight={currentLevel.worldHeight}
                   platforms={currentLevel.platforms}
+                  weather={currentLevel.weather}
                 />
 
                 <DynamicObstacles
@@ -630,6 +705,7 @@ export default function ZombieAttackGame() {
                   aimAngle={frame.aimAngle}
                   pullDistance={frame.pullDistance}
                   isAiming={frame.isAiming}
+                  weaponType={selectedArrowType}
                   isVictorious={isVictoryOpen}
                   isDefeated={isDefeatOpen}
                   nearestZombieDist={frame.nearestZombieDist}
@@ -639,33 +715,16 @@ export default function ZombieAttackGame() {
                   <ZombieCharacter key={`zombie_${z.id}`} zombie={z} />
                 ))}
 
-                {!isSkiaAvailable && (
-                  <ProjectilesAndEffects
-                    arrows={frame.arrows}
-                    trajectory={frame.trajectory}
-                    isAiming={frame.isAiming}
-                    particles={frame.particles}
-                    floatTexts={frame.floatTexts}
-                  />
-                )}
+                <ProjectilesAndEffects
+                  arrows={frame.arrows}
+                  trajectory={frame.trajectory}
+                  isAiming={frame.isAiming}
+                  arrowType={selectedArrowType}
+                  particles={frame.particles}
+                  floatTexts={frame.floatTexts}
+                />
               </G>
             </Svg>
-
-            {/* Skia GPU Hardware-Accelerated Rendering Layer */}
-            {isSkiaAvailable && (
-              <SkiaProjectilesAndEffects
-                cameraX={frame.cameraX}
-                arrows={frame.arrows}
-                trajectory={frame.trajectory}
-                isAiming={frame.isAiming}
-                particles={frame.particles}
-                floatTexts={frame.floatTexts}
-                canvasWidth={screenWidth}
-                canvasHeight={screenHeight}
-                viewWidth={viewWidth}
-                viewHeight={viewHeight}
-              />
-            )}
           </View>
         </GestureDetector>
 
@@ -691,7 +750,11 @@ export default function ZombieAttackGame() {
             visible={isDefeatOpen}
             levelId={currentLevel.id}
             reason={defeatReason}
-            onRetry={() => initLevel(currentLevel)}
+            onRetry={() => {
+              showNaturalAd(() => {
+                initLevel(currentLevel);
+              });
+            }}
             onLevelSelect={() => {
               setIsDefeatOpen(false);
               setIsLevelSelectOpen(true);

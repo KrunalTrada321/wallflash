@@ -168,6 +168,18 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
     4
   );
 
+  const defaultWeather: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic' =
+    raw.weather ??
+    (raw.chapter === 2
+      ? 'rain'
+      : raw.chapter === 3
+      ? 'snow'
+      : raw.chapter === 4
+      ? 'hellfire'
+      : raw.chapter === 5
+      ? 'toxic'
+      : 'clear');
+
   return {
     ...raw,
     worldWidth: landscapeWorldWidth,
@@ -177,5 +189,6 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
     obstacles,
     zombies,
     arrowLimit: computedArrowLimit,
+    weather: defaultWeather,
   };
 }

@@ -108,6 +108,25 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
     }
 
     @ReactMethod
+    fun playStretch(tension: Double, volume: Double) {
+        if (isMuted) return
+        val clampedTension = tension.coerceIn(0.1, 1.0)
+        val vol = volume.toFloat().coerceIn(0f, 1f)
+        val clickId = soundMap["click"]
+        val cutId = soundMap["cut"]
+
+        // Ratchet creak: pitch ascends with tension (0.7f to 1.8f)
+        val rate = (0.7f + (clampedTension.toFloat() * 0.95f)).coerceIn(0.5f, 2.0f)
+        if (clickId != null) {
+            soundPool?.play(clickId, vol, vol, 1, 0, rate)
+        }
+        if (clampedTension > 0.45 && cutId != null) {
+            val cutRate = (0.5f + (clampedTension.toFloat() * 0.35f)).coerceIn(0.5f, 2.0f)
+            soundPool?.play(cutId, vol * 0.35f, vol * 0.35f, 1, 0, cutRate)
+        }
+    }
+
+    @ReactMethod
     fun setMuted(muted: Boolean) {
         isMuted = muted
     }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   useWindowDimensions,
   SafeAreaView,
@@ -9,10 +10,12 @@ import {
   AppState,
   AppStateStatus,
   BackHandler,
+  Animated,
 } from 'react-native';
 import Svg, { G } from 'react-native-svg';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Orientation from 'react-native-orientation-locker';
+import DeviceInfo from 'react-native-device-info';
 import {
   GestureHandlerRootView,
   GestureDetector,
@@ -73,21 +76,89 @@ export default function ZombieAttackGame() {
   const viewHeight = LANDSCAPE_WORLD_HEIGHT; // 440
   const viewWidth = Math.round(viewHeight * (screenWidth / Math.max(1, screenHeight)));
 
-  // --- Lock Orientation to Landscape on Mount, Restore Portrait on Unmount ---
-  const handleBack = useCallback(() => {
-    Orientation.lockToPortrait();
-    navigation.goBack();
-  }, [navigation]);
+  // --- Smooth Open / Fake Loader & Smooth Exit Transitions ---
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const loaderFadeAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // --- Strict Persistent Landscape Lock on Mount, Focus & Resume ---
+  const isExitingRef = useRef(false);
+  const exitFadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Fake Loader lifecycle: smooth progress & graceful fade out after ~850ms
+  // Eliminates all visible layout shifts/orientation change lag on open!
+  useEffect(() => {
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulseLoop.start();
+
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 750,
+      useNativeDriver: false,
+    }).start();
+
+    const timer = setTimeout(() => {
+      Animated.timing(loaderFadeAnim, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: true,
+      }).start(() => {
+        setIsInitialLoading(false);
+        pulseLoop.stop();
+      });
+    }, 850);
+
+    return () => {
+      clearTimeout(timer);
+      pulseLoop.stop();
+    };
+  }, []);
+
+  // --- Smooth Exit: Fade out cleanly before restoring portrait & navigating back ---
+  const handleBack = useCallback(() => {
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+    ZombieAudio.playClick();
+    Animated.timing(exitFadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      if (!DeviceInfo.isTablet()) {
+        Orientation.lockToPortrait();
+      } else {
+        Orientation.unlockAllOrientations();
+      }
+      navigation.goBack();
+    });
+  }, [navigation, exitFadeAnim]);
+
+  // --- Responsive Orientation Handling (Locks landscape for mobile phones, unrestricted for tablets) ---
   useFocusEffect(
     useCallback(() => {
-      Orientation.lockToLandscape();
+      if (!DeviceInfo.isTablet()) {
+        Orientation.lockToLandscape();
+      } else {
+        Orientation.unlockAllOrientations();
+      }
       StatusBar.setHidden(true, 'none');
 
-      // If device orientation changes toward portrait while playing, immediately re-lock to landscape
+      // If device orientation changes toward portrait while playing, re-lock to landscape on phones
       const onOrientationChange = (orientation: string) => {
-        if (orientation.includes('PORTRAIT')) {
+        if (!DeviceInfo.isTablet() && orientation.includes('PORTRAIT')) {
           Orientation.lockToLandscape();
         }
       };
@@ -95,19 +166,29 @@ export default function ZombieAttackGame() {
 
       return () => {
         Orientation.removeOrientationListener(onOrientationChange);
-        Orientation.lockToPortrait();
+        if (!DeviceInfo.isTablet()) {
+          Orientation.lockToPortrait();
+        } else {
+          Orientation.unlockAllOrientations();
+        }
         StatusBar.setHidden(false, 'none');
       };
     }, [])
   );
 
   useEffect(() => {
-    Orientation.lockToLandscape();
+    if (!DeviceInfo.isTablet()) {
+      Orientation.lockToLandscape();
+    } else {
+      Orientation.unlockAllOrientations();
+    }
     StatusBar.setHidden(true, 'none');
 
     const handleAppState = (nextState: AppStateStatus) => {
       if (nextState === 'active') {
-        Orientation.lockToLandscape();
+        if (!DeviceInfo.isTablet()) {
+          Orientation.lockToLandscape();
+        }
         StatusBar.setHidden(true, 'none');
       }
     };
@@ -115,7 +196,11 @@ export default function ZombieAttackGame() {
 
     return () => {
       appSub.remove();
-      Orientation.lockToPortrait();
+      if (!DeviceInfo.isTablet()) {
+        Orientation.lockToPortrait();
+      } else {
+        Orientation.unlockAllOrientations();
+      }
       StatusBar.setHidden(false, 'none');
     };
   }, []);
@@ -179,8 +264,8 @@ export default function ZombieAttackGame() {
   const selectedArrowTypeRef = useRef<ArrowType>('regular');
   selectedArrowTypeRef.current = selectedArrowType;
 
-  // Center Headshot Simple Emoji Banner
-  const [headshotEmojiPop, setHeadshotEmojiPop] = useState({ id: 0, visible: false });
+  // Center Headshot Icon Display (Above Center)
+  const [headshotIconPop, setHeadshotIconPop] = useState({ id: 0, visible: false });
   const headshotTimeoutRef = useRef<any>(null);
 
   // Engine Refs
@@ -278,7 +363,7 @@ export default function ZombieAttackGame() {
     arrowsShotRef.current = 0;
     setHeadshotsCount(0);
     headshotsCountRef.current = 0;
-    setHeadshotEmojiPop({ id: 0, visible: false });
+    setHeadshotIconPop({ id: 0, visible: false });
     if (headshotTimeoutRef.current) clearTimeout(headshotTimeoutRef.current);
     setArrowsRemaining(level.arrowLimit);
     arrowsRemainingRef.current = level.arrowLimit;
@@ -301,16 +386,15 @@ export default function ZombieAttackGame() {
 
     world.onZombieKilled = (zombie, isHeadshot) => {
       const added = isHeadshot ? 200 : 100;
-      setScore(prev => prev + added);
       scoreRef.current += added;
+      setScore(scoreRef.current);
       if (isHeadshot) {
-        setHeadshotsCount(prev => prev + 1);
         headshotsCountRef.current += 1;
-        setHeadshotEmojiPop({ id: Date.now(), visible: true });
+        setHeadshotIconPop({ id: Date.now(), visible: true });
         if (headshotTimeoutRef.current) clearTimeout(headshotTimeoutRef.current);
         headshotTimeoutRef.current = setTimeout(() => {
-          setHeadshotEmojiPop(prev => ({ ...prev, visible: false }));
-        }, 1300);
+          setHeadshotIconPop({ id: 0, visible: false });
+        }, 900);
       }
     };
 
@@ -481,7 +565,6 @@ export default function ZombieAttackGame() {
           lastStretchTimeRef.current = Date.now();
           wasTargetingZombieRef.current = false;
           ZombieAudio.playBowDraw();
-          const layout = canvasLayoutRef.current;
           const touchX = Math.max(0, e.x);
           const touchY = Math.max(0, e.y);
 
@@ -510,7 +593,7 @@ export default function ZombieAttackGame() {
           const dist = Math.hypot(pullDx, pullDy);
           if (dist > 6) {
             let angle = Math.atan2(pullDy, pullDx);
-            angle = Math.max(-1.32, Math.min(0.55, angle));
+            angle = Math.max(-1.35, Math.min(1.15, angle));
             const power = Math.min(1.0, Math.max(0.2, dist / 110));
 
             const launchX = currentLevel.playerPos.x + 22;
@@ -618,7 +701,7 @@ export default function ZombieAttackGame() {
     ZombieStorageService.setSoundSetting('haptics', next);
   };
 
-  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 45 });
 
   const handleNextLevel = () => {
     showNaturalAd(() => {
@@ -631,46 +714,50 @@ export default function ZombieAttackGame() {
   };
 
   const handleSelectLevel = (lvlId: number) => {
-    setIsLevelSelectOpen(false);
-    setIsVictoryOpen(false);
-    setIsDefeatOpen(false);
-    setIsPauseOpen(false);
-    ZombieStorageService.saveCurrentLevel(lvlId);
-    if (currentLevelId === lvlId) {
-      initLevel(currentLevel);
-    } else {
-      setCurrentLevelId(lvlId);
-    }
+    showNaturalAd(() => {
+      setIsLevelSelectOpen(false);
+      setIsVictoryOpen(false);
+      setIsDefeatOpen(false);
+      setIsPauseOpen(false);
+      ZombieStorageService.saveCurrentLevel(lvlId);
+      if (currentLevelId === lvlId) {
+        initLevel(currentLevel);
+      } else {
+        setCurrentLevelId(lvlId);
+      }
+    });
   };
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <StatusBar hidden />
+      <Animated.View style={[styles.container, { opacity: exitFadeAnim }]}>
+        <SafeAreaView style={styles.container}>
+          <StatusBar hidden />
 
-        {/* Top HUD */}
-        <GameHUD
-          levelId={currentLevel.id}
-          levelTitle={currentLevel.title}
-          arrowsRemaining={arrowsRemaining}
-          totalArrows={currentLevel.arrowLimit}
-          score={score}
-          selectedArrowType={selectedArrowType}
-          onSelectArrowType={setSelectedArrowType}
-          onBack={handleBack}
-          onRestart={() => initLevel(currentLevel)}
-          onPause={() => setIsPauseOpen(true)}
-        />
+          {/* Top HUD */}
+          <GameHUD
+            levelId={currentLevel.id}
+            levelTitle={currentLevel.title}
+            arrowsRemaining={arrowsRemaining}
+            totalArrows={currentLevel.arrowLimit}
+            score={score}
+            selectedArrowType={selectedArrowType}
+            onSelectArrowType={setSelectedArrowType}
+            onBack={handleBack}
+            onRestart={() => initLevel(currentLevel)}
+            onPause={() => setIsPauseOpen(true)}
+          />
 
-        {/* Simple Headshot Emoji in Center Somewhat Above */}
-        {headshotEmojiPop.visible && (
-          <View style={styles.headshotEmojiCenterOverlay} pointerEvents="none">
-            <View style={styles.headshotEmojiPill}>
-              <Text style={styles.headshotEmojiIcon}>🎯</Text>
-              <Text style={styles.headshotEmojiText}>HEADSHOT!</Text>
+          {/* Headshot Icon - Clean headshot_icon.png above center */}
+          {headshotIconPop.visible && (
+            <View style={styles.headshotIconCenterOverlay} pointerEvents="none">
+              <Image
+                source={require('../../../assets/game/headshot_icon.png')}
+                style={styles.headshotIconImage}
+                resizeMode="contain"
+              />
             </View>
-          </View>
-        )}
+          )}
 
         {/* Native-Backed Gesture Detector Canvas Area */}
         <GestureDetector gesture={panGesture}>
@@ -737,7 +824,11 @@ export default function ZombieAttackGame() {
             score={score}
             coinsEarned={100 + earnedStars * 50}
             onNextLevel={handleNextLevel}
-            onRetry={() => initLevel(currentLevel)}
+            onRetry={() => {
+              showNaturalAd(() => {
+                initLevel(currentLevel);
+              });
+            }}
             onLevelSelect={() => {
               setIsVictoryOpen(false);
               setIsLevelSelectOpen(true);
@@ -791,6 +882,43 @@ export default function ZombieAttackGame() {
           />
         )}
       </SafeAreaView>
+      </Animated.View>
+
+      {/* Smooth Fake Game Loader Overlay on Open */}
+      {isInitialLoading && (
+        <Animated.View
+          style={[styles.loaderOverlay, { opacity: loaderFadeAnim }]}
+          pointerEvents="auto"
+        >
+          <View style={styles.loaderContent}>
+            <Animated.Text
+              style={[
+                styles.loaderSkull,
+                { transform: [{ scale: pulseAnim }] },
+              ]}
+            >
+              ☠️
+            </Animated.Text>
+            <Text style={styles.loaderTitle}>Zombie Stickman Archer</Text>
+            <Text style={styles.loaderSubtitle}>
+              Preparing Battlefield • Level {currentLevelId}
+            </Text>
+            <View style={styles.loaderProgressBarTrack}>
+              <Animated.View
+                style={[
+                  styles.loaderProgressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      )}
     </GestureHandlerRootView>
   );
 }
@@ -804,38 +932,69 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
   },
-  headshotEmojiCenterOverlay: {
+  headshotIconCenterOverlay: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     left: 0,
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,
   },
-  headshotEmojiPill: {
-    flexDirection: 'row',
+  headshotIconImage: {
+    width: 74,
+    height: 74,
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#090D16',
+    zIndex: 9999,
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.94)',
-    paddingVertical: 7,
-    paddingHorizontal: 18,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#EF4444',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
-  headshotEmojiIcon: {
-    fontSize: 22,
-    marginRight: 8,
+  loaderContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 440,
+    width: '100%',
   },
-  headshotEmojiText: {
-    fontSize: 15,
+  loaderSkull: {
+    fontSize: 44,
+    marginBottom: 8,
+    textShadowColor: 'rgba(239, 68, 68, 0.8)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 16,
+  },
+  loaderTitle: {
+    fontSize: 18,
     fontWeight: '900',
     color: '#FEF08A',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  loaderSubtitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
     letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    marginBottom: 16,
+  },
+  loaderProgressBarTrack: {
+    width: '70%',
+    maxWidth: 260,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+  },
+  loaderProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
   },
 });

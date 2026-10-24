@@ -13,6 +13,11 @@ import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import org.devio.rn.splashscreen.SplashScreenReactPackage
 
+import com.facebook.imagepipeline.core.ImagePipelineConfig
+import com.facebook.imagepipeline.core.DownsampleMode
+import com.facebook.drawee.backends.pipeline.Fresco
+import android.graphics.Bitmap
+
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
@@ -38,6 +43,12 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    val pipelineConfig = ImagePipelineConfig.newBuilder(this)
+        .setDownsampleMode(DownsampleMode.ALWAYS)
+        .setBitmapsConfig(Bitmap.Config.RGB_565)
+        .build()
+    Fresco.initialize(this, pipelineConfig)
+
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
       // If you opted-in for the New Architecture, we load the native entry point for this app.

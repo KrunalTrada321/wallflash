@@ -188,6 +188,10 @@ const CategoryImages = ({ route }: any) => {
         data={groups}
         keyExtractor={(_, index) => `group-${index}`}
         // numColumns={1} — grid is manual; no FlatList column math interference
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        initialNumToRender={4}
         contentContainerStyle={{ paddingHorizontal: HORIZ_PAD, paddingBottom: scale(50) }}
         renderItem={renderGroup}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}

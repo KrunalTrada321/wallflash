@@ -20,11 +20,12 @@ import { colors } from './Styling/colors';
 import Orientation from 'react-native-orientation-locker';
 import FlashMessage from 'react-native-flash-message';
 import VersionCheck from 'react-native-version-check';
+import DeviceInfo from 'react-native-device-info';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scale } from 'react-native-size-matters';
-import { navigationRef } from './Navigation/NavigationService';
+import { navigationRef, navigateFromNotification } from './Navigation/NavigationService';
 import messaging from "@react-native-firebase/messaging";
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidImportance, AndroidStyle, EventType } from '@notifee/react-native';
 import { initRewardedPremiumAd } from './Components/RewardedPremiumAd';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -109,7 +110,11 @@ const App = () => {
       checkForUpdate(); // Show update popup if new update is available
     }, 2400);
 
-    Orientation.lockToPortrait();
+    if (!DeviceInfo.isTablet()) {
+      Orientation.lockToPortrait();
+    } else {
+      Orientation.unlockAllOrientations();
+    }
     initRewardedPremiumAd();
 
     return () => {
@@ -174,18 +179,71 @@ const App = () => {
         await messaging().subscribeToTopic(TOPIC);
         console.log("Subscribed to topic:", TOPIC);
 
-        // Foreground notifications
+        // 1. Foreground notifications: display with Notifee including image and data
         messaging().onMessage(async remoteMessage => {
-          const title = remoteMessage.data?.title;
-          const body = remoteMessage.data?.body;
+          const title =
+            (remoteMessage.notification?.title as string | undefined) ||
+            (typeof remoteMessage.data?.title === 'string' ? remoteMessage.data.title : undefined);
+          const body =
+            (remoteMessage.notification?.body as string | undefined) ||
+            (typeof remoteMessage.data?.body === 'string' ? remoteMessage.data.body : undefined);
+          const imageUrl =
+            (remoteMessage.notification?.android?.imageUrl as string | undefined) ||
+            (typeof remoteMessage.data?.imageUrl === 'string' ? remoteMessage.data.imageUrl : undefined);
 
           if (title || body) {
             await notifee.displayNotification({
               title,
               body,
-              android: { channelId: 'high_importance_channel', sound: 'custom_sound' },
+              data: remoteMessage.data,
+              android: {
+                channelId: 'high_importance_channel',
+                sound: 'custom_sound',
+                pressAction: { id: 'default' },
+                ...(imageUrl ? { style: { type: AndroidStyle.BIGPICTURE, picture: imageUrl } } : {}),
+              },
               ios: { sound: 'default' },
             });
+          }
+        });
+
+        // 2. Notification opened from Background state (FCM)
+        messaging().onNotificationOpenedApp(remoteMessage => {
+          console.log('FCM Notification caused app to open from background:', remoteMessage);
+          const screen = (remoteMessage.data?.screen || remoteMessage.data?.page) as string | undefined;
+          if (screen) {
+            navigateFromNotification(screen);
+          }
+        });
+
+        // 3. Notification opened from Quit / Killed state (FCM)
+        messaging().getInitialNotification().then(remoteMessage => {
+          if (remoteMessage) {
+            console.log('FCM Notification caused app to open from quit state:', remoteMessage);
+            const screen = (remoteMessage.data?.screen || remoteMessage.data?.page) as string | undefined;
+            if (screen) {
+              navigateFromNotification(screen);
+            }
+          }
+        });
+
+        // 4. Foreground notification tap (Notifee)
+        notifee.onForegroundEvent(({ type, detail }) => {
+          if (type === EventType.PRESS && detail.notification?.data) {
+            const screen = (detail.notification.data.screen || detail.notification.data.page) as string | undefined;
+            if (screen) {
+              navigateFromNotification(screen);
+            }
+          }
+        });
+
+        // 5. Initial notification tap from killed state (Notifee)
+        notifee.getInitialNotification().then(initialNotif => {
+          if (initialNotif?.notification?.data) {
+            const screen = (initialNotif.notification.data.screen || initialNotif.notification.data.page) as string | undefined;
+            if (screen) {
+              navigateFromNotification(screen);
+            }
           }
         });
 
@@ -204,7 +262,8 @@ const App = () => {
       <NavigationContainer ref={navigationRef}>
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.primary }}>
           <StatusBar
-            backgroundColor={colors.primary}
+            backgroundColor="transparent"
+            translucent
             barStyle="light-content"
           />
           <StackNav />

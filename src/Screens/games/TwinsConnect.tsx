@@ -222,7 +222,7 @@ export default function TwinsConnect() {
     forceUpdate();
   };
 
-  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 45 });
 
   const handleNextLevel = () => {
     showNaturalAd(() => {

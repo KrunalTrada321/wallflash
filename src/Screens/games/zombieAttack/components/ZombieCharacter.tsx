@@ -36,42 +36,45 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
   const shirtColor = isFrozen ? '#0284C7' : isBurning ? '#7C2D12' : isHitFlash ? '#E2E8F0' : '#334155';
   const pantsColor = isFrozen ? '#0369A1' : isBurning ? '#431407' : isHitFlash ? '#CBD5E1' : '#475569';
 
-  // Dynamic locomotion animations: walk, climb, jump
+  // Dynamic locomotion animations: walk, run, climb, jump
   const isWalking = state === 'walk' && !isFrozen;
   const isClimbing = state === 'climb' && !isFrozen;
-  const isJumping = state === 'jump' && !isFrozen;
+  const isJumping = (state === 'jump' || !zombie.isGrounded) && !isFrozen;
+  const isRunner = type === 'runner';
 
   const legAngle1 = isClimbing
     ? Math.sin(walkCycle * 2) * 26
     : isJumping
-    ? 26
+    ? 30
     : isWalking
-    ? Math.sin(walkCycle) * 26
+    ? Math.sin(walkCycle) * (isRunner ? 36 : 26)
     : 0;
 
   const legAngle2 = isClimbing
     ? -Math.sin(walkCycle * 2) * 26
     : isJumping
-    ? 36
+    ? 44
     : isWalking
-    ? Math.sin(walkCycle - 1.4) * 18 + 6
+    ? Math.sin(walkCycle - 1.4) * (isRunner ? 26 : 18) + (isRunner ? 10 : 6)
     : 0;
 
   const shambleBobY = isClimbing
     ? Math.sin(walkCycle * 3) * 1.5
+    : isJumping
+    ? -6
     : isWalking
-    ? Math.sin(walkCycle * 2) * 2.2
+    ? Math.sin(walkCycle * 2) * (isRunner ? 3.5 : 2.2)
     : 0;
 
   const shambleTilt = isClimbing
     ? -10 // Leaning chest against the wall while scrambling up
     : isJumping
-    ? -14 // Leaning forward in mid-air leap
+    ? -18 // Dynamic forward trajectory leap lean
     : isWalking
-    ? Math.sin(walkCycle) * 4
+    ? (isRunner ? -14 : 0) + Math.sin(walkCycle) * (isRunner ? 6 : 4)
     : 0;
 
-  const armBob = isWalking ? Math.cos(walkCycle) * 7 : 0;
+  const armBob = isWalking ? Math.cos(walkCycle) * (isRunner ? 12 : 7) : isJumping ? -12 : 0;
 
   // Facing direction multiplier
   const scaleX = facingLeft ? -1 : 1;

@@ -1,6 +1,6 @@
 {
   "name": "wallflash",
-  "version": "1.34.0",
+  "version": "1.39.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

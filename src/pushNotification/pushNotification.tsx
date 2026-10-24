@@ -29,21 +29,33 @@ async function GetFCMToken() {
   } 
 } 
     
- export const NotificationListner = () => {
+import { navigateFromNotification } from '../Navigation/NavigationService';
+
+export const NotificationListner = () => {
   messaging().onNotificationOpenedApp(remoteMessage => { 
     console.log(
       'Notification Caused App to background state:',
       remoteMessage.notification,
     ); 
+    const screen = (remoteMessage.data?.screen || remoteMessage.data?.page) as string | undefined;
+    if (screen) {
+      navigateFromNotification(screen);
+    }
   }); 
-  messaging().
-  getInitialNotification()
-  .then(remoteMessage => { 
-     if(remoteMessage){
+
+  messaging()
+    .getInitialNotification()
+    .then(remoteMessage => { 
+      if (remoteMessage) {
         console.log("Notification Caused App to quit state:", remoteMessage.notification);
-     }
-  });
+        const screen = (remoteMessage.data?.screen || remoteMessage.data?.page) as string | undefined;
+        if (screen) {
+          navigateFromNotification(screen);
+        }
+      }
+    });
+
   messaging().onMessage(async remoteMessage => {
     console.log("Notification on forground state.......", remoteMessage); 
-  }) 
+  }); 
 };     

@@ -32,23 +32,84 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
   };
 
   // 1. Transform Platforms
-  const hasMultipleGround = raw.platforms.filter(p => p.type === 'ground').length > 1;
+  const groundPlats = raw.platforms.filter(p => p.type === 'ground');
+  const hasMultipleGround = groundPlats.length > 1;
 
-  const platforms: PlatformConfig[] = raw.platforms.map(p => {
-    const isSingleMainGround = p.type === 'ground' && !hasMultipleGround;
+  const playerX = mapX(raw.playerPos.x);
 
-    if (isSingleMainGround) {
-      const height = 90;
-      return {
-        ...p,
-        x: landscapeWorldWidth / 2,
-        y: LANDSCAPE_GROUND_Y + height / 2,
-        width: Math.max(landscapeWorldWidth + 400, 1800),
-        height,
-      };
+  // True chasm levels have spikes in obstacles or 'chasm' in title/description (e.g. Level 4, Level 31)
+  const isChasmLevel =
+    raw.obstacles.some(o => o.type === 'spikes') ||
+    (raw.title && raw.title.toLowerCase().includes('chasm')) ||
+    (raw.description && raw.description.toLowerCase().includes('chasm'));
+
+  const shouldSplitGround = hasMultipleGround && groundPlats.length === 2 && isChasmLevel;
+
+  let pitLeft = 0;
+  let pitRight = 0;
+  const targetPitGap = 75; // Fair, athletic, natural leap gap
+  let leftGroundId = '';
+  let rightGroundId = '';
+  let origPitRight = 0;
+
+  if (shouldSplitGround) {
+    const sortedGround = [...groundPlats].sort((a, b) => a.x - b.x);
+    leftGroundId = sortedGround[0].id;
+    rightGroundId = sortedGround[1].id;
+    const origPitLeft = sortedGround[0].x + sortedGround[0].width / 2;
+    origPitRight = sortedGround[1].x - sortedGround[1].width / 2;
+    pitLeft = Math.max(playerX + 175, mapX(origPitLeft));
+    pitRight = pitLeft + targetPitGap;
+  }
+
+  let addedMainGround = false;
+  const platforms: PlatformConfig[] = [];
+
+  raw.platforms.forEach(p => {
+    // If not a true chasm level, unify ground platforms into a continuous solid floor (no dig/pit!)
+    if (p.type === 'ground') {
+      if (!shouldSplitGround) {
+        if (!addedMainGround) {
+          addedMainGround = true;
+          const height = 90;
+          platforms.push({
+            ...p,
+            id: 'p_ground_main',
+            x: landscapeWorldWidth / 2,
+            y: LANDSCAPE_GROUND_Y + height / 2,
+            width: Math.max(landscapeWorldWidth + 400, 1800),
+            height,
+          });
+        }
+        return;
+      }
+
+      if (p.id === leftGroundId) {
+        const height = 90;
+        const width = pitLeft - (-200);
+        platforms.push({
+          ...p,
+          x: (-200 + pitLeft) / 2,
+          y: LANDSCAPE_GROUND_Y + height / 2,
+          width,
+          height,
+        });
+        return;
+      } else if (p.id === rightGroundId) {
+        const height = 90;
+        const width = landscapeWorldWidth + 300 - pitRight;
+        platforms.push({
+          ...p,
+          x: (pitRight + landscapeWorldWidth + 300) / 2,
+          y: LANDSCAPE_GROUND_Y + height / 2,
+          width,
+          height,
+        });
+        return;
+      }
     }
 
-    // Floating, pillar, or split ground (e.g. spike gaps)
+    // Floating, pillar, or elevated platforms
     const newWidth = Math.max(28, Math.round(p.width * (p.type === 'pillar' ? 1.1 : scaleX * 0.85)));
     const newHeight = Math.max(20, Math.round(p.height * (p.type === 'pillar' ? scaleY * 1.15 : scaleY)));
     const newX = mapX(p.x);
@@ -64,18 +125,17 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
         }
       : undefined;
 
-    return {
+    platforms.push({
       ...p,
       x: newX,
       y: newY,
       width: newWidth,
       height: newHeight,
       movingPath: newMovingPath,
-    };
+    });
   });
 
   // 2. Determine Ground Surface Under Player
-  const playerX = mapX(raw.playerPos.x);
   const candidatePlatforms = platforms.filter(p => {
     const left = p.x - p.width / 2;
     const right = p.x + p.width / 2;
@@ -120,6 +180,15 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
   // 3. Transform Obstacles (TNT, crates, spikes, portals, gates)
   const obstacles: ObstacleConfig[] = raw.obstacles.map(o => {
     const isSpikes = o.type === 'spikes';
+    if (isSpikes && shouldSplitGround) {
+      return {
+        ...o,
+        x: pitLeft + targetPitGap / 2,
+        y: LANDSCAPE_GROUND_Y + 14,
+        width: targetPitGap,
+        height: 24,
+      };
+    }
     const newWidth = Math.max(24, Math.round(o.width * (isSpikes ? scaleX : 1.25)));
     const newHeight = Math.max(20, Math.round(o.height * (isSpikes ? 0.9 : 0.85)));
     return {
@@ -133,7 +202,12 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
 
   // 4. Transform Zombies
   const zombies: ZombieConfig[] = raw.zombies.map(z => {
-    const newX = mapX(z.x);
+    let newX = mapX(z.x);
+    if (shouldSplitGround && origPitRight > 0) {
+      if (z.x >= origPitRight - 20) {
+        newX = pitRight + Math.max(30, Math.round((z.x - origPitRight) * scaleX));
+      }
+    }
     // Align ground zombies directly to ground surface
     let newY = mapY(z.y);
     if (z.type !== 'flying' && z.y >= 530) {

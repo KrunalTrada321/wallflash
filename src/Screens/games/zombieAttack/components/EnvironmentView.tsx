@@ -252,7 +252,7 @@ interface DynamicObstaclesProps {
   movingPlatforms: MovingPlatformEntity[];
 }
 
-export const DynamicObstacles: React.FC<DynamicObstaclesProps> = React.memo(({
+export const DynamicObstacles: React.FC<DynamicObstaclesProps> = ({
   obstacles,
   movingPlatforms,
 }) => {
@@ -436,4 +436,4 @@ export const DynamicObstacles: React.FC<DynamicObstaclesProps> = React.memo(({
       })}
     </G>
   );
-});
+};

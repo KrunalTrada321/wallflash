@@ -147,6 +147,7 @@ export interface ZombieEntity {
   armorLost?: boolean;
   patrolMin?: number;
   patrolMax?: number;
+  patrolDir?: number;
   jumpCooldown?: number;
   climbCooldown?: number;
   flyPhase?: number;
@@ -154,6 +155,10 @@ export interface ZombieEntity {
   freezeTimer?: number;
   isBurning?: boolean;
   burnTimer?: number;
+  jumpVx?: number;
+  stuckFrames?: number;
+  stuckTotalFrames?: number;
+  lastX?: number;
 }
 
 export interface ObstacleEntity {

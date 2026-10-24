@@ -23,7 +23,7 @@ const ARROW_OPTIONS: { type: ArrowType; icon: string; label: string; unlockLevel
   { type: 'bomb', icon: '💣', label: 'Bomb', unlockLevel: 2, color: '#FACC15' },
 ];
 
-export const GameHUD: React.FC<GameHUDProps> = ({
+export const GameHUD: React.FC<GameHUDProps> = React.memo(({
   levelId,
   levelTitle,
   arrowsRemaining,
@@ -139,7 +139,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   hudContainer: {

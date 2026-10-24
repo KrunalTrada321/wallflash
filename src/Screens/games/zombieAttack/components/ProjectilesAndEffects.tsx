@@ -11,7 +11,7 @@ interface ProjectilesAndEffectsProps {
   floatTexts?: FloatText[];
 }
 
-export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React.memo(({
+export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
   arrows,
   trajectory,
   isAiming,
@@ -131,10 +131,11 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
 
       {/* 5. Smooth, High-Performance Particles (Blast Shockwaves, Smoke Clouds, Sparks) */}
       {particles.map(p => {
+
         if (p.shape === 'shockwave') {
           const progress = p.life / p.maxLife;
-          const currentRadius = p.size + progress * 80;
-          const strokeW = Math.max(1.2, 5.5 * (1 - progress));
+          const currentRadius = p.size + progress * 65;
+          const strokeW = Math.max(1, 4 * (1 - progress));
           return (
             <Circle
               key={`part_${p.id}`}
@@ -151,13 +152,16 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
 
         if (p.shape === 'smoke') {
           const progress = p.life / p.maxLife;
-          const r = p.size * (1 + progress * 0.85);
+          const r = p.size * (1 + progress * 0.7);
           return (
-            <G key={`part_${p.id}`} opacity={p.opacity * 0.85}>
-              <Circle cx={p.x} cy={p.y} r={r} fill={p.color} />
-              <Circle cx={p.x + r * 0.4} cy={p.y - r * 0.3} r={r * 0.65} fill={p.color} />
-              <Circle cx={p.x - r * 0.35} cy={p.y - r * 0.25} r={r * 0.6} fill={p.color} />
-            </G>
+            <Circle
+              key={`part_${p.id}`}
+              cx={p.x}
+              cy={p.y}
+              r={r}
+              fill={p.color}
+              opacity={p.opacity * 0.75}
+            />
           );
         }
 
@@ -165,12 +169,12 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
           return (
             <Line
               key={`part_${p.id}`}
-              x1={p.x - 6}
-              y1={p.y - 6}
-              x2={p.x + 6}
-              y2={p.y + 6}
+              x1={p.x - 4}
+              y1={p.y - 4}
+              x2={p.x + 4}
+              y2={p.y + 4}
               stroke={p.color}
-              strokeWidth="2.8"
+              strokeWidth="2.2"
               strokeLinecap="round"
               opacity={p.opacity}
             />
@@ -195,24 +199,19 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
           // Diamond ice crystal shard
           const s = Math.max(1.5, p.size * (1 - p.life / p.maxLife));
           return (
-            <G key={`part_${p.id}`} transform={`translate(${p.x}, ${p.y}) rotate(45)`} opacity={p.opacity}>
-              <Rect x={-s / 2} y={-s / 2} width={s} height={s} fill={p.color} stroke="#FFFFFF" strokeWidth="0.6" />
-            </G>
+            <Rect
+              key={`part_${p.id}`}
+              x={p.x - s / 2}
+              y={p.y - s / 2}
+              width={s}
+              height={s}
+              fill={p.color}
+              opacity={p.opacity}
+            />
           );
         }
 
-        if (p.shape === 'splat') {
-          const r = Math.max(1, p.size * (1 - p.life / (p.maxLife * 1.5)));
-          return (
-            <G key={`part_${p.id}`} opacity={p.opacity}>
-              <Circle cx={p.x} cy={p.y} r={r} fill={p.color} />
-              <Circle cx={p.x + r * 0.7} cy={p.y - r * 0.5} r={r * 0.45} fill={p.color} />
-              <Circle cx={p.x - r * 0.5} cy={p.y + r * 0.6} r={r * 0.4} fill={p.color} />
-            </G>
-          );
-        }
-
-        // Standard crisp circle particle
+        // Standard and splat crisp circle particle
         const r = Math.max(1, p.size * (1 - p.life / (p.maxLife * 1.5)));
         return (
           <Circle
@@ -244,4 +243,4 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = React
       ))}
     </G>
   );
-});
+};

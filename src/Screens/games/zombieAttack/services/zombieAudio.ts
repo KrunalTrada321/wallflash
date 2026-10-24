@@ -71,8 +71,7 @@ class ZombieAudioService {
 
   public playHeadshot() {
     if (!this.soundEnabled) return;
-    GameSound.playHeadshotVoice(); // Deep man voice saying "Headshot!"
-    GameSound.playConnect(); // Heavy impact crunch
+    GameSound.playHeadshotVoice(); // Bold man voice saying "Headshot!" only
     this.vibrate([0, 30, 25, 60]);
   }
 

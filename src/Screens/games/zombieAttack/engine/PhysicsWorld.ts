@@ -1,9 +1,6 @@
 import Matter from 'matter-js';
 import {
   LevelConfig,
-  PlatformConfig,
-  ObstacleConfig,
-  ZombieConfig,
   ArrowEntity,
   ZombieEntity,
   ObstacleEntity,
@@ -14,6 +11,7 @@ import {
   ArrowType,
 } from '../types/gameTypes';
 import ZombieAudio from '../services/zombieAudio';
+import { LANDSCAPE_GROUND_Y } from '../levels/landscapeLevelAdapter';
 
 export const COLLISION_CATEGORIES = {
   TERRAIN: 0x0001,
@@ -289,6 +287,24 @@ export class PhysicsWorld {
         });
         ZombieAudio.playBounce();
       }
+      return;
+    }
+
+    // Spikes Hazard: Any zombie touching spikes is instantly defeated
+    const spikesObstacle = this.obstacles.find(
+      o => (o.body === bodyA || o.body === bodyB) && o.type === 'spikes'
+    );
+    if (spikesObstacle) {
+      const otherBody = bodyA === spikesObstacle.body ? bodyB : bodyA;
+      const otherLabel = otherBody.label || '';
+      if (otherLabel.startsWith('zombie:')) {
+        const zombieId = otherLabel.replace('zombie:', '');
+        const z = this.zombies.find(zm => zm.id === zombieId && zm.health > 0);
+        if (z) {
+          this.killZombie(z, false);
+          return;
+        }
+      }
     }
   }
 
@@ -346,7 +362,9 @@ export class PhysicsWorld {
 
         if (zombie.health <= 0) {
           zombie.state = 'dead';
-          ZombieAudio.playZombieDefeat();
+          if (!isHeadshot) {
+            ZombieAudio.playZombieDefeat();
+          }
 
           // FIX FLOATING ARROWS: Remove the hitting arrow immediately
           Matter.World.remove(this.world, arrow.body);
@@ -363,9 +381,6 @@ export class PhysicsWorld {
 
           // Spawn fast lightweight cartoon blood particles (laggy skull completely removed!)
           this.spawnZombieDeathBlood(zombie.body.position.x, zombie.body.position.y, isHeadshot, knockDir);
-          if (isHeadshot) {
-            this.spawnHeadshotText(zombie.body.position.x, zombie.body.position.y);
-          }
 
           if (this.onZombieKilled) {
             this.onZombieKilled(zombie, isHeadshot);
@@ -699,20 +714,7 @@ export class PhysicsWorld {
       this.onExplosionTriggered(x, y, radius);
     }
 
-    // 1. Multiple Expanding Shockwaves (White core ring + Golden blast ring + Crimson outer wave)
-    this.particles.push({
-      id: this.nextParticleId++,
-      x,
-      y,
-      vx: 0,
-      vy: 0,
-      color: '#FFFFFF',
-      size: 20,
-      opacity: 1,
-      life: 0,
-      maxLife: 18,
-      shape: 'shockwave',
-    });
+    // 1. High-Performance Single Core Expanding Shockwave
     this.particles.push({
       id: this.nextParticleId++,
       x,
@@ -720,81 +722,68 @@ export class PhysicsWorld {
       vx: 0,
       vy: 0,
       color: '#FACC15',
-      size: 15,
-      opacity: 0.9,
+      size: 16,
+      opacity: 1,
       life: 0,
-      maxLife: 22,
-      shape: 'shockwave',
-    });
-    this.particles.push({
-      id: this.nextParticleId++,
-      x,
-      y,
-      vx: 0,
-      vy: 0,
-      color: '#EF4444',
-      size: 10,
-      opacity: 0.85,
-      life: 0,
-      maxLife: 26,
+      maxLife: 14,
       shape: 'shockwave',
     });
 
-    // 2. High-energy explosive fireball puffs
-    for (let i = 0; i < 16; i++) {
-      const angle = (i / 16) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      const speed = Math.random() * 5.5 + 2.5;
-      const colors = ['#FEF08A', '#FACC15', '#F97316', '#EF4444', '#DC2626'];
+    // 2. High-energy explosive fireball puffs (compact, snappy)
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const speed = Math.random() * 4.5 + 2.0;
+      const colors = ['#FEF08A', '#FACC15', '#F97316', '#EF4444'];
       this.particles.push({
         id: this.nextParticleId++,
-        x: x + (Math.random() - 0.5) * 12,
-        y: y + (Math.random() - 0.5) * 12,
+        x: x + (Math.random() - 0.5) * 8,
+        y: y + (Math.random() - 0.5) * 8,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 12 + 10,
+        vy: Math.sin(angle) * speed - 1.0,
+        color: colors[i % colors.length],
+        size: Math.random() * 8 + 8,
         opacity: 0.95,
         life: 0,
-        maxLife: Math.floor(Math.random() * 10 + 16),
+        maxLife: Math.floor(Math.random() * 6 + 10),
         shape: 'flame',
       });
     }
 
-    // 3. Billowing dark smoke clouds
-    for (let i = 0; i < 14; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 3 + 1;
-      const smokeColors = ['#1E293B', '#334155', '#475569', '#64748B'];
+    // 3. Compact smoke clouds
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2;
+      const speed = Math.random() * 2 + 1;
+      const smokeColors = ['#334155', '#475569', '#64748B'];
       this.particles.push({
         id: this.nextParticleId++,
-        x: x + (Math.random() - 0.5) * 16,
-        y: y + (Math.random() - 0.5) * 16,
-        vx: Math.cos(angle) * speed * 0.8,
-        vy: -Math.random() * 2.5 - 0.8, // drifts upwards
-        color: smokeColors[Math.floor(Math.random() * smokeColors.length)],
-        size: Math.random() * 14 + 12,
-        opacity: 0.85,
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        vx: Math.cos(angle) * speed * 0.7,
+        vy: -Math.random() * 1.8 - 0.6,
+        color: smokeColors[i % smokeColors.length],
+        size: Math.random() * 10 + 8,
+        opacity: 0.8,
         life: 0,
-        maxLife: Math.floor(Math.random() * 12 + 24),
+        maxLife: Math.floor(Math.random() * 8 + 12),
         shape: 'smoke',
       });
     }
 
-    // 4. Radial shrapnel sparks
-    for (let i = 0; i < 22; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 8 + 3.5;
+    // 4. Snappy radial shrapnel sparks
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const speed = Math.random() * 6 + 3.0;
       this.particles.push({
         id: this.nextParticleId++,
         x,
         y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2.5,
-        color: Math.random() > 0.4 ? '#FEF08A' : '#F97316',
-        size: Math.random() * 5 + 3,
+        vy: Math.sin(angle) * speed - 1.8,
+        color: i % 2 === 0 ? '#FEF08A' : '#F97316',
+        size: Math.random() * 3 + 2,
         opacity: 1,
         life: 0,
-        maxLife: Math.floor(Math.random() * 12 + 18),
+        maxLife: Math.floor(Math.random() * 6 + 8),
         shape: 'spark',
       });
     }
@@ -839,8 +828,11 @@ export class PhysicsWorld {
 
   // Clean helper to eliminate zombie safely
   private killZombie(zombie: ZombieEntity, isHeadshot: boolean = false) {
+    zombie.health = 0;
     zombie.state = 'dead';
-    ZombieAudio.playZombieDefeat();
+    if (!isHeadshot) {
+      ZombieAudio.playZombieDefeat();
+    }
 
     this.arrows
       .filter(a => a.stuckToBodyId === zombie.body.id)
@@ -896,21 +888,7 @@ export class PhysicsWorld {
         z.health -= 3;
         z.hitFlashTimer = 8;
         if (z.health <= 0) {
-          z.state = 'dead';
-          ZombieAudio.playZombieDefeat();
-
-          // Clean up stuck arrows
-          this.arrows
-            .filter(a => a.stuckToBodyId === z.body.id)
-            .forEach(a => Matter.World.remove(this.world, a.body));
-          this.arrows = this.arrows.filter(a => a.stuckToBodyId !== z.body.id);
-
-          Matter.World.remove(this.world, z.body);
-          this.spawnZombieDeathBlood(z.body.position.x, z.body.position.y, false);
-
-          if (this.onZombieKilled) {
-            this.onZombieKilled(z, false);
-          }
+          this.killZombie(z, false);
         }
       }
     });
@@ -987,6 +965,27 @@ export class PhysicsWorld {
     } else {
       ZombieAudio.playBowRelease();
     }
+
+    // Point-blank check: If a living zombie is standing right in front of the bow launch point,
+    // trigger immediate direct hit so the arrow never misses or ghosts through at close range
+    const pointBlankZombie = this.zombies.find(z => {
+      if (z.health <= 0) return false;
+      const halfW = z.width / 2 + 10;
+      const halfH = z.height / 2 + 10;
+      const zx = z.body.position.x;
+      const zy = z.body.position.y;
+      return (
+        startX >= zx - halfW &&
+        startX <= zx + halfW &&
+        startY >= zy - halfH &&
+        startY <= zy + halfH
+      );
+    });
+
+    if (pointBlankZombie) {
+      this.handleArrowHit(arrowBody, pointBlankZombie.body);
+    }
+
     return arrowEntity;
   }
 
@@ -1150,7 +1149,10 @@ export class PhysicsWorld {
       a => a.inFlight || (a.stuck && (!a.stuckToBodyId || Matter.Composite.allBodies(this.world).some(b => b.id === a.stuckToBodyId)))
     );
 
-    // Update Particles (Blood, Slime, Skull, Bones, Sparks)
+    // Update Particles (Blood, Slime, Sparks, Shockwaves)
+    if (this.particles.length > 25) {
+      this.particles.splice(0, this.particles.length - 25);
+    }
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life++;
@@ -1189,37 +1191,163 @@ export class PhysicsWorld {
     this.updateZombies();
   }
 
-  // Helper to check if a vertical platform wall or pillar is ahead of the zombie
-  private isNearVerticalWall(zx: number, zy: number, moveDir: number): boolean {
-    return this.level.platforms.some(p => {
+  // Helper to detect ANY big object (platform wall, cliff, pillar, crate, rock, barricade) ahead of zombie
+  private getBigObjectAhead(
+    zx: number,
+    zy: number,
+    zWidth: number,
+    zHeight: number,
+    moveDir: number,
+    playerX: number
+  ): { dist: number; topY: number; height: number; type: 'platform' | 'obstacle' } | null {
+    const feetY = zy + zHeight / 2;
+    const frontX = zx + moveDir * (zWidth / 2);
+    let bestMatch: { dist: number; topY: number; height: number; type: 'platform' | 'obstacle' } | null = null;
+
+    // 1. Check all platforms (walls, cliffs, pillars, high platforms)
+    for (const p of this.level.platforms) {
       const halfW = p.width / 2;
       const halfH = p.height / 2;
+      const topY = p.y - halfH;
+      const bottomY = p.y + halfH;
+
+      // Ignore platform if zombie is already standing firmly on top of it!
+      const isStandingOnThisPlatform =
+        zx >= p.x - halfW - 4 &&
+        zx <= p.x + halfW + 4 &&
+        Math.abs(feetY - topY) <= 16;
+      if (isStandingOnThisPlatform) continue;
+
       const wallX = moveDir > 0 ? p.x - halfW : p.x + halfW;
-      const distToWall = (wallX - zx) * moveDir;
-      const isVerticallyOverlapping = zy >= p.y - halfH - 20 && zy <= p.y + halfH + 40;
-      return distToWall > -15 && distToWall < 40 && isVerticallyOverlapping;
-    });
+      const distToFace = (wallX - frontX) * moveDir;
+
+      // Platform wall must be in front towards player (between 0 and 52px away)
+      const isAhead = distToFace >= 0 && distToFace <= 52;
+      // Must be an actual wall/step significantly higher than feet (at least 20px step-up)
+      const isElevationOrWall = topY < feetY - 20 && bottomY > zy - zHeight / 2;
+      const isBetweenZombieAndPlayer = (wallX - zx) * moveDir > 0 && (playerX - wallX) * moveDir >= -10;
+
+      if (isAhead && isElevationOrWall && isBetweenZombieAndPlayer) {
+        if (!bestMatch || distToFace < bestMatch.dist) {
+          bestMatch = { dist: distToFace, topY, height: p.height, type: 'platform' };
+        }
+      }
+    }
+
+    // 2. Check interactive obstacles (single or stacked crates, rocks, barriers, tnt)
+    for (const o of this.obstacles) {
+      if (o.isTriggered || o.isOpen) continue;
+      const ox = o.body.position.x;
+      const oy = o.body.position.y;
+      const halfW = o.width / 2;
+      const halfH = o.height / 2;
+      const topY = oy - halfH;
+      const bottomY = oy + halfH;
+
+      // Ignore obstacle if zombie is already standing on top of it!
+      const isStandingOnThisObstacle =
+        zx >= ox - halfW - 4 &&
+        zx <= ox + halfW + 4 &&
+        Math.abs(feetY - topY) <= 16;
+      if (isStandingOnThisObstacle) continue;
+
+      const faceX = moveDir > 0 ? ox - halfW : ox + halfW;
+      const distToFace = (faceX - frontX) * moveDir;
+
+      // Must be directly in front
+      const isAhead = distToFace >= 0 && distToFace <= 54;
+      // Must be an obstacle sticking up in front of zombie (at least 20px step-up)
+      const isBlocking = topY < feetY - 20 && bottomY > zy - zHeight / 2;
+      const isBetweenZombieAndPlayer = (faceX - zx) * moveDir > 0 && (playerX - faceX) * moveDir >= -10;
+
+      if (isAhead && isBlocking && isBetweenZombieAndPlayer) {
+        if (!bestMatch) {
+          bestMatch = { dist: distToFace, topY, height: o.height, type: 'obstacle' };
+        } else {
+          const highestTop = Math.min(topY, bestMatch.topY);
+          const closestDist = Math.min(distToFace, bestMatch.dist);
+          bestMatch = { dist: closestDist, topY: highestTop, height: Math.max(o.height, bestMatch.height), type: 'obstacle' };
+        }
+      }
+    }
+
+    return bestMatch;
   }
 
-  // Helper to check if a crate, rock, or barricade obstacle is directly ahead
-  private isObstacleDirectlyAhead(zx: number, zy: number, moveDir: number): boolean {
-    return this.obstacles.some(o => {
+  // Helper to check if a position has solid walkable ground within safe step or small drop range
+  public hasWalkableGroundAhead(checkX: number, zy: number, zHeight: number): boolean {
+    const feetY = zy + zHeight / 2;
+    // Check static platforms
+    const onPlatform = this.level.platforms.some(p => {
+      const halfW = p.width / 2;
+      const halfH = p.height / 2;
+      const topY = p.y - halfH;
+      if (checkX >= p.x - halfW && checkX <= p.x + halfW) {
+        const dropDist = topY - feetY;
+        return dropDist >= -18 && dropDist <= 70;
+      }
+      return false;
+    });
+    if (onPlatform) return true;
+
+    // Check solid obstacles (e.g. stepping along tops of crates or rocks)
+    const onObstacle = this.obstacles.some(o => {
       if (o.isTriggered || o.isOpen) return false;
       const ox = o.body.position.x;
       const oy = o.body.position.y;
-      const dx = (ox - zx) * moveDir;
-      const dy = Math.abs(oy - zy);
-      return dx > 0 && dx < 48 && dy < 55;
+      const halfW = o.width / 2;
+      const halfH = o.height / 2;
+      const topY = oy - halfH;
+      if (checkX >= ox - halfW && checkX <= ox + halfW) {
+        const dropDist = topY - feetY;
+        return dropDist >= -18 && dropDist <= 70;
+      }
+      return false;
     });
+
+    return onObstacle;
   }
 
-  // Helper to check if there is solid platform ground under a given position
-  private hasPlatformUnder(x: number, y: number, checkDepth: number = 40): boolean {
-    return this.level.platforms.some(p => {
+  // Robust grounded detection: checks static platforms, moving platforms, obstacles, and world floor
+  public isZombieGrounded(z: ZombieEntity): boolean {
+    const feetY = z.body.position.y + z.height / 2;
+    const zx = z.body.position.x;
+
+    // 1. Static Platforms
+    const onPlatform = this.level.platforms.some(p => {
       const halfW = p.width / 2;
       const halfH = p.height / 2;
-      return x >= p.x - halfW && x <= p.x + halfW && y >= p.y - halfH && y <= p.y + halfH + checkDepth;
+      const topY = p.y - halfH;
+      return zx >= p.x - halfW - 14 && zx <= p.x + halfW + 14 && Math.abs(feetY - topY) <= 20;
     });
+
+    // 2. Moving Platforms (using real-time dynamic body position)
+    const onMovingPlatform = this.movingPlatforms.some(mp => {
+      const halfW = mp.width / 2;
+      const halfH = mp.height / 2;
+      const topY = mp.body.position.y - halfH;
+      return (
+        zx >= mp.body.position.x - halfW - 14 &&
+        zx <= mp.body.position.x + halfW + 14 &&
+        Math.abs(feetY - topY) <= 22
+      );
+    });
+
+    // 3. Solid Obstacles (crates, rocks, bounce pads, spikes in pits)
+    const onObstacle = this.obstacles.some(o => {
+      if (o.isTriggered || o.isOpen) return false;
+      const ox = o.body.position.x;
+      const oy = o.body.position.y;
+      const halfW = o.width / 2;
+      const halfH = o.height / 2;
+      const topY = oy - halfH;
+      return zx >= ox - halfW - 14 && zx <= ox + halfW + 14 && Math.abs(feetY - topY) <= 22;
+    });
+
+    // 4. World Floor / Pit Bottom
+    const onWorldFloor = feetY >= this.level.worldHeight - 45;
+
+    return (onPlatform || onMovingPlatform || onObstacle || onWorldFloor) && Math.abs(z.body.velocity.y) < 4.5;
   }
 
   private updateZombies() {
@@ -1282,29 +1410,51 @@ export class PhysicsWorld {
       const verticalDiff = playerY - zy; // Negative means player is ABOVE zombie
       const dyToPlayer = Math.abs(verticalDiff);
 
-      z.facingLeft = dxToPlayer < 0;
-      const moveDir = dxToPlayer > 0 ? 1 : -1;
+      const moveTowardsPlayer = dxToPlayer > 0 ? 1 : -1;
 
       // 1. Flying Zombie Full 2D Navigation
       if (z.type === 'flying') {
+        z.facingLeft = moveTowardsPlayer < 0;
         z.flyPhase = (z.flyPhase ?? 0) + 0.05;
-        const targetVx = moveDir * (z.speed * 1.3);
+        const targetVx = moveTowardsPlayer * (z.speed * 1.3);
         const verticalVel = dyToPlayer > 15
           ? (verticalDiff > 0 ? 1.8 : -2.4)
           : Math.sin(z.flyPhase) * 1.2;
         Matter.Body.setVelocity(z.body, { x: targetVx, y: verticalVel });
         Matter.Body.applyForce(z.body, z.body.position, { x: 0, y: -0.008 });
-      } else {
-        z.isGrounded = Math.abs(z.body.velocity.y) < 0.35;
 
-        // 2. Attack Check: Melee slashing when in range
-        const attackRange = z.type === 'giant' || z.type === 'boss' ? 70 : 50;
-        if (distToPlayer < attackRange && dyToPlayer < 65) {
+        const movedDist = Math.abs(zx - (z.lastX ?? zx));
+        if (movedDist < 0.35 && distToPlayer > 60) {
+          z.stuckTotalFrames = (z.stuckTotalFrames ?? 0) + 1;
+        } else {
+          z.stuckTotalFrames = 0;
+        }
+        z.lastX = zx;
+
+        if ((z.stuckTotalFrames ?? 0) >= 270) {
+          this.killZombie(z, false);
+          return;
+        }
+      } else {
+        z.isGrounded = this.isZombieGrounded(z);
+
+        // Reset jump state when landed firmly on ground or obstacle
+        if (z.isGrounded && z.state === 'jump') {
+          z.state = 'walk';
+          z.jumpVx = undefined;
+          z.stuckFrames = 0;
+          z.jumpCooldown = Math.max(z.jumpCooldown ?? 0, 55);
+        }
+
+        // 2. Attack Check: Melee slashing when in front combat range
+        const attackRange = z.type === 'giant' || z.type === 'boss' ? 75 : 65;
+        if (distToPlayer <= attackRange && dyToPlayer < 75) {
+          z.facingLeft = moveTowardsPlayer < 0;
           z.state = 'attack';
           z.attackTimer += 0.016;
 
           // Blood slash effect arriving at player!
-          if (z.attackTimer > 0.15 && Math.random() < 0.28) {
+          if (z.attackTimer > 0.18 && Math.random() < 0.28) {
             this.spawnPlayerBloodSlash(playerX, playerY + 8);
           }
 
@@ -1318,148 +1468,258 @@ export class PhysicsWorld {
           return;
         }
 
-        // Patrol limits check
-        if (z.patrolMin !== undefined && zx < z.patrolMin && moveDir < 0) return;
-        if (z.patrolMax !== undefined && zx > z.patrolMax && moveDir > 0) return;
-
         let currentSpeed = z.speed;
         if (z.type === 'sneaky') {
           currentSpeed = distToPlayer > 320 ? 0.4 : 2.6;
         }
 
-        // 3. Vertical Pursuit: Wall Climbing when Player is on an Upper Platform
-        // If player is on higher ground / upper side, the zombie aggressively climbs up!
-        const isPlayerAbove = verticalDiff < -22;
-        const isNearClimbSurface = distToPlayer < 110 || this.isNearVerticalWall(zx, zy, moveDir);
+        const feetY = zy + z.height / 2;
+        const playerFeetY = playerY + 50;
 
-        if (isPlayerAbove && isNearClimbSurface) {
-          z.state = 'climb';
-          z.walkCycle += 0.35;
+        // Detect player's platform and elevation
+        const playerPlatform = this.level.platforms.find(p => {
+          const halfW = p.width / 2;
+          const halfH = p.height / 2;
+          const topY = p.y - halfH;
+          return (
+            playerX >= p.x - halfW - 40 &&
+            playerX <= p.x + halfW + 40 &&
+            Math.abs(playerY + 50 - topY) <= 50
+          );
+        });
+        const playerPlatformTop = playerPlatform
+          ? playerPlatform.y - playerPlatform.height / 2
+          : playerY + 50;
 
-          const climbSpeed = z.type === 'runner' ? 4.8 : z.type === 'giant' || z.type === 'boss' ? 2.8 : 3.8;
-          Matter.Body.setVelocity(z.body, { x: moveDir * 0.4, y: -climbSpeed });
-          Matter.Body.setPosition(z.body, { x: zx + moveDir * 0.3, y: zy - climbSpeed });
+        // Check if zombie is already on the exact same platform or elevation as the player
+        const isZombieOnSameElevation = Math.abs(feetY - playerFeetY) <= 24;
+        const isZombieOnPlayerPlatform = playerPlatform &&
+          zx >= playerPlatform.x - playerPlatform.width / 2 - 20 &&
+          zx <= playerPlatform.x + playerPlatform.width / 2 + 20 &&
+          isZombieOnSameElevation;
 
-          // Wall climbing scrape particles
-          if (Math.random() < 0.22) {
-            this.particles.push({
-              id: this.nextParticleId++,
-              x: zx + (z.facingLeft ? -10 : 10),
-              y: zy - z.height * 0.25,
-              vx: (Math.random() - 0.5) * 1.5,
-              vy: Math.random() * 1.5,
-              color: '#78716C',
-              size: 2.5,
-              opacity: 0.8,
-              life: 0,
-              maxLife: 10,
-              shape: 'wood',
-            });
+        // Player is only considered truly "above" if player feet are at least 32px higher than zombie feet!
+        const isPlayerAbove = !isZombieOnSameElevation && (playerFeetY < feetY - 32);
+
+        // Track whether zombie is blocked/stuck against an actual obstacle or wall while grounded
+        const movedDist = Math.abs(zx - (z.lastX ?? zx));
+        if (z.isGrounded && Math.abs(moveTowardsPlayer) > 0) {
+          if (movedDist < 0.22) {
+            z.stuckFrames = (z.stuckFrames ?? 0) + 1;
+          } else {
+            z.stuckFrames = 0;
           }
-
-          // When zombie reaches the top of the wall / player elevation, vault forward onto the platform!
-          if (zy <= playerY + 12) {
-            Matter.Body.setVelocity(z.body, { x: moveDir * 4.5, y: -2.8 });
-            Matter.Body.setPosition(z.body, { x: zx + moveDir * 18, y: playerY });
-            z.state = 'walk';
-          }
-          return;
+        } else {
+          z.stuckFrames = 0;
         }
 
-        // 4. Platform Leaping & Obstacle Vaulting (High Jumps to reach upper platforms or clear chasms/crates)
-        const isObstacleAhead = this.isObstacleDirectlyAhead(zx, zy, moveDir);
-        const isGapAhead = z.isGrounded && !this.hasPlatformUnder(zx + moveDir * 36, zy + 36, 40);
-        const shouldLeapToUpper = isPlayerAbove && z.isGrounded && distToPlayer < 240 && distToPlayer > 35;
+        // Global stuck watchdog: tracks lack of net horizontal progress regardless of jump state
+        if (movedDist < 0.35 && distToPlayer > 60) {
+          z.stuckTotalFrames = (z.stuckTotalFrames ?? 0) + 1;
+        } else {
+          z.stuckTotalFrames = 0;
+        }
+        z.lastX = zx;
 
-        if ((shouldLeapToUpper || isObstacleAhead || isGapAhead || z.type === 'jumper') && (z.jumpCooldown ?? 0) <= 0 && z.isGrounded) {
-          const jumpPower = shouldLeapToUpper
-            ? (z.type === 'jumper' ? 12.8 : z.type === 'runner' ? 11.2 : 10.2)
-            : isGapAhead
-            ? 8.8
-            : isObstacleAhead
-            ? 7.8
-            : 8.5;
-
-          const forwardSpeed = moveDir * Math.max(3.2, currentSpeed * (isGapAhead ? 2.2 : 1.6));
-          Matter.Body.setVelocity(z.body, { x: forwardSpeed, y: -jumpPower });
+        // Escalation 1: If stuck for ~1.5s (90 frames) without forward progress, force a high unstick leap
+        if ((z.stuckTotalFrames ?? 0) === 90) {
+          Matter.Body.setPosition(z.body, { x: zx - moveTowardsPlayer * 8, y: zy - 8 });
+          Matter.Body.setVelocity(z.body, { x: moveTowardsPlayer * 4.6, y: -11.5 });
           z.state = 'jump';
-          z.jumpCooldown = z.type === 'jumper' ? 65 : 95;
+          z.isGrounded = false;
+          z.jumpCooldown = 60;
           return;
         }
 
-        // 5. Regular Ground Walk / Shambling
-        if (z.isGrounded && z.state !== 'jump') {
-          z.state = 'walk';
+        // Escalation 2: Universal Stuck Watchdog Fail-Safe!
+        // If stuck/trapped in impossible geometry anywhere for 4.5s (270 frames), eliminate cleanly to prevent soft-lock
+        if ((z.stuckTotalFrames ?? 0) >= 270) {
+          this.killZombie(z, false);
+          return;
         }
-        z.walkCycle += 0.25;
+
+        // Only consider stuck if blocked for at least 28 frames (~0.47s) AND not already on same flat platform near player!
+        const isStuckAgainstObject = (z.stuckFrames ?? 0) >= 28 && !isZombieOnPlayerPlatform;
+
+        // Check if zombie is directly underneath the player's platform ceiling
+        let isUnderPlatformCeiling = false;
+        if (isPlayerAbove && playerPlatform) {
+          const halfW = playerPlatform.width / 2;
+          const pLeft = playerPlatform.x - halfW;
+          const pRight = playerPlatform.x + halfW;
+          const pBottom = playerPlatform.y + playerPlatform.height / 2;
+          if (zx >= pLeft + 10 && zx <= pRight - 10 && zy >= pBottom - 10) {
+            isUnderPlatformCeiling = true;
+          }
+        }
+
+        // Comprehensive Big Object Detection (walls, cliffs, pillars, crates, rocks, barriers)
+        const bigObjectAhead = this.getBigObjectAhead(zx, zy, z.width, z.height, moveTowardsPlayer, playerX);
+
+        // 3. BIG JUMP ACTION:
+        // Launch a powerful, clean jump when facing any wall, cliff, crate, pit, or upper platform!
+        const canJumpTowardsPlayer = distToPlayer >= 50;
+        const hasGroundAhead = this.hasWalkableGroundAhead(zx + moveTowardsPlayer * 30, zy, z.height);
+        const isNoSpaceAhead = canJumpTowardsPlayer && !hasGroundAhead && !isZombieOnPlayerPlatform;
+        const isJumperReady = z.type === 'jumper' && (z.jumpCooldown ?? 0) <= 0 && canJumpTowardsPlayer && !isZombieOnPlayerPlatform;
+        const shouldJumpToUpper =
+          isPlayerAbove &&
+          !isZombieOnPlayerPlatform &&
+          distToPlayer < 360 &&
+          !isUnderPlatformCeiling;
+        const shouldJumpOverBigObject = bigObjectAhead !== null && !isUnderPlatformCeiling;
+
+        const isReadyToJump =
+          (z.jumpCooldown ?? 0) <= 0 &&
+          (z.isGrounded || Math.abs(z.body.velocity.y) < 2.5);
+
+        if (
+          (shouldJumpOverBigObject || isStuckAgainstObject || isNoSpaceAhead || shouldJumpToUpper || isJumperReady) &&
+          isReadyToJump &&
+          canJumpTowardsPlayer
+        ) {
+          z.facingLeft = moveTowardsPlayer < 0;
+          z.jumpCooldown = z.type === 'jumper' ? 45 : 65;
+          z.stuckFrames = 0;
+
+          let jumpPower: number;
+          let forwardSpeed: number;
+
+          if (bigObjectAhead) {
+            // Big jump to clear the big object (wall, cliff, stacked crates, rock, barricade)
+            const objectElevation = Math.max(0, feetY - bigObjectAhead.topY);
+            const targetClearanceHeight = Math.max(90, Math.min(220, objectElevation + 40));
+            // In Matter.js: v_y = sqrt(2 * g * H) with effective gravity scale
+            jumpPower = Math.min(11.8, Math.max(9.0, Math.sqrt(0.56 * targetClearanceHeight)));
+            forwardSpeed = 3.8;
+          } else if (shouldJumpToUpper) {
+            // Big jump up to upper platform where player is perched
+            const heightDiff = Math.max(dyToPlayer, Math.abs(zy - playerPlatformTop));
+            const targetClearanceHeight = Math.max(90, Math.min(220, heightDiff + 42));
+            jumpPower = Math.min(11.8, Math.max(9.0, Math.sqrt(0.56 * targetClearanceHeight)));
+            forwardSpeed = 3.6;
+          } else if (isStuckAgainstObject) {
+            // Blocked against an unexpected object or debris - launch powerful big jump to clear it
+            jumpPower = 9.6;
+            forwardSpeed = 3.8;
+          } else if (isNoSpaceAhead) {
+            // Big jump across pit / chasm gap
+            jumpPower = 8.4;
+            forwardSpeed = 4.2;
+          } else {
+            // Standard Jumper athletic leap
+            jumpPower = 7.8;
+            forwardSpeed = 3.4;
+          }
+
+          // Nudge 6px away from the obstacle/wall and 3px upward to break rigid friction contact before launching!
+          if (bigObjectAhead || isStuckAgainstObject) {
+            Matter.Body.setPosition(z.body, { x: zx - moveTowardsPlayer * 6, y: zy - 4 });
+          }
+
+          const targetVx = moveTowardsPlayer * forwardSpeed;
+          z.jumpVx = targetVx;
+          Matter.Body.setVelocity(z.body, { x: targetVx, y: -jumpPower });
+          z.state = 'jump';
+          z.isGrounded = false;
+          return;
+        }
+
+        // 5. Airborne forward momentum
+        if (!z.isGrounded) {
+          z.state = 'jump';
+
+          // Prevent overshooting behind player
+          const isPastPlayer =
+            (moveTowardsPlayer < 0 && zx <= playerX + 25) ||
+            (moveTowardsPlayer > 0 && zx >= playerX - 25);
+
+          if (isPastPlayer) {
+            Matter.Body.setVelocity(z.body, { x: 0, y: z.body.velocity.y });
+          } else {
+            // Crucial: keep forward velocity active throughout the jump arc
+            // so touching an obstacle edge or corner never kills forward velocity!
+            const targetVx = z.jumpVx ?? (moveTowardsPlayer * 3.6);
+            Matter.Body.setVelocity(z.body, { x: targetVx, y: z.body.velocity.y });
+          }
+          return;
+        }
+
+        // If directly underneath a solid platform ceiling, step out toward open edge first
+        if (isUnderPlatformCeiling && playerPlatform) {
+          const halfW = playerPlatform.width / 2;
+          const pRight = playerPlatform.x + halfW;
+          const pLeft = playerPlatform.x - halfW;
+          const exitDir = Math.abs(zx - pRight) < Math.abs(zx - pLeft) ? 1 : -1;
+          z.state = 'walk';
+          z.facingLeft = exitDir < 0;
+          z.walkCycle += 0.3;
+          Matter.Body.setVelocity(z.body, {
+            x: exitDir * Math.max(currentSpeed * 1.6, 4.0),
+            y: z.body.velocity.y,
+          });
+          return;
+        }
+
+        // 6. Ground Walking / Running towards the player
+        z.state = 'walk';
+        z.facingLeft = moveTowardsPlayer < 0;
+        z.walkCycle += z.type === 'runner' ? 0.45 : 0.25;
+
+        // Front combat boundary: When reaching melee range of player, attack!
+        if (distToPlayer <= 55 && dyToPlayer <= 75) {
+          z.state = 'attack';
+          Matter.Body.setVelocity(z.body, { x: 0, y: z.body.velocity.y });
+          return;
+        }
 
         Matter.Body.setVelocity(z.body, {
-          x: moveDir * currentSpeed,
+          x: moveTowardsPlayer * currentSpeed,
           y: z.body.velocity.y,
-        });
-
-        // Gentle forward translation so zombie never gets snagged on ground seams
-        Matter.Body.setPosition(z.body, {
-          x: zx + moveDir * (currentSpeed * 0.4),
-          y: z.body.position.y,
         });
       }
 
-      // Out of bounds death
+      // Pit / Abyss Hazard: Any zombie falling below walkable ground level into a pit/chasm
+      const pitHazardY = this.level.worldHeight <= 450 ? (LANDSCAPE_GROUND_Y + 34) : (this.level.worldHeight - 40);
+      if (zy > pitHazardY && z.health > 0) {
+        this.killZombie(z, false);
+        return;
+      }
+
+      // Out of bounds death (when blasted off-screen by TNT/explosions)
       if (zy > this.level.worldHeight + 80 && z.health > 0) {
-        z.health = 0;
-        z.state = 'dead';
-        ZombieAudio.playZombieDefeat();
-
-        // Remove stuck arrows
-        this.arrows
-          .filter(a => a.stuckToBodyId === z.body.id)
-          .forEach(a => Matter.World.remove(this.world, a.body));
-        this.arrows = this.arrows.filter(a => a.stuckToBodyId !== z.body.id);
-        Matter.World.remove(this.world, z.body);
-
-        if (this.onZombieKilled) {
-          this.onZombieKilled(z, false);
-        }
+        this.killZombie(z, false);
+        return;
       }
     });
   }
 
-  // Fast, crisp cartoon blood burst on zombie defeat (laggy decapitated skull completely removed!)
+  // Fast, crisp cartoon blood burst on zombie defeat (high FPS, low node overhead)
   public spawnZombieDeathBlood(x: number, y: number, isHeadshot: boolean, knockDir: number = 1) {
-    const count = isHeadshot ? 10 : 6;
+    const count = isHeadshot ? 4 : 3;
     const colors = ['#DC2626', '#EF4444', '#84CC16'];
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * (isHeadshot ? 4.5 : 3.0) + 1.5;
+      const speed = Math.random() * (isHeadshot ? 4.0 : 2.5) + 1.2;
       this.particles.push({
         id: this.nextParticleId++,
         x,
         y: isHeadshot ? y - 14 : y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (isHeadshot ? 2.5 : 1.0),
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 3.5 + 2,
+        vx: Math.cos(angle) * speed + knockDir * 0.8,
+        vy: Math.sin(angle) * speed - (isHeadshot ? 2.0 : 0.8),
+        color: colors[i % colors.length],
+        size: Math.random() * 3 + 2,
         opacity: 1,
         life: 0,
-        maxLife: 16,
+        maxLife: 9,
         shape: 'circle',
       });
     }
   }
 
-  // Floating text badge for headshots
-  public spawnHeadshotText(x: number, y: number) {
-    this.floatTexts.push({
-      id: this.nextFloatTextId++,
-      text: '💥 HEADSHOT! +200',
-      x,
-      y: y - 26,
-      vy: -2.2,
-      color: '#EF4444',
-      opacity: 1,
-      scale: 1.4,
-    });
+  // Floating text badge for headshots (removed per user request - headshot_icon used in center)
+  public spawnHeadshotText(_x: number, _y: number) {
+    // In-game floating headshot text animations removed
   }
 
   // Golden spark burst when arrow ricochets off solid surfaces

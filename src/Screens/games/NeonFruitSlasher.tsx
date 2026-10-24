@@ -117,7 +117,7 @@ interface GameRenderState {
 
 export default function NeonFruitSlasher() {
   const navigation = useNavigation<any>();
-  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 3, cooldownSeconds: 80 });
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 45 });
 
   // --- Campaign / Level State ---
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -447,13 +447,13 @@ export default function NeonFruitSlasher() {
         }, 4500);
       }
 
+      // Show only one combo card at a time, positioned on the side out of gameplay
       comboAlertsRef.current = [
-        ...comboAlertsRef.current.slice(-2),
         {
-          id: Math.random(),
+          id: Date.now(),
           text: alertText,
-          x: item.x,
-          y: Math.max(scale(130), item.y - scale(25)),
+          x: 0,
+          y: 0,
           color: alertColor,
           opacity: 1,
         },
@@ -1044,17 +1044,17 @@ export default function NeonFruitSlasher() {
           </View>
         ))}
 
-        {/* --- Floating Combo Alerts --- */}
-        {renderState.alerts.map(alert => (
+        {/* --- Single Side Combo Alert (Positioned on the side out of slicing gameplay) --- */}
+        {renderState.alerts.slice(-1).map(alert => (
           <View
             key={alert.id}
+            pointerEvents="none"
             style={[
               styles.comboAlertPill,
               {
-                left: alert.x - scale(70),
-                top: alert.y,
                 opacity: alert.opacity,
                 borderColor: alert.color,
+                shadowColor: alert.color,
               },
             ]}
           >
@@ -1567,12 +1567,18 @@ const styles = StyleSheet.create({
   },
   comboAlertPill: {
     position: 'absolute',
+    top: scale(135),
+    right: scale(16),
     paddingHorizontal: scale(14),
-    paddingVertical: scale(5),
-    borderRadius: scale(14),
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    paddingVertical: scale(6),
+    borderRadius: scale(16),
+    backgroundColor: 'rgba(10, 15, 29, 0.94)',
     borderWidth: 1.5,
-    zIndex: 40,
+    zIndex: 60,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   comboAlertText: {
     fontSize: scale(13),

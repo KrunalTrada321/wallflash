@@ -151,6 +151,10 @@ const HomeScreen = () => {
         keyExtractor={(_, index) => `group-${index}`}
         // numColumns={1} — grid is manual, no FlatList column fighting
         renderItem={renderGroup}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        initialNumToRender={4}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}

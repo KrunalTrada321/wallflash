@@ -151,8 +151,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion 36
         missingDimensionStrategy "store", "play"
-        versionCode 37 
-        versionName "1.37"   
+        versionCode 40 
+        versionName "1.40"   
          
         // ✅ Only build ABIs you need 
         ndk {
@@ -198,6 +198,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation project(':react-native-iap')
     implementation platform('com.google.firebase:firebase-bom:33.9.0')
     implementation project(':react-native-splash-screen')

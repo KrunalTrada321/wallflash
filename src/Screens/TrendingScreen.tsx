@@ -58,6 +58,7 @@ const TrendingScreen = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [isServicesModalOpen, setIsServicesModalOpen] = useState<boolean>(false);
 
@@ -115,8 +116,9 @@ const TrendingScreen = () => {
   }, [isConnected]);
 
   const handleLoadMore = async () => {
-    if (!hasMore || loading) return [];
+    if (!hasMore || loading || loadingMore) return [];
     try {
+      setLoadingMore(true);
       const more = await fetchImagesFromFirestore(['SeasonImage'], false);
       if (more.length === 0) {
         setHasMore(false);
@@ -131,6 +133,8 @@ const TrendingScreen = () => {
     } catch (e) {
       console.log('❌ Error loading more trending images:', e);
       return [];
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -268,11 +272,15 @@ const TrendingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <FlatList
         data={images}
         keyExtractor={(item, index) => `img-${index}-${item.substring(item.length - 8)}`}
         numColumns={NUM_COLUMNS}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        initialNumToRender={6}
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: CONTAINER_PAD, paddingBottom: scale(20) }}
@@ -295,9 +303,11 @@ const TrendingScreen = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          loading && images.length > 0 ? (
-            <ActivityIndicator size="small" color={colors.flashColor} style={{ marginVertical: scale(16) }} />
-          ) : !hasMore ? (
+          loadingMore ? (
+            <View style={{ paddingVertical: scale(20), alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color={colors.flashColor} />
+            </View>
+          ) : !hasMore && images.length > 0 ? (
             <View style={{ alignItems: 'center', marginVertical: scale(15) }}>
               <ShortBanner />
               <Text style={styles.endText}>You're all caught up ✨</Text>
@@ -306,7 +316,7 @@ const TrendingScreen = () => {
         }
       />
 
-      {/* Full Information Modal */}
+      {/* Full Information Modal (White Theme) */}
       <Modal
         visible={isServicesModalOpen}
         transparent
@@ -323,7 +333,7 @@ const TrendingScreen = () => {
 
           <View style={styles.sheetContent}>
             <LinearGradient
-              colors={['#2A0829', '#16051A', '#0D020F']}
+              colors={['#FFFFFF', '#FAFAFA', '#F8FAFC']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.sheetGradient}
@@ -343,7 +353,7 @@ const TrendingScreen = () => {
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   onPress={() => setIsServicesModalOpen(false)}
                 >
-                  <Ionicons name="close" size={scale(18)} color="#E1306C" />
+                  <Ionicons name="close" size={scale(18)} color="#475569" />
                 </TouchableOpacity>
               </View>
 
@@ -643,7 +653,7 @@ const styles = StyleSheet.create({
   },
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
   sheetBackdrop: {
@@ -654,13 +664,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: scale(24),
     borderTopRightRadius: scale(24),
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(225, 48, 108, 0.28)',
+    borderColor: '#E2E8F0',
     borderBottomWidth: 0,
     elevation: 24,
-    shadowColor: '#E1306C',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.38,
+    shadowOpacity: 0.14,
     shadowRadius: 16,
   },
   sheetGradient: {
@@ -669,10 +680,10 @@ const styles = StyleSheet.create({
     paddingBottom: scale(24),
   },
   sheetHandle: {
-    width: scale(38),
-    height: scale(4),
-    borderRadius: scale(2),
-    backgroundColor: 'rgba(225, 48, 108, 0.45)',
+    width: scale(40),
+    height: scale(4.5),
+    borderRadius: scale(3),
+    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
     marginBottom: scale(14),
   },
@@ -683,30 +694,30 @@ const styles = StyleSheet.create({
     marginBottom: scale(6),
   },
   sheetCategory: {
-    fontSize: scale(9.5),
+    fontSize: scale(10),
     fontWeight: '800',
     color: '#E1306C',
     letterSpacing: 0.8,
     marginBottom: scale(2),
   },
   sheetTitle: {
-    fontSize: scale(17),
+    fontSize: scale(17.5),
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#0F172A',
     letterSpacing: 0.2,
   },
   sheetCloseBtn: {
     width: scale(30),
     height: scale(30),
     borderRadius: scale(15),
-    backgroundColor: 'rgba(225, 48, 108, 0.14)',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   sheetSubtitle: {
     fontSize: scale(11.5),
     lineHeight: scale(16),
-    color: '#CBD5E1',
+    color: '#64748B',
     marginBottom: scale(12),
   },
   servicesGrid: {
@@ -716,12 +727,17 @@ const styles = StyleSheet.create({
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: '#FFFFFF',
     borderRadius: scale(12),
     paddingHorizontal: scale(12),
     paddingVertical: scale(9),
     borderWidth: 1,
-    borderColor: 'rgba(225, 48, 108, 0.14)',
+    borderColor: '#E2E8F0',
+    elevation: 1.5,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   serviceIconWrap: {
     width: scale(34),
@@ -737,25 +753,25 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontSize: scale(12.5),
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#0F172A',
     marginBottom: scale(1.5),
   },
   serviceDesc: {
     fontSize: scale(10),
     lineHeight: scale(14),
-    color: '#94A3B8',
+    color: '#64748B',
   },
   sheetPerksRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: 'rgba(225, 48, 108, 0.07)',
+    backgroundColor: '#FFF1F2',
     borderRadius: scale(10),
     paddingVertical: scale(8),
     paddingHorizontal: scale(8),
     marginBottom: scale(14),
     borderWidth: 1,
-    borderColor: 'rgba(225, 48, 108, 0.16)',
+    borderColor: '#FFE4E6',
   },
   sheetPerkItem: {
     flexDirection: 'row',
@@ -765,7 +781,7 @@ const styles = StyleSheet.create({
   sheetPerkText: {
     fontSize: scale(9.5),
     fontWeight: '700',
-    color: '#E2E8F0',
+    color: '#881337',
   },
   sheetCtaButton: {
     borderRadius: scale(12),

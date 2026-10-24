@@ -38,9 +38,9 @@ export const checkIsPremiumUser = async (): Promise<boolean> => {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface UseGameInterstitialAdOptions {
-  /** Minimum number of transitions (e.g. level completes, retries) before an ad can trigger. Default: 3 */
+  /** Minimum number of transitions (e.g. level completes, retries) before an ad can trigger. Default: 2 */
   transitionInterval?: number;
-  /** Minimum cooldown in seconds between interstitial ads. Default: 80 seconds */
+  /** Minimum cooldown in seconds between interstitial ads. Default: 45 seconds */
   cooldownSeconds?: number;
 }
 
@@ -48,8 +48,8 @@ export interface UseGameInterstitialAdReturn {
   /**
    * Intelligently shows an interstitial ad between game transitions (levels, retries).
    * Respects user experience with natural frequency capping:
-   * - Requires at least `transitionInterval` completed actions (default 3)
-   * - Enforces at least `cooldownSeconds` (default 80s)
+   * - Requires at least `transitionInterval` completed actions (default 2)
+   * - Enforces at least `cooldownSeconds` (default 45s)
    * - Bypasses completely if user is premium
    * - Preloads next ad seamlessly
    * - Runs `onDismiss` immediately if ad is skipped, dismissed, or fails
@@ -63,8 +63,8 @@ export interface UseGameInterstitialAdReturn {
 
 // ─── Game Interstitial Hook with Natural Low-Disturbance Pacing ───────────────
 export function useGameInterstitialAd(options?: UseGameInterstitialAdOptions): UseGameInterstitialAdReturn {
-  const transitionInterval = options?.transitionInterval ?? 3;
-  const cooldownSeconds = options?.cooldownSeconds ?? 80;
+  const transitionInterval = options?.transitionInterval ?? 2;
+  const cooldownSeconds = options?.cooldownSeconds ?? 45;
 
   const interstitialRef = useRef<InterstitialAd | null>(null);
   const isAdLoadedRef = useRef(false);
@@ -85,6 +85,10 @@ export function useGameInterstitialAd(options?: UseGameInterstitialAdOptions): U
         isAdLoadedRef.current = false;
         pendingCallbackRef.current?.();
         pendingCallbackRef.current = null;
+        // Auto-retry loading after 8 seconds so next transition has an ad ready
+        setTimeout(() => {
+          loadAd();
+        }, 8000);
       });
 
       ad.addAdEventListener(AdEventType.CLOSED, () => {

@@ -54,12 +54,17 @@
 -keep class com.android.billingclient.api.** { *; }
 
 # -----------------------------------------------------------------------------
-# Media & Images (FastImage / Glide & React Native Video)
+# Media & Images (FastImage / Glide, Fresco & React Native Video)
 # -----------------------------------------------------------------------------
 -keep public class com.dylanvann.fastimage.** { *; }
 -keep public class * implements com.bumptech.glide.module.GlideModule
 -keep public class * extends com.bumptech.glide.module.AppGlideModule { <init>(...); }
 -keep class com.brentvatne.react.** { *; }
+-keep class com.facebook.imagepipeline.** { *; }
+-keep class com.facebook.drawee.** { *; }
+-keepclassmembers class * {
+    native <methods>;
+}
 
 # -----------------------------------------------------------------------------
 # Skia

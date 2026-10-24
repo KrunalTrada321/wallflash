@@ -262,6 +262,10 @@ const SeasonalImages = () => {
           keyExtractor={(item, index) => index.toString()}
           showsVerticalScrollIndicator={false}
           numColumns={3}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          initialNumToRender={6}
           renderItem={({ item }) => (
 
             <TouchableOpacity

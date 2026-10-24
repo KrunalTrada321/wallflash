@@ -8,6 +8,7 @@ class SoundEffectsService {
   private muted: boolean = false;
   private listeners: Set<(muted: boolean) => void> = new Set();
   private isInitialized: boolean = false;
+  private lastHeadshotTime: number = 0;
 
   constructor() {
     this.init();
@@ -328,16 +329,22 @@ class SoundEffectsService {
 
   /**
    * Played when an enemy is defeated via headshot.
-   * Plays man voice saying "Headshot" with heavy impact vibration.
+   * Plays bold man voice saying "Headshot" with heavy impact vibration.
+   * Strictly debounced to only play once and never overlap or repeat twice.
    */
   public playHeadshotVoice() {
     if (this.muted) return;
+    const now = Date.now();
+    if (now - this.lastHeadshotTime < 950) {
+      return;
+    }
+    this.lastHeadshotTime = now;
+
     try {
-      if (SoundModule?.playSound) {
-        SoundModule.playSound('headshot', 1.0, 1.0);
-      }
       if (SoundModule?.speak) {
         SoundModule.speak('Headshot');
+      } else if (SoundModule?.playSound) {
+        SoundModule.playSound('headshot', 1.0, 1.0);
       }
       if (Platform.OS === 'android') {
         Vibration.vibrate([0, 30, 25, 60]);

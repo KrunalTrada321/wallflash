@@ -29,10 +29,29 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale.US
-            tts?.setPitch(0.72f) // Deep male voice
-            tts?.setSpeechRate(1.1f)
-            isTtsReady = true
+            try {
+                tts?.language = Locale.US
+                val voices = tts?.voices
+                if (voices != null) {
+                    val maleVoice = voices.find { voice ->
+                        voice.locale.language == "en" &&
+                        (voice.name.contains("male", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-sfg", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-iom", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-iol", ignoreCase = true))
+                    }
+                    if (maleVoice != null) {
+                        tts?.voice = maleVoice
+                    }
+                }
+                tts?.setPitch(0.70f) // Deep bold male announcer voice
+                tts?.setSpeechRate(1.08f)
+                isTtsReady = true
+            } catch (e: Exception) {
+                tts?.setPitch(0.70f)
+                tts?.setSpeechRate(1.08f)
+                isTtsReady = true
+            }
         }
     }
 
@@ -85,13 +104,15 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
     @ReactMethod
     fun playSound(name: String, rate: Double, volume: Double) {
         if (isMuted) return
+        if (name == "headshot") {
+            speak("Headshot")
+            return
+        }
         val soundId = soundMap[name]
         if (soundId != null) {
             val vol = volume.toFloat().coerceIn(0f, 1f)
             val playbackRate = rate.toFloat().coerceIn(0.5f, 2.0f)
             soundPool?.play(soundId, vol, vol, 1, 0, playbackRate)
-        } else if (name == "headshot" && isTtsReady) {
-            speak("Headshot")
         }
     }
 
@@ -99,11 +120,38 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
     fun speak(text: String) {
         if (isMuted) return
         try {
-            tts?.setPitch(0.72f) // Deep male announcer tone
-            tts?.setSpeechRate(1.12f)
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_${System.currentTimeMillis()}")
+            if (isTtsReady && tts != null) {
+                val voices = tts?.voices
+                if (voices != null) {
+                    val maleVoice = voices.find { voice ->
+                        voice.locale.language == "en" &&
+                        (voice.name.contains("male", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-sfg", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-iom", ignoreCase = true) ||
+                         voice.name.contains("en-us-x-iol", ignoreCase = true))
+                    }
+                    if (maleVoice != null) {
+                        tts?.voice = maleVoice
+                    }
+                }
+                tts?.setPitch(0.70f) // Deep bold male announcer tone
+                tts?.setSpeechRate(1.08f)
+                val status = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_${System.currentTimeMillis()}")
+                if (status == TextToSpeech.SUCCESS) {
+                    return
+                }
+            }
+            // Fallback to soundPool if TTS is not ready or failed
+            val soundId = soundMap["headshot"]
+            if (soundId != null) {
+                soundPool?.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
+            }
         } catch (e: Exception) {
             Log.e("SoundModule", "TTS error: ${e.message}")
+            val soundId = soundMap["headshot"]
+            if (soundId != null) {
+                soundPool?.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
+            }
         }
     }
 

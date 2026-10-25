@@ -5,8 +5,6 @@ buildscript {
         compileSdkVersion = 36
         targetSdkVersion = 36 
         playBillingSdkVersion = "8.0.0"
-        // ndkVersion = "26.1.10909125"
-        // ndkVersion = "28.2.13676358"   
         ndkVersion = "28.0.12433566"
         kotlinVersion = "1.9.24" 
         androidXAnnotation = "1.1.0"   

@@ -151,8 +151,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion 36
         missingDimensionStrategy "store", "play"
-        versionCode 40 
-        versionName "1.40"   
+        versionCode 42 
+        versionName "1.42"   
          
         // ✅ Only build ABIs you need 
         ndk {

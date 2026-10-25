@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import Svg, { Circle, Line, Path, G, Rect, Polygon } from 'react-native-svg';
-import { ArrowEntity, TrajectoryPoint, ParticleEntity, FloatText, ArrowType } from '../types/gameTypes';
+import { ArrowEntity, TrajectoryPoint, ParticleEntity, FloatText, ArrowType, ZombieEntity } from '../types/gameTypes';
 
 interface ProjectilesAndEffectsProps {
   arrows: ArrowEntity[];
@@ -9,6 +9,8 @@ interface ProjectilesAndEffectsProps {
   arrowType?: ArrowType;
   particles?: ParticleEntity[];
   floatTexts?: FloatText[];
+  zombies?: ZombieEntity[];
+  playerPos?: { x: number; y: number };
 }
 
 export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
@@ -18,6 +20,8 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
   arrowType = 'regular',
   particles = [],
   floatTexts = [],
+  zombies = [],
+  playerPos,
 }) => {
   // Color trajectory and crosshair according to active arrow type
   const themeColor = useMemo(() => {
@@ -86,6 +90,97 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
           <Line x1="0" y1="6" x2="0" y2="16" stroke={themeColor} strokeWidth="2" />
         </G>
       )}
+
+      {/* 3.5. Flying Zombie Laser Attacks (Charging Guide Beam + Full Power Laser Cannon) */}
+      {zombies.map(z => {
+        if (z.type !== 'flying' || z.health <= 0) return null;
+        const isCharging = z.laserCharging && (z.laserChargeTimer ?? 0) > 0;
+        const isFiring = (z.laserFiringTimer ?? 0) > 0;
+        if (!isCharging && !isFiring) return null;
+
+        const zx = z.body.position.x;
+        const zy = z.body.position.y - 12; // Aligned with cyber laser eye
+        const px = z.laserTargetPos?.x ?? (playerPos?.x ?? 160);
+        const py = z.laserTargetPos?.y ?? (playerPos?.y ? playerPos.y + 8 : 330);
+
+        if (isFiring) {
+          // Lethal High-Energy Laser Blast
+          return (
+            <G key={`laser_${z.id}`}>
+              {/* Outer Neon Glow Aura */}
+              <Line
+                x1={zx}
+                y1={zy}
+                x2={px}
+                y2={py}
+                stroke="#EF4444"
+                strokeWidth="16"
+                strokeLinecap="round"
+                opacity={0.45}
+              />
+              {/* Mid Intense Laser Beam */}
+              <Line
+                x1={zx}
+                y1={zy}
+                x2={px}
+                y2={py}
+                stroke="#F43F5E"
+                strokeWidth="8"
+                strokeLinecap="round"
+                opacity={0.85}
+              />
+              {/* Core Hot White Plasma Beam */}
+              <Line
+                x1={zx}
+                y1={zy}
+                x2={px}
+                y2={py}
+                stroke="#FFFFFF"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
+              {/* Emitter Muzzle Flash */}
+              <Circle cx={zx} cy={zy} r="14" fill="#EF4444" opacity={0.8} />
+              <Circle cx={zx} cy={zy} r="7" fill="#FFFFFF" />
+              {/* Target Impact Blast */}
+              <Circle cx={px} cy={py} r="20" fill="none" stroke="#EF4444" strokeWidth="3" />
+              <Circle cx={px} cy={py} r="9" fill="#F43F5E" />
+              <Circle cx={px} cy={py} r="4.5" fill="#FFFFFF" />
+            </G>
+          );
+        }
+
+        // Targeting Guide Beam (Charging)
+        return (
+          <G key={`laser_charge_${z.id}`}>
+            {/* Guide Laser Dotted Ray */}
+            <Line
+              x1={zx}
+              y1={zy}
+              x2={px}
+              y2={py}
+              stroke="#EF4444"
+              strokeWidth="2.4"
+              strokeDasharray="6, 5"
+              opacity={0.85}
+            />
+            {/* Pulsing Target Lock Reticle on Player */}
+            <Circle
+              cx={px}
+              cy={py}
+              r="15"
+              fill="none"
+              stroke="#EF4444"
+              strokeWidth="2"
+              strokeDasharray="4, 3"
+            />
+            <Circle cx={px} cy={py} r="3" fill="#EF4444" />
+            {/* Emitter Gathering Charge Flare */}
+            <Circle cx={zx} cy={zy} r="9" fill="#EF4444" opacity={0.7} />
+            <Circle cx={zx} cy={zy} r="4" fill="#FEF08A" />
+          </G>
+        );
+      })}
 
       {/* 4. Projectiles: In-Flight Arrows & Thrown Bombs */}
       {arrows.map(arrow => {

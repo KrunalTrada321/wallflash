@@ -353,11 +353,19 @@ export class PhysicsWorld {
         zombie.health -= damage;
         zombie.hitFlashTimer = 6;
 
-        // Knockback impulse
+        // Controlled, realistic flinch knockback that never launches the zombie off-screen
         const knockDir = arrowBody.velocity.x >= 0 ? 1 : -1;
+        const isBigZombie = zombie.type === 'boss' || zombie.type === 'giant';
+        const knockImpulseX = knockDir * (isBigZombie ? 0.012 : 0.022);
         Matter.Body.applyForce(zombie.body, zombie.body.position, {
-          x: knockDir * (isHeadshot ? 0.08 : 0.05),
-          y: -0.04,
+          x: knockImpulseX,
+          y: 0, // No vertical pop so zombie never gets popped into airborne jump state
+        });
+        // Clamp maximum horizontal velocity to prevent any explosive knockback
+        const maxKnockVx = isBigZombie ? 1.0 : 1.8;
+        Matter.Body.setVelocity(zombie.body, {
+          x: Math.max(-maxKnockVx, Math.min(maxKnockVx, zombie.body.velocity.x)),
+          y: Math.min(0, zombie.body.velocity.y),
         });
 
         if (zombie.health <= 0) {
@@ -855,9 +863,13 @@ export class PhysicsWorld {
       x: arrow.body.position.x - targetBody.position.x,
       y: arrow.body.position.y - targetBody.position.y,
     };
-    Matter.Body.setVelocity(arrow.body, { x: 0, y: 0 });
-    Matter.Body.setAngularVelocity(arrow.body, 0);
-    Matter.Body.setStatic(arrow.body, true);
+    // CRITICAL FIX: Strip all collision categories and remove from Matter simulation world!
+    // A stuck arrow must NEVER act as a physical collider inside the zombie body,
+    // which previously caused Matter.js collision solver to launch multi-hit/monster zombies off-screen!
+    arrow.body.collisionFilter.mask = 0;
+    arrow.body.collisionFilter.category = 0;
+    arrow.body.isSensor = true;
+    Matter.World.remove(this.world, arrow.body);
   }
 
   public detonateTNT(obstacle: ObstacleEntity) {
@@ -1128,17 +1140,15 @@ export class PhysicsWorld {
           Matter.World.remove(this.world, arrow.body);
         }
       } else if (arrow.stuck && arrow.stuckToBodyId && arrow.stuckOffset) {
-        const targetBody = Matter.Composite.allBodies(this.world).find(
-          b => b.id === arrow.stuckToBodyId
-        );
+        // Find target in living zombies, obstacles, moving platforms, or static terrain
+        const targetZombie = this.zombies.find(z => z.body && z.body.id === arrow.stuckToBodyId);
+        const targetObstacle = this.obstacles.find(o => o.body && o.body.id === arrow.stuckToBodyId);
+        const targetMoving = this.movingPlatforms.find(p => p.body && p.body.id === arrow.stuckToBodyId);
+        const targetBody = targetZombie ? targetZombie.body : targetObstacle ? targetObstacle.body : targetMoving ? targetMoving.body : Matter.Composite.allBodies(this.world).find(b => b.id === arrow.stuckToBodyId);
         if (targetBody) {
-          Matter.Body.setPosition(arrow.body, {
-            x: targetBody.position.x + arrow.stuckOffset.x,
-            y: targetBody.position.y + arrow.stuckOffset.y,
-          });
+          arrow.body.position.x = targetBody.position.x + arrow.stuckOffset.x;
+          arrow.body.position.y = targetBody.position.y + arrow.stuckOffset.y;
         } else {
-          // Target body no longer exists! Clean up stuck arrow immediately
-          Matter.World.remove(this.world, arrow.body);
           arrow.inFlight = false;
         }
       }
@@ -1146,7 +1156,14 @@ export class PhysicsWorld {
 
     // Remove any dead/orphaned arrows from array
     this.arrows = this.arrows.filter(
-      a => a.inFlight || (a.stuck && (!a.stuckToBodyId || Matter.Composite.allBodies(this.world).some(b => b.id === a.stuckToBodyId)))
+      a =>
+        a.inFlight ||
+        (a.stuck &&
+          (!a.stuckToBodyId ||
+            this.zombies.some(z => z.body && z.body.id === a.stuckToBodyId && z.health > 0) ||
+            this.obstacles.some(o => o.body && o.body.id === a.stuckToBodyId) ||
+            this.movingPlatforms.some(p => p.body && p.body.id === a.stuckToBodyId) ||
+            Matter.Composite.allBodies(this.world).some(b => b.id === a.stuckToBodyId)))
     );
 
     // Update Particles (Blood, Slime, Sparks, Shockwaves)
@@ -1412,19 +1429,95 @@ export class PhysicsWorld {
 
       const moveTowardsPlayer = dxToPlayer > 0 ? 1 : -1;
 
-      // 1. Flying Zombie Full 2D Navigation
+      // 1. Flying Zombie Full 2D Navigation & Standoff Laser Attack
       if (z.type === 'flying') {
         z.facingLeft = moveTowardsPlayer < 0;
         z.flyPhase = (z.flyPhase ?? 0) + 0.05;
-        const targetVx = moveTowardsPlayer * (z.speed * 1.3);
-        const verticalVel = dyToPlayer > 15
-          ? (verticalDiff > 0 ? 1.8 : -2.4)
-          : Math.sin(z.flyPhase) * 1.2;
-        Matter.Body.setVelocity(z.body, { x: targetVx, y: verticalVel });
-        Matter.Body.applyForce(z.body, z.body.position, { x: 0, y: -0.008 });
+
+        // Hover standoff distance: stop ~210px in front of player so player can aim and target it!
+        const hoverDistance = 210;
+
+        if (distToPlayer > hoverDistance + 25) {
+          // Approach flight phase
+          z.state = 'walk';
+          z.laserCharging = false;
+          z.laserChargeTimer = 0;
+          z.laserFiringTimer = 0;
+          const targetVx = moveTowardsPlayer * (z.speed * 1.3);
+          const verticalVel = dyToPlayer > 20
+            ? (verticalDiff > 0 ? 1.8 : -2.2)
+            : Math.sin(z.flyPhase) * 1.2;
+          Matter.Body.setVelocity(z.body, { x: targetVx, y: verticalVel });
+          Matter.Body.applyForce(z.body, z.body.position, { x: 0, y: -0.008 });
+        } else {
+          // Stoppage & Hover Phase: Stop in front of player at standoff range!
+          z.state = 'attack';
+          z.laserTargetPos = { x: playerX, y: playerY + 8 };
+
+          // Maintain standoff distance: hover and bob gracefully, drift slightly back if pushed too close
+          let hoverVx = 0;
+          if (distToPlayer < hoverDistance - 40) {
+            hoverVx = -moveTowardsPlayer * 1.2; // Drift back gently to maintain targeting range
+          }
+          const hoverVy = Math.sin(z.flyPhase) * 0.9;
+          Matter.Body.setVelocity(z.body, { x: hoverVx, y: hoverVy });
+          Matter.Body.applyForce(z.body, z.body.position, { x: 0, y: -0.008 });
+
+          // Laser Attack Phase: difficulty-scaled charge duration
+          const chargeDuration = Math.max(1.1, 2.2 - (this.level.id / 50) * 1.0);
+
+          if ((z.laserChargeTimer ?? 0) < chargeDuration) {
+            // Charging Stage: guide beam locked on player, energy gathering!
+            z.laserCharging = true;
+            z.laserChargeTimer = (z.laserChargeTimer ?? 0) + 0.016;
+
+            // Audio & particles
+            ZombieAudio.playLaserCharge();
+
+            if (Math.random() < 0.35) {
+              const sparkAngle = Math.random() * Math.PI * 2;
+              const sparkDist = 20 + Math.random() * 15;
+              this.particles.push({
+                id: this.nextParticleId++,
+                x: zx + Math.cos(sparkAngle) * sparkDist,
+                y: zy - 8 + Math.sin(sparkAngle) * sparkDist,
+                vx: -Math.cos(sparkAngle) * 2.2,
+                vy: -Math.sin(sparkAngle) * 2.2,
+                color: Math.random() > 0.5 ? '#EF4444' : '#F43F5E',
+                size: 3,
+                opacity: 0.9,
+                life: 0,
+                maxLife: 12,
+                shape: 'spark',
+              });
+            }
+          } else {
+            // Firing Stage: Lethal Laser Cannon Beam!
+            z.laserCharging = false;
+            if (!z.laserFiringTimer || z.laserFiringTimer === 0) {
+              ZombieAudio.playLaserBlast();
+            }
+            z.laserFiringTimer = (z.laserFiringTimer ?? 0) + 0.016;
+
+            // Spawn laser impact effects at player position
+            if (Math.random() < 0.55) {
+              this.spawnPlayerBloodSlash(playerX, playerY + 8);
+              this.spawnLaserImpactSparks(playerX, playerY + 8);
+            }
+
+            // Beam duration ~0.35s before lethal defeat
+            if (z.laserFiringTimer >= 0.32) {
+              this.spawnPlayerBloodSlash(playerX, playerY + 8);
+              this.spawnLaserImpactSparks(playerX, playerY + 8);
+              if (this.onPlayerAttacked) {
+                this.onPlayerAttacked();
+              }
+            }
+          }
+        }
 
         const movedDist = Math.abs(zx - (z.lastX ?? zx));
-        if (movedDist < 0.35 && distToPlayer > 60) {
+        if (movedDist < 0.35 && distToPlayer > 60 && distToPlayer > hoverDistance + 40) {
           z.stuckTotalFrames = (z.stuckTotalFrames ?? 0) + 1;
         } else {
           z.stuckTotalFrames = 0;
@@ -1453,8 +1546,11 @@ export class PhysicsWorld {
           z.state = 'attack';
           z.attackTimer += 0.016;
 
+          // Sound effect for vicious slashing claw attack!
+          ZombieAudio.playZombieAttack();
+
           // Blood slash effect arriving at player!
-          if (z.attackTimer > 0.18 && Math.random() < 0.28) {
+          if (z.attackTimer > 0.15 && Math.random() < 0.38) {
             this.spawnPlayerBloodSlash(playerX, playerY + 8);
           }
 
@@ -1669,6 +1765,17 @@ export class PhysicsWorld {
         // Front combat boundary: When reaching melee range of player, attack!
         if (distToPlayer <= 55 && dyToPlayer <= 75) {
           z.state = 'attack';
+          z.attackTimer += 0.016;
+          ZombieAudio.playZombieAttack();
+          if (z.attackTimer > 0.15 && Math.random() < 0.38) {
+            this.spawnPlayerBloodSlash(playerX, playerY + 8);
+          }
+          if (z.attackTimer >= 0.85) {
+            this.spawnPlayerBloodSlash(playerX, playerY + 8);
+            if (this.onPlayerAttacked) {
+              this.onPlayerAttacked();
+            }
+          }
           Matter.Body.setVelocity(z.body, { x: 0, y: z.body.velocity.y });
           return;
         }
@@ -1757,6 +1864,27 @@ export class PhysicsWorld {
         opacity: 1,
         life: 0,
         maxLife: 18,
+        shape: 'spark',
+      });
+    }
+  }
+
+  // Spawn laser energy impact sparks at player location when hit by flying laser
+  public spawnLaserImpactSparks(x: number, y: number) {
+    for (let i = 0; i < 6; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4 + 2;
+      this.particles.push({
+        id: this.nextParticleId++,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: i % 2 === 0 ? '#FFFFFF' : '#EF4444',
+        size: Math.random() * 3.5 + 2,
+        opacity: 1,
+        life: 0,
+        maxLife: 15,
         shape: 'spark',
       });
     }

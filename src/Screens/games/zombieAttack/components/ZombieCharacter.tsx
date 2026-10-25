@@ -36,7 +36,9 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
   const shirtColor = isFrozen ? '#0284C7' : isBurning ? '#7C2D12' : isHitFlash ? '#E2E8F0' : '#334155';
   const pantsColor = isFrozen ? '#0369A1' : isBurning ? '#431407' : isHitFlash ? '#CBD5E1' : '#475569';
 
-  // Dynamic locomotion animations: walk, run, climb, jump
+  // Dynamic locomotion animations: walk, run, climb, jump, ferocious attack
+  const isAttacking = state === 'attack' && !isFrozen;
+  const attackPhase = (zombie.attackTimer ?? 0) * 16;
   const isWalking = state === 'walk' && !isFrozen;
   const isClimbing = state === 'climb' && !isFrozen;
   const isJumping = (state === 'jump' || !zombie.isGrounded) && !isFrozen;
@@ -46,6 +48,8 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
     ? Math.sin(walkCycle * 2) * 26
     : isJumping
     ? 30
+    : isAttacking
+    ? Math.sin(attackPhase) * 14
     : isWalking
     ? Math.sin(walkCycle) * (isRunner ? 36 : 26)
     : 0;
@@ -54,6 +58,8 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
     ? -Math.sin(walkCycle * 2) * 26
     : isJumping
     ? 44
+    : isAttacking
+    ? -Math.sin(attackPhase) * 12
     : isWalking
     ? Math.sin(walkCycle - 1.4) * (isRunner ? 26 : 18) + (isRunner ? 10 : 6)
     : 0;
@@ -62,6 +68,8 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
     ? Math.sin(walkCycle * 3) * 1.5
     : isJumping
     ? -6
+    : isAttacking
+    ? Math.sin(attackPhase) * 3
     : isWalking
     ? Math.sin(walkCycle * 2) * (isRunner ? 3.5 : 2.2)
     : 0;
@@ -70,6 +78,8 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
     ? -10 // Leaning chest against the wall while scrambling up
     : isJumping
     ? -18 // Dynamic forward trajectory leap lean
+    : isAttacking
+    ? -22 + Math.sin(attackPhase) * 8 // Aggressive ferocious forward lunge towards player!
     : isWalking
     ? (isRunner ? -14 : 0) + Math.sin(walkCycle) * (isRunner ? 6 : 4)
     : 0;
@@ -138,7 +148,7 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
         />
 
         {/* Shambling Torso & Limbs Group */}
-        <G transform={`translate(0, ${shambleBobY}) rotate(${shambleTilt}, 0, ${torsoHeight / 2})`}>
+        <G transform={`translate(${isAttacking ? 10 + Math.sin(attackPhase) * 6 : 0}, ${shambleBobY}) rotate(${shambleTilt}, 0, ${torsoHeight / 2})`}>
           {/* Shambling Legs */}
           <G transform={`translate(0, ${torsoHeight / 2})`}>
             {/* Back Dragging Leg */}
@@ -245,46 +255,67 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
           {/* Outstretched Zombie Arms */}
           <G transform={`translate(4, ${-torsoHeight / 4 + armBob})`}>
             {state === 'attack' ? (
-              // Vicious slashing claws posture
+              // Ferocious, animated slashing claws attacking the player!
               <G>
+                {/* Arm 1: Slashing down and forward */}
                 <Line
                   x1="0"
                   y1="0"
-                  x2="24"
-                  y2="-16"
+                  x2={26 + Math.cos(attackPhase) * 14}
+                  y2={-10 + Math.sin(attackPhase) * 18}
                   stroke={stickColor}
-                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeWidth={isBoss ? 6.5 : isGiant ? 5.5 : 4.5}
                   strokeLinecap="round"
                 />
+                {/* Arm 2: Alternating vicious claw rip */}
                 <Line
                   x1="0"
-                  y1="2"
-                  x2="28"
-                  y2="-8"
+                  y1="3"
+                  x2={24 + Math.cos(attackPhase + 2.2) * 12}
+                  y2={4 + Math.sin(attackPhase + 2.2) * 16}
                   stroke={stickColor}
-                  strokeWidth={isBoss ? 6 : isGiant ? 5 : 4}
+                  strokeWidth={isBoss ? 6.5 : isGiant ? 5.5 : 4.5}
                   strokeLinecap="round"
                 />
-                {/* Claw Slash Swoosh Arcs */}
+                {/* Dynamic animated claw slash swoosh arcs */}
                 <Path
-                  d="M 22 -22 Q 36 -6 24 10"
+                  d={`M ${18 + Math.cos(attackPhase) * 12} ${-24 + Math.sin(attackPhase) * 16} Q ${38 + Math.cos(attackPhase) * 16} ${-6 + Math.sin(attackPhase) * 16} ${20 + Math.cos(attackPhase) * 12} ${14 + Math.sin(attackPhase) * 16}`}
                   stroke="#EF4444"
+                  strokeWidth="3.2"
+                  fill="none"
+                  strokeLinecap="round"
+                  opacity={0.92}
+                />
+                <Path
+                  d={`M ${22 + Math.cos(attackPhase + 2.2) * 10} ${-18 + Math.sin(attackPhase + 2.2) * 14} Q ${42 + Math.cos(attackPhase + 2.2) * 14} ${2 + Math.sin(attackPhase + 2.2) * 14} ${24 + Math.cos(attackPhase + 2.2) * 10} ${20 + Math.sin(attackPhase + 2.2) * 14}`}
+                  stroke="#DC2626"
                   strokeWidth="2.5"
                   fill="none"
                   strokeLinecap="round"
-                  opacity={0.9}
+                  opacity={0.8}
                 />
-                <Path
-                  d="M 26 -16 Q 40 0 28 16"
-                  stroke="#DC2626"
-                  strokeWidth="2"
-                  fill="none"
+                {/* Blood-dripping razor claws */}
+                <Line
+                  x1={26 + Math.cos(attackPhase) * 14}
+                  y1={-10 + Math.sin(attackPhase) * 18}
+                  x2={33 + Math.cos(attackPhase) * 14}
+                  y2={-13 + Math.sin(attackPhase) * 18}
+                  stroke="#EF4444"
+                  strokeWidth="2.8"
                   strokeLinecap="round"
-                  opacity={0.75}
                 />
-                {/* Sharp Blood-Tipped Claws */}
-                <Line x1="24" y1="-16" x2="29" y2="-19" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" />
-                <Line x1="28" y1="-8" x2="33" y2="-10" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
+                <Line
+                  x1={24 + Math.cos(attackPhase + 2.2) * 12}
+                  y1={4 + Math.sin(attackPhase + 2.2) * 16}
+                  x2={31 + Math.cos(attackPhase + 2.2) * 12}
+                  y2={1 + Math.sin(attackPhase + 2.2) * 16}
+                  stroke="#DC2626"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                />
+                {/* Flying blood droplets from claws */}
+                <Circle cx={36 + Math.cos(attackPhase) * 14} cy={-8 + Math.sin(attackPhase) * 16} r="2.2" fill="#DC2626" />
+                <Circle cx={34 + Math.cos(attackPhase + 2.2) * 12} cy={6 + Math.sin(attackPhase + 2.2) * 14} r="1.8" fill="#EF4444" />
               </G>
             ) : state === 'climb' ? (
               // Wall Scrambling: arms reaching straight up clutching the wall!
@@ -397,14 +428,31 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
             )}
           </G>
 
-          {/* Flying Wings for Flying Zombie */}
+          {/* Dynamic Animated Bat / Cyber Wings for Flying Zombie */}
           {type === 'flying' && (
-            <G transform={`translate(0, ${-torsoHeight / 2})`}>
-              <Path
-                d="M 0 0 Q -18 -20 -28 -6 Q -18 -2 0 4 Z"
-                fill="#475569"
-                opacity={0.9}
-              />
+            <G transform={`translate(0, ${-torsoHeight / 2 + 4})`}>
+              {/* Back Wing */}
+              <G transform={`rotate(${-Math.sin(walkCycle * 4) * 20}, -4, 0)`}>
+                <Path
+                  d="M -4 0 Q -24 -24 -38 -10 Q -26 4 -4 4 Z"
+                  fill="#334155"
+                  stroke="#1E293B"
+                  strokeWidth="1.5"
+                  opacity={0.8}
+                />
+                <Path d="M -4 0 L -38 -10" stroke="#64748B" strokeWidth="1.2" />
+              </G>
+              {/* Front Wing */}
+              <G transform={`rotate(${Math.sin(walkCycle * 4) * 24}, 2, 0)`}>
+                <Path
+                  d="M 2 0 Q -20 -28 -36 -14 Q -22 6 2 4 Z"
+                  fill="#475569"
+                  stroke="#0F172A"
+                  strokeWidth="1.5"
+                />
+                <Path d="M 2 0 L -36 -14" stroke="#EF4444" strokeWidth="1.4" opacity={0.85} />
+                <Path d="M -16 -10 L -26 -2" stroke="#EF4444" strokeWidth="1.2" opacity={0.7} />
+              </G>
             </G>
           )}
 
@@ -517,35 +565,107 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
               />
             </G>
 
-            {/* Slack Dropped Undead Mouth with Rotten Teeth */}
+            {/* Flying Zombie Cybernetic Laser Cannon Eye */}
+            {type === 'flying' && (
+              <G transform={`translate(${headRadius * 0.28}, -1)`}>
+                {/* Metallic mount */}
+                <Circle cx="0" cy="0" r={headRadius * 0.42} fill="#0F172A" stroke="#334155" strokeWidth="1.5" />
+                {/* Glowing Laser Aperture */}
+                <Circle
+                  cx="0"
+                  cy="0"
+                  r={headRadius * 0.3}
+                  fill={zombie.laserFiringTimer ? '#FFFFFF' : '#EF4444'}
+                  stroke={zombie.laserCharging ? '#F43F5E' : '#991B1B'}
+                  strokeWidth="1.5"
+                />
+                <Circle cx="0" cy="0" r={headRadius * 0.14} fill="#FFFFFF" />
+                {/* Pulsing Energy Ring when charging */}
+                {zombie.laserCharging && (
+                  <Circle
+                    cx="0"
+                    cy="0"
+                    r={headRadius * 0.55 + Math.sin(walkCycle * 6) * 3}
+                    fill="none"
+                    stroke="#EF4444"
+                    strokeWidth="1.8"
+                    strokeDasharray="4, 3"
+                    opacity={0.9}
+                  />
+                )}
+                {/* Blinding Muzzle Flare when firing */}
+                {!!zombie.laserFiringTimer && (
+                  <G>
+                    <Circle cx="0" cy="0" r={headRadius * 0.8} fill="#EF4444" opacity={0.65} />
+                    <Circle cx="0" cy="0" r={headRadius * 0.45} fill="#FFFFFF" />
+                  </G>
+                )}
+              </G>
+            )}
+
+            {/* Undead Mouth: Snaps & bites violently with bloodied fangs during attack! */}
             <G>
               {/* Mouth Cavity */}
               <Path
-                d={`M ${-headRadius * 0.3} ${headRadius * 0.35} Q ${headRadius * 0.2} ${headRadius * 0.25} ${headRadius * 0.45} ${headRadius * 0.5} Q ${headRadius * 0.1} ${headRadius * 0.8} ${-headRadius * 0.3} ${headRadius * 0.35} Z`}
-                fill="#1F2937"
-                stroke="#15803D"
+                d={
+                  isAttacking
+                    ? `M ${-headRadius * 0.3} ${headRadius * 0.2} Q ${headRadius * 0.2} ${headRadius * 0.1} ${headRadius * 0.55} ${headRadius * 0.45} Q ${headRadius * 0.1} ${headRadius * 0.95 + Math.sin(attackPhase) * 3} ${-headRadius * 0.3} ${headRadius * 0.2} Z`
+                    : `M ${-headRadius * 0.3} ${headRadius * 0.35} Q ${headRadius * 0.2} ${headRadius * 0.25} ${headRadius * 0.45} ${headRadius * 0.5} Q ${headRadius * 0.1} ${headRadius * 0.8} ${-headRadius * 0.3} ${headRadius * 0.35} Z`
+                }
+                fill={isAttacking ? '#450A0A' : '#1F2937'}
+                stroke={isAttacking ? '#DC2626' : '#15803D'}
                 strokeWidth="1.5"
               />
-              {/* Rotten Yellow Teeth */}
-              <Rect
-                x={headRadius * 0.05}
-                y={headRadius * 0.32}
-                width="3"
-                height="3.5"
-                fill="#FEF08A"
-                stroke="#CA8A04"
-                strokeWidth="0.8"
-              />
-              <Rect
-                x={headRadius * 0.22}
-                y={headRadius * 0.34}
-                width="2.5"
-                height="3"
-                fill="#FEF08A"
-                stroke="#CA8A04"
-                strokeWidth="0.8"
-              />
-              {/* Drooping Pink Tongue */}
+              {/* Vicious Sharp Rotten Teeth / Fangs */}
+              {isAttacking ? (
+                <G>
+                  {/* Upper Razor Fangs */}
+                  <Path
+                    d={`M ${headRadius * 0.05} ${headRadius * 0.25} L ${headRadius * 0.12} ${headRadius * 0.55} L ${headRadius * 0.2} ${headRadius * 0.25} Z`}
+                    fill="#FEF08A"
+                    stroke="#B45309"
+                    strokeWidth="0.8"
+                  />
+                  <Path
+                    d={`M ${headRadius * 0.24} ${headRadius * 0.28} L ${headRadius * 0.32} ${headRadius * 0.6} L ${headRadius * 0.4} ${headRadius * 0.28} Z`}
+                    fill="#FEF08A"
+                    stroke="#B45309"
+                    strokeWidth="0.8"
+                  />
+                  {/* Lower Fangs */}
+                  <Path
+                    d={`M ${headRadius * 0.12} ${headRadius * 0.8} L ${headRadius * 0.18} ${headRadius * 0.55} L ${headRadius * 0.24} ${headRadius * 0.8} Z`}
+                    fill="#FEF08A"
+                    stroke="#B45309"
+                    strokeWidth="0.8"
+                  />
+                  {/* Blood Drips from Fangs */}
+                  <Circle cx={headRadius * 0.12} cy={headRadius * 0.6} r="1.5" fill="#EF4444" />
+                  <Circle cx={headRadius * 0.32} cy={headRadius * 0.65} r="1.5" fill="#DC2626" />
+                </G>
+              ) : (
+                <G>
+                  <Rect
+                    x={headRadius * 0.05}
+                    y={headRadius * 0.32}
+                    width="3"
+                    height="3.5"
+                    fill="#FEF08A"
+                    stroke="#CA8A04"
+                    strokeWidth="0.8"
+                  />
+                  <Rect
+                    x={headRadius * 0.22}
+                    y={headRadius * 0.34}
+                    width="2.5"
+                    height="3"
+                    fill="#FEF08A"
+                    stroke="#CA8A04"
+                    strokeWidth="0.8"
+                  />
+                </G>
+              )}
+              {/* Drooping Tongue */}
               <Path
                 d={`M ${headRadius * 0.15} ${headRadius * 0.45} Q ${headRadius * 0.42} ${headRadius * 0.82} ${headRadius * 0.52} ${headRadius * 0.92} Q ${headRadius * 0.12} ${headRadius * 0.92} ${headRadius * 0.15} ${headRadius * 0.45} Z`}
                 fill="#FB7185"

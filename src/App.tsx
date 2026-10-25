@@ -27,6 +27,7 @@ import { navigationRef, navigateFromNotification } from './Navigation/Navigation
 import messaging from "@react-native-firebase/messaging";
 import notifee, { AndroidImportance, AndroidStyle, EventType } from '@notifee/react-native';
 import { initRewardedPremiumAd } from './Components/RewardedPremiumAd';
+import { AppOpenAdManager } from './Components/AppOpenAdManager';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const App = () => {
@@ -105,9 +106,14 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const splashTimeout = setTimeout(() => {
+    // Initialize App Open Ad Manager (listens for background -> foreground resume)
+    AppOpenAdManager.init();
+
+    const splashTimeout = setTimeout(async () => {
       SplashScreen.hide(); // Hide splash screen after 2.4 seconds
       checkForUpdate(); // Show update popup if new update is available
+      // Show App Open Ad on cold start if 4-hour cooldown has elapsed
+      await AppOpenAdManager.tryShowColdStartAd();
     }, 2400);
 
     if (!DeviceInfo.isTablet()) {
@@ -120,6 +126,7 @@ const App = () => {
     return () => {
       clearTimeout(splashTimeout);
       Orientation.unlockAllOrientations();
+      AppOpenAdManager.destroy();
     };
   }, []);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Image,
@@ -30,10 +30,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import LinearGradient from "react-native-linear-gradient";
 import GameSound from "../Utils/GameSoundEffects";
 import FavoritesManager from "../Utils/FavoritesManager";
-
-
+import NativeAdCard from "../Components/NativeAdCard";
+import { checkIsPremiumUser } from "../Components/Useinterstitialad";
 
 const { width, height } = Dimensions.get("window");
+
+type SlideItem =
+  | { type: 'image'; uri: string; originalIndex: number }
+  | { type: 'ad'; id: string };
 
 const FullImageScreen = () => {
   const navigation = useNavigation();
@@ -43,18 +47,74 @@ const FullImageScreen = () => {
   const [localImages, setLocalImages] = useState(images);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [screenHeight, setScreenHeight] = useState(height);
+
+  useEffect(() => {
+    checkIsPremiumUser().then(setIsPremium);
+  }, []);
 
   const safeInitialIndex =
     typeof initialIndex === "number" && initialIndex >= 0 && initialIndex < images.length
       ? initialIndex
       : (imageUri && images.length > 0 && images.indexOf(imageUri) >= 0 ? images.indexOf(imageUri) : 0);
 
-  const [currentIndex, setCurrentIndex] = useState(safeInitialIndex);
+  // Build slide items: after every 8 wallpaper images, insert a Native Ad
+  const buildSlides = useCallback(
+    (imageList: string[], premium: boolean): SlideItem[] => {
+      if (premium || !imageList || imageList.length === 0) {
+        return (imageList || []).map((uri, idx) => ({
+          type: 'image',
+          uri,
+          originalIndex: idx,
+        }));
+      }
+
+      const result: SlideItem[] = [];
+      let imageCounter = 0;
+
+      for (let i = 0; i < imageList.length; i++) {
+        // After every 8 images, insert a Native Ad slide
+        if (imageCounter > 0 && imageCounter % 8 === 0) {
+          result.push({
+            type: 'ad',
+            id: `full-ad-${i}`,
+          });
+        }
+
+        result.push({
+          type: 'image',
+          uri: imageList[i],
+          originalIndex: i,
+        });
+        imageCounter++;
+      }
+
+      return result;
+    },
+    []
+  );
+
+  const slides = useMemo(() => {
+    return buildSlides(localImages, isPremium);
+  }, [localImages, isPremium, buildSlides]);
+
+  const initialSlideIndex = useMemo(() => {
+    if (isPremium) return safeInitialIndex;
+    const computed = safeInitialIndex + Math.floor(safeInitialIndex / 8);
+    return Math.max(0, Math.min(computed, (slides.length || 1) - 1));
+  }, [safeInitialIndex, isPremium, slides.length]);
+
+  const [currentIndex, setCurrentIndex] = useState(initialSlideIndex);
+  const currentSlide = slides[currentIndex];
+  const isAdActive = currentSlide?.type === 'ad';
   const currentImageUri =
-    localImages.length > 0 && localImages[currentIndex]
-      ? localImages[currentIndex]
-      : (imageUri || (localImages.length > 0 ? localImages[0] : ""));
-  const scrollX = useRef(new Animated.Value(safeInitialIndex * width)).current;
+    currentSlide && currentSlide.type === 'image'
+      ? currentSlide.uri
+      : (localImages[safeInitialIndex] || localImages[0] || imageUri || '');
+
+  const scrollX = useRef(new Animated.Value(initialSlideIndex * width)).current;
+
 
   const [isLiked, setIsLiked] = useState<boolean>(() => {
     return currentImageUri ? FavoritesManager.isLikedSync(currentImageUri) : false;
@@ -431,15 +491,23 @@ const FullImageScreen = () => {
 
 
   return (
-    <View style={styles.container}>
-      {localImages.length > 0 ? (
+    <View 
+      style={styles.container}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0 && Math.abs(h - screenHeight) > 1) {
+          setScreenHeight(h);
+        }
+      }}
+    >
+      {slides.length > 0 ? (
         <Animated.FlatList
-          data={localImages}
+          data={slides}
           horizontal
           pagingEnabled
-          initialScrollIndex={safeInitialIndex}
+          initialScrollIndex={initialSlideIndex}
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item, index) => `${item}-${index}`}
+          keyExtractor={(item, index) => (item.type === 'ad' ? item.id : `${item.uri}-${index}`)}
           getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
           onScrollToIndexFailed={() => {}}
           onScroll={Animated.event(
@@ -448,7 +516,7 @@ const FullImageScreen = () => {
           )}
           onMomentumScrollEnd={(event) => {
             const index = Math.round(event.nativeEvent.contentOffset.x / width);
-            if (index >= 0 && index < localImages.length) {
+            if (index >= 0 && index < slides.length) {
               setCurrentIndex(index);
             }
           }}
@@ -467,12 +535,25 @@ const FullImageScreen = () => {
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => 
             isLoadingMore ? (
-              <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+              <View style={{ width, height: screenHeight, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color={colors.white} />
               </View>
             ) : null
           }
           renderItem={({ item, index }) => {
+            if (item.type === 'ad') {
+              return (
+                <View style={{ width, height: screenHeight, overflow: 'hidden' }}>
+                  <NativeAdCard
+                    variant="fullscreen"
+                    customWidth={width}
+                    customHeight={screenHeight}
+                    style={{ width, height: screenHeight }}
+                  />
+                </View>
+              );
+            }
+
             const inputRange = [
               (index - 1) * width,
               index * width,
@@ -505,11 +586,11 @@ const FullImageScreen = () => {
 
             return (
               <TouchableWithoutFeedback onPress={handleDoubleTap}>
-                <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ width, height: screenHeight, justifyContent: 'center', alignItems: 'center' }}>
                   <Animated.View 
                     style={{ 
                       width, 
-                      height, 
+                      height: screenHeight, 
                       transform: [
                         { perspective: 1000 },
                         { scale },
@@ -526,8 +607,8 @@ const FullImageScreen = () => {
                     }}
                   >
                     <Image 
-                      source={{ uri: item }} 
-                      style={styles.fullImage} 
+                      source={{ uri: item.uri }} 
+                      style={{ width, height: screenHeight }} 
                       resizeMode="cover" 
                     />
                   </Animated.View>
@@ -538,8 +619,8 @@ const FullImageScreen = () => {
         />
       ) : (
         <TouchableWithoutFeedback onPress={handleDoubleTap}>
-          <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
-            <Image source={{ uri: currentImageUri }} style={styles.fullImage} resizeMode="cover" />
+          <View style={{ width, height: screenHeight, justifyContent: 'center', alignItems: 'center' }}>
+            <Image source={{ uri: currentImageUri }} style={{ width, height: screenHeight }} resizeMode="cover" />
           </View>
         </TouchableWithoutFeedback>
       )}
@@ -568,16 +649,20 @@ const FullImageScreen = () => {
       )}
 
       {/* Dynamic gradients for visibility on white/bright backgrounds */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.5)', 'transparent']}
-        style={styles.topGradient}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.6)']}
-        style={styles.bottomGradient}
-        pointerEvents="none"
-      />
+      {!isAdActive && (
+        <LinearGradient
+          colors={['rgba(0,0,0,0.5)', 'transparent']}
+          style={styles.topGradient}
+          pointerEvents="none"
+        />
+      )}
+      {!isAdActive && (
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.6)']}
+          style={styles.bottomGradient}
+          pointerEvents="none"
+        />
+      )}
 
       <TouchableOpacity activeOpacity={0.65} style={styles.backButton} onPress={() => navigation.goBack()}>
         <View style={styles.iconContainer}>
@@ -585,44 +670,50 @@ const FullImageScreen = () => {
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity activeOpacity={0.65} style={styles.heartButton} onPress={toggleLike}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={isLiked ? "heart" : "heart-outline"} size={scale(25)} color={isLiked ? '#53D7F7' : colors.white} />
-        </View>
-      </TouchableOpacity>
-
-
-      <View 
-        style={styles.setWallpaperButton}
-        onLayout={onButtonContainerLayout}
-      >
-        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-          <View onLayout={onSetWallpaperBtnLayout}>
-            <TouchableOpacity activeOpacity={0.60} onPress={showPopup}>
-              <View style={styles.glassButton}>
-                {isSettingWallpaper ? (
-                  <View style={{ flexDirection: "row" }}>
-                    <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold', paddingRight: scale(5) }}>Applying</Text>
-                    <ActivityIndicator size="small" color={colors.white} />
-                  </View>
-                ) : (
-                  <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold' }}>Set Wallpaper</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        <TouchableOpacity activeOpacity={0.60} onPress={downloadImage} disabled={isDownloading}>
-          <View style={[styles.glassButton, { marginLeft: scale(10), paddingHorizontal: scale(12) }]}>
-            {isDownloading ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <MaterialCommunityIcons name="download" size={scale(24)} color={colors.white} />
-            )}
+      {!isAdActive && (
+        <TouchableOpacity activeOpacity={0.65} style={styles.heartButton} onPress={toggleLike}>
+          <View style={styles.iconContainer}>
+            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={scale(25)} color={isLiked ? '#53D7F7' : colors.white} />
           </View>
         </TouchableOpacity>
-      </View>
+      )}
+
+
+
+      {!isAdActive && (
+        <View 
+          style={styles.setWallpaperButton}
+          onLayout={onButtonContainerLayout}
+        >
+          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+            <View onLayout={onSetWallpaperBtnLayout}>
+              <TouchableOpacity activeOpacity={0.60} onPress={showPopup}>
+                <View style={styles.glassButton}>
+                  {isSettingWallpaper ? (
+                    <View style={{ flexDirection: "row" }}>
+                      <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold', paddingRight: scale(5) }}>Applying</Text>
+                      <ActivityIndicator size="small" color={colors.white} />
+                    </View>
+                  ) : (
+                    <Text style={{ color: colors.white, fontSize: scale(18), fontWeight: 'bold' }}>Set Wallpaper</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+
+          <TouchableOpacity activeOpacity={0.60} onPress={downloadImage} disabled={isDownloading}>
+            <View style={[styles.glassButton, { marginLeft: scale(10), paddingHorizontal: scale(12) }]}>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <MaterialCommunityIcons name="download" size={scale(24)} color={colors.white} />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
 
       <View 
         style={styles.modalOverlay} 

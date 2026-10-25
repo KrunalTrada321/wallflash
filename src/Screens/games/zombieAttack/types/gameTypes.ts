@@ -159,6 +159,11 @@ export interface ZombieEntity {
   stuckFrames?: number;
   stuckTotalFrames?: number;
   lastX?: number;
+  // Flying Zombie Laser Attack State
+  laserCharging?: boolean;
+  laserChargeTimer?: number;
+  laserFiringTimer?: number;
+  laserTargetPos?: { x: number; y: number };
 }
 
 export interface ObstacleEntity {

@@ -514,8 +514,8 @@ export default function ZombieAttackGame() {
           if (d < nearestDist) nearestDist = d;
         }
 
-        // 16ms Frame Gate
-        if (now - lastRenderTime >= 16) {
+        // 33ms Frame Gate (~30 FPS for React renders) — Physics still runs at 60 FPS
+        if (now - lastRenderTime >= 33) {
           lastRenderTime = now;
           const aim = aimRef.current;
           setFrame({
@@ -809,6 +809,8 @@ export default function ZombieAttackGame() {
                   arrowType={selectedArrowType}
                   particles={frame.particles}
                   floatTexts={frame.floatTexts}
+                  zombies={frame.zombies}
+                  playerPos={currentLevel.playerPos}
                 />
               </G>
             </Svg>

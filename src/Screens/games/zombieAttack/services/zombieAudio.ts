@@ -85,6 +85,34 @@ class ZombieAudioService {
     }
   }
 
+  private lastLaserChargeTime: number = 0;
+  private lastAttackSoundTime: number = 0;
+
+  public playLaserCharge() {
+    if (!this.soundEnabled) return;
+    const now = Date.now();
+    if (now - this.lastLaserChargeTime < 260) return;
+    this.lastLaserChargeTime = now;
+    GameSound.playStep(13);
+    this.vibrate(10);
+  }
+
+  public playLaserBlast() {
+    if (!this.soundEnabled) return;
+    GameSound.playSupernovaExplosion();
+    this.vibrate([0, 70, 50, 160]);
+  }
+
+  public playZombieAttack() {
+    if (!this.soundEnabled) return;
+    const now = Date.now();
+    if (now - this.lastAttackSoundTime < 320) return;
+    this.lastAttackSoundTime = now;
+    GameSound.playCut();
+    GameSound.playStep(3);
+    this.vibrate(22);
+  }
+
   public playZombieDefeat() {
     if (!this.soundEnabled) return;
     GameSound.playCut();

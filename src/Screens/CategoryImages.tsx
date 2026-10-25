@@ -11,6 +11,7 @@ import { scale } from 'react-native-size-matters';
 import NetInfo from '@react-native-community/netinfo';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import SqareAd from '../Components/SqareAd';
+import { checkIsPremiumUser } from '../Components/Useinterstitialad';
 import LottieView from "lottie-react-native";
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -26,9 +27,8 @@ const IMAGE_WIDTH   = Math.floor(
 );
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CHUNK = 15; // images per group before an ad
-
 const CategoryImages = ({ route }: any) => {
+
   const { categoryName } = route.params;
 
   const [images, setImages]         = useState<string[]>([]);
@@ -37,9 +37,15 @@ const CategoryImages = ({ route }: any) => {
   const [hasMore, setHasMore]       = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isPremium, setIsPremium]   = useState(false);
   const isLoadingMoreRef = useRef(false);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+
+  useEffect(() => {
+    checkIsPremiumUser().then(setIsPremium);
+  }, []);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -151,7 +157,8 @@ const CategoryImages = ({ route }: any) => {
     );
   }
 
-  // ─── Pre-group images into chunks of CHUNK for ad injection ─────────────────
+  // ─── Pre-group images into chunks of 15 for ad injection ───────────────────
+  const CHUNK = 15;
   const groups: string[][] = [];
   for (let i = 0; i < images.length; i += CHUNK) {
     groups.push(images.slice(i, i + CHUNK));
@@ -165,19 +172,28 @@ const CategoryImages = ({ route }: any) => {
           <TouchableOpacity
             key={uri || `img-${i}`}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri, images: images, initialIndex: images.indexOf(uri), onLoadMore: handleLoadMore })}
+            onPress={() =>
+              navigation.navigate('FullImageScreen', {
+                imageUri: uri,
+                images: images,
+                initialIndex: images.indexOf(uri),
+                onLoadMore: handleLoadMore,
+              })
+            }
           >
             <Image source={{ uri }} style={styles.image} />
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Ad after every chunk */}
+      {/* Ad after every 15 images (Native Feed Ad) */}
       <View style={styles.adWrapper}>
         <SqareAd />
       </View>
     </View>
   );
+
+
 
   return (
     <View style={styles.container}>

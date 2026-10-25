@@ -200,7 +200,11 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
     };
   });
 
-  // 4. Transform Zombies
+  // 4. Transform Zombies with Progressive Level Difficulty
+  const levelId = raw.id;
+  // Continuous smooth difficulty ramp: 0.0 at level 1 up to 1.0 at level 50
+  const levelProgress = Math.min(1.0, Math.max(0, (levelId - 1) / 49));
+
   const zombies: ZombieConfig[] = raw.zombies.map(z => {
     let newX = mapX(z.x);
     if (shouldSplitGround && origPitRight > 0) {
@@ -214,30 +218,66 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
       newY = LANDSCAPE_GROUND_Y - 32; // Body center 32px above ground, so feet touch at 370!
     }
 
+    // Dynamic Speed Scaling:
+    // Level 1: calm introduction (~2.2 speed)
+    // Level 15: ~2.8 speed
+    // Level 30: ~3.4 speed
+    // Level 50: ~4.2 - 4.6 horde speed!
     const baseSpeed = z.speed ?? 0.8;
-    // Chapter Difficulty Scaling: higher chapters ramp up speed & aggressiveness
-    const chapterDifficultyMultiplier = 1 + (raw.chapter - 1) * 0.14;
-    const newSpeed = Math.max(2.2, Number((baseSpeed * 2.8 * chapterDifficultyMultiplier).toFixed(2)));
+    const speedScalingFactor = 2.4 + levelProgress * 1.6;
+    const newSpeed = Math.max(2.0, Number((baseSpeed * speedScalingFactor).toFixed(2)));
+
+    // Dynamic Health & Durability Scaling:
+    // As levels increase, tough monsters require 2-3+ arrows (and giants/bosses take sustained fire)
+    let scaledHealth = z.health;
+    if (scaledHealth === undefined) {
+      if (z.type === 'boss') {
+        // Boss health: Level 10 (Ch1) = 6, Level 20 = 8, Level 30 = 10, Level 40 = 14, Level 50 = 18
+        scaledHealth = Math.min(18, 6 + Math.floor(levelId / 10) * 3);
+      } else if (z.type === 'giant') {
+        scaledHealth = levelId >= 40 ? 6 : levelId >= 25 ? 5 : 4;
+      } else if (z.type === 'armored') {
+        scaledHealth = levelId >= 25 ? 3 : 2;
+      } else if (z.type === 'flying') {
+        scaledHealth = levelId >= 30 ? 2 : 1;
+      } else {
+        scaledHealth = 1;
+      }
+    } else {
+      // If health was specified in config, apply high-level difficulty bonuses
+      if (z.type === 'boss') {
+        scaledHealth = Math.max(scaledHealth, 6 + Math.floor(levelId / 10) * 3);
+      } else if (z.type === 'giant' && levelId >= 30) {
+        scaledHealth = Math.max(scaledHealth, 5);
+      } else if (z.type === 'armored' && levelId >= 30) {
+        scaledHealth = Math.max(scaledHealth, 3);
+      }
+    }
 
     return {
       ...z,
       x: newX,
       y: newY,
       speed: newSpeed,
+      health: scaledHealth,
       patrolMin: z.patrolMin !== undefined ? mapX(z.patrolMin) : undefined,
       patrolMax: z.patrolMax !== undefined ? mapX(z.patrolMax) : undefined,
     };
   });
 
-  // 5. Enforce Strict Finite Arrow Limits & Guarantee Every Level is 100% Winnable!
-  const totalZombieHitsNeeded = raw.zombies.reduce((acc, z) => {
-    const defaultHits = z.type === 'boss' ? 8 : z.type === 'giant' ? 4 : z.type === 'armored' ? 2 : 1;
-    return acc + (z.health ?? defaultHits);
+  // 5. Enforce Finite Arrow Limits with Difficulty Scaling:
+  // Early levels (1-10): Generous surplus (+4 to +5) for learning
+  // Mid levels (11-30): Balanced surplus (+3)
+  // Late levels (31-50): Tight limit (+2) requiring skill, ricochets & headshots
+  const totalZombieHitsNeeded = zombies.reduce((acc, z) => {
+    return acc + (z.health ?? 1);
   }, 0);
+
+  const surplusArrows = levelId <= 10 ? 4 : levelId <= 30 ? 3 : 2;
 
   const computedArrowLimit = Math.max(
     typeof raw.arrowLimit === 'number' && raw.arrowLimit > 0 ? raw.arrowLimit : 0,
-    totalZombieHitsNeeded + 2,
+    totalZombieHitsNeeded + surplusArrows,
     raw.parArrows + 2,
     4
   );

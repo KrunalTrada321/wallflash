@@ -8,6 +8,7 @@ import { scale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
 import SqareAd from '../Components/SqareAd';
+import { checkIsPremiumUser } from '../Components/Useinterstitialad';
 import LottieView from "lottie-react-native";
 import { fetchImagesFromFirestore } from '../API/ApiHomeHelper';
 import ShortBanner from '../Components/ShortBanner';
@@ -26,28 +27,23 @@ const IMAGE_WIDTH = Math.floor(
 const PAGE_SIZE = 12;
 
 const HomeScreen = () => {
+
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const collections = ['Cars', 'Anime', 'Dark', 'Girls', 'Men', 'Quotes', 'Superheroes'];
 
   const hasFetched = React.useRef(false);
 
-  // 🔹 Check Internet Connection
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
-      if (state.isConnected && !hasFetched.current) {
-        hasFetched.current = true;
-        fetchImages();
-      }
-    });
-    return () => unsubscribe();
-  }, [fetchImages]);
+    checkIsPremiumUser().then(setIsPremium);
+  }, []);
+
 
   const fetchImages = useCallback(async () => {
     if (!isConnected) { setLoading(false); return; }
@@ -62,6 +58,19 @@ const HomeScreen = () => {
       setLoading(false);
     }
   }, [isConnected]);
+
+  // 🔹 Check Internet Connection
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+      if (state.isConnected && !hasFetched.current) {
+        hasFetched.current = true;
+        fetchImages();
+      }
+    });
+    return () => unsubscribe();
+  }, [fetchImages]);
+
 
   const handleLoadMore = async () => {
     if (!hasMore || loading) return [];
@@ -114,7 +123,7 @@ const HomeScreen = () => {
     );
   }
 
-  // ─── Group images into chunks of 15, each chunk gets an ad below ─────────────
+  // ─── Group images into pure chunks of 15, each chunk gets SqareAd below ──────
   // Build flat list of "group" items so FlatList stays numColumns={1}
   const CHUNK = 15;
   const groups: string[][] = [];
@@ -130,19 +139,28 @@ const HomeScreen = () => {
           <TouchableOpacity
             key={`img-${i}`}
             activeOpacity={0.90}
-            onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri, images: images, initialIndex: images.indexOf(uri), onLoadMore: handleLoadMore })}
+            onPress={() =>
+              navigation.navigate('FullImageScreen', {
+                imageUri: uri,
+                images: images,
+                initialIndex: images.indexOf(uri),
+                onLoadMore: handleLoadMore,
+              })
+            }
           >
             <Image source={{ uri }} style={styles.image} />
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Ad after every chunk */}
+      {/* Ad after every 15 images (Native Feed Ad) */}
       <View style={styles.adWrapper}>
         <SqareAd />
       </View>
     </View>
   );
+
+
 
   return (
     <View style={styles.container}>

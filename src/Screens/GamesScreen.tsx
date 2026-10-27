@@ -21,17 +21,11 @@ const { width } = Dimensions.get('window');
 export default function GamesScreen() {
   const navigation = useNavigation<any>();
 
-  const [bladeLevel, setBladeLevel] = useState(1);
   const [twinsLevel, setTwinsLevel] = useState(1);
   const [zombieLevel, setZombieLevel] = useState(1);
 
   useFocusEffect(
     React.useCallback(() => {
-      AsyncStorage.getItem('@neonblade_level').then(lvl => {
-        if (lvl) {
-          setBladeLevel(parseInt(lvl, 10));
-        }
-      });
       AsyncStorage.getItem('@twinsconnect_level').then(lvl => {
         if (lvl) {
           setTwinsLevel(parseInt(lvl, 10) + 1);
@@ -58,7 +52,7 @@ export default function GamesScreen() {
           onPress={() => navigation.navigate('TwinsConnect')}
         >
           <ImageBackground
-            source={require('../assets/game/twins_connect.png')}
+            source={require('../assets/game/twins_connect.jpg')}
             style={styles.imageBg}
             imageStyle={{ borderRadius: scale(20) }}
           >
@@ -122,42 +116,6 @@ export default function GamesScreen() {
           </ImageBackground>
         </TouchableOpacity>
 
-        {/* --- Game 3: Neon Fruit Slasher --- */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.cardContainer}
-          onPress={() => navigation.navigate('NeonFruitSlasher')}
-        >
-          <ImageBackground
-            source={require('../assets/game/neon_blade.jpg')}
-            style={styles.imageBg}
-            imageStyle={{ borderRadius: scale(20) }}
-          >
-            <LinearGradient
-              colors={['transparent', 'rgba(15, 10, 35, 0.75)', 'rgba(9, 6, 20, 0.98)']}
-              style={styles.gradient}
-            >
-              <View style={styles.contentWrapper}>
-                <Text style={styles.gameTitle}>Neon Fruit Slasher</Text>
-
-                <View style={styles.progressRow}>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${Math.min(100, (bladeLevel / 50) * 100)}%`,
-                          backgroundColor: '#38BDF8',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.levelText}>Level {bladeLevel} / 50</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </ImageBackground>
-        </TouchableOpacity>
 
         <View style={{ alignItems: 'center', marginTop: scale(15) }}>
           <ShortBanner />

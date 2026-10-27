@@ -214,5 +214,4 @@ export interface GameStats {
   headshots: number;
   score: number;
   stars: number;
-  coinsEarned: number;
 }

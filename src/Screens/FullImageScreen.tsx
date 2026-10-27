@@ -31,7 +31,7 @@ import LinearGradient from "react-native-linear-gradient";
 import GameSound from "../Utils/GameSoundEffects";
 import FavoritesManager from "../Utils/FavoritesManager";
 import NativeAdCard from "../Components/NativeAdCard";
-import { checkIsPremiumUser } from "../Components/Useinterstitialad";
+import { checkIsPremiumUser, useGameInterstitialAd } from "../Components/Useinterstitialad";
 
 const { width, height } = Dimensions.get("window");
 
@@ -49,6 +49,7 @@ const FullImageScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [screenHeight, setScreenHeight] = useState(height);
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 1, cooldownSeconds: 35 });
 
   useEffect(() => {
     checkIsPremiumUser().then(setIsPremium);
@@ -428,6 +429,10 @@ const FullImageScreen = () => {
             type: "success",
             style: { borderRadius: 15, marginTop: scale(40), marginHorizontal: scale(20) },
           });
+          // High-intent action: show interstitial with 35s cooldown
+          setTimeout(() => {
+            showNaturalAd();
+          }, 300);
 
         })
         .catch((err) => {
@@ -463,6 +468,10 @@ const FullImageScreen = () => {
         type: "success",
         style: { borderRadius: 15, marginTop: scale(40), marginHorizontal: scale(20) },
       });
+      // High-intent action: show interstitial with 35s cooldown
+      setTimeout(() => {
+        showNaturalAd();
+      }, 300);
 
     } catch (error) {
       setisSettingWallpaper(false);

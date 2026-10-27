@@ -22,7 +22,16 @@ const AD_UNIT_ID = __DEV__
 let globalLastAdTimestamp = 0;
 let globalTransitionCount = 0;
 
+/**
+ * Ad status check: Ads are NEVER stopped for any user (even if premium was purchased),
+ * ensuring continuous high ad revenue throughout the app lifecycle.
+ */
 export const checkIsPremiumUser = async (): Promise<boolean> => {
+  return false;
+};
+
+/** Checks if user has access to VIP content (either via IAP or temporary 30-min rewarded pass) */
+export const checkHasVipAccess = async (): Promise<boolean> => {
   try {
     const purchased = await AsyncStorage.getItem("isPremiumPurchased");
     if (purchased === "true") return true;
@@ -74,7 +83,7 @@ export function useGameInterstitialAd(options?: UseGameInterstitialAdOptions): U
   const loadAd = useCallback(() => {
     try {
       const ad = InterstitialAd.createForAdRequest(AD_UNIT_ID, {
-        requestNonPersonalizedAdsOnly: true,
+        requestNonPersonalizedAdsOnly: false,
       });
 
       ad.addAdEventListener(AdEventType.LOADED, () => {

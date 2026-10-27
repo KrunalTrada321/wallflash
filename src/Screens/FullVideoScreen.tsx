@@ -18,6 +18,7 @@ import { colors } from "../Styling/colors";
 import { scale } from "react-native-size-matters";
 import { showMessage } from "react-native-flash-message";
 import GameSound from "../Utils/GameSoundEffects";
+import { useGameInterstitialAd } from "../Components/Useinterstitialad";
 
 const { width, height } = Dimensions.get("window");
 
@@ -28,6 +29,7 @@ const FullVideoScreen = ({ route, navigation }: any) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [videoLoading, setVideoLoading] = useState(true);
   const [buffering, setBuffering] = useState(false);
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 1, cooldownSeconds: 35 });
 
   const [paused, setPaused] = useState(false);
   const [showPauseIcon, setShowPauseIcon] = useState(false);
@@ -40,14 +42,14 @@ const FullVideoScreen = ({ route, navigation }: any) => {
   const goPrev = () => {
     if (currentIndex > 0) {
       setVideoLoading(true);
-      setCurrentIndex((prev) => prev - 1);
+      setCurrentIndex((prev: number) => prev - 1);
     }
   };
 
   const goNext = () => {
     if (currentIndex < videos.length - 1) {
       setVideoLoading(true);
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex((prev: number) => prev + 1);
     }
   };
 
@@ -93,8 +95,8 @@ const FullVideoScreen = ({ route, navigation }: any) => {
         path,
       }).fetch("GET", currentVideo);
 
-      task.progress((received, total) => {
-        setProgress(Math.floor((received / total) * 100));
+      task.progress((received: any, total: any) => {
+        setProgress(Math.floor((Number(received) / Number(total)) * 100));
       });
 
       const res = await task;
@@ -115,6 +117,10 @@ const FullVideoScreen = ({ route, navigation }: any) => {
       });  
       
       setProgress(100);
+      // High-intent video download: show interstitial with 35s cooldown
+      setTimeout(() => {
+        showNaturalAd();
+      }, 400);
     } catch (err) {
       console.log("Download error:", err);
    

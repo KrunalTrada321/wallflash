@@ -796,18 +796,6 @@ export class PhysicsWorld {
       });
     }
 
-    // Obliteration float text badge
-    this.floatTexts.push({
-      id: this.nextFloatTextId++,
-      text: '💣 BOMB BLAST! +350',
-      x,
-      y: y - 28,
-      vy: -2,
-      color: '#FACC15',
-      opacity: 1,
-      scale: 1.5,
-    });
-
     this.obstacles.forEach(o => {
       const dist = Math.hypot(o.body.position.x - x, o.body.position.y - y);
       if (dist < radius) {
@@ -823,10 +811,32 @@ export class PhysicsWorld {
 
     this.zombies.forEach(z => {
       if (z.health <= 0) return;
-      const dist = Math.hypot(z.body.position.x - x, z.body.position.y - y);
+      const dx = z.body.position.x - x;
+      const dy = z.body.position.y - y;
+      const dist = Math.hypot(dx, dy);
       if (dist < radius) {
-        z.health -= 4;
+        // Multi-layer enemy handling: each bomb strips 1 layer / deals 1 damage (like arrows)
+        let damage = 1;
+        if (z.type === 'armored' && !z.armorLost) {
+          z.armorLost = true;
+          damage = 1;
+          ZombieAudio.playArrowHitGround(); // Heavy helmet/armor clank
+        } else {
+          ZombieAudio.playArrowHitZombie(false);
+        }
+
+        z.health -= damage;
         z.hitFlashTimer = 10;
+
+        // Controlled blast knockback push away from explosion center
+        const isBigZombie = z.type === 'boss' || z.type === 'giant';
+        const knockDir = dx >= 0 ? 1 : -1;
+        const forceMag = ((radius - dist) / radius) * (isBigZombie ? 0.025 : 0.045);
+        Matter.Body.applyForce(z.body, z.body.position, {
+          x: knockDir * forceMag,
+          y: -0.015,
+        });
+
         if (z.health <= 0) {
           this.killZombie(z, false);
         }

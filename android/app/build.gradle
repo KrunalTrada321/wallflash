@@ -208,6 +208,9 @@ dependencies {
     } else {
         implementation jscFlavor 
     }
+
+    // Meta Audience Network (Facebook Ads) Mediation Adapter for AdMob Bidding
+    implementation 'com.google.ads.mediation:facebook:6.18.0.0'
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")

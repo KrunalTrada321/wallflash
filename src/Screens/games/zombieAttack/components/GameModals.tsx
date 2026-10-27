@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ZombieAudio from '../services/zombieAudio';
 
 // ==========================================
+// ==========================================
 // 1. VICTORY MODAL (Landscape 2-Column Layout)
 // ==========================================
 interface VictoryModalProps {
@@ -19,7 +20,6 @@ interface VictoryModalProps {
   levelId: number;
   stars: number;
   score: number;
-  coinsEarned: number;
   onNextLevel: () => void;
   onRetry: () => void;
   onLevelSelect: () => void;
@@ -30,7 +30,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   levelId,
   stars,
   score,
-  coinsEarned,
   onNextLevel,
   onRetry,
   onLevelSelect,
@@ -64,13 +63,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>Score</Text>
                   <Text style={styles.statValue}>{score} pts</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statRow}>
-                  <Text style={styles.statLabel}>Coins</Text>
-                  <Text style={[styles.statValue, { color: '#F59E0B' }]}>
-                    +{coinsEarned} 🪙
-                  </Text>
                 </View>
               </View>
             </View>
@@ -171,6 +163,7 @@ export const DefeatModal: React.FC<DefeatModalProps> = ({
 
             {/* Right Column: Actions */}
             <View style={styles.landscapeRightCol}>
+
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={[styles.primaryButton, { backgroundColor: '#EF4444' }]}

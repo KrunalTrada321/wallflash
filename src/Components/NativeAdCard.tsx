@@ -167,7 +167,7 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({
               <Text style={styles.fullscreenVipCrown}>👑</Text>
               <Text style={styles.fullscreenVipTitle}>WALLFLASH VIP PASS</Text>
               <Text style={styles.fullscreenVipSubtitle}>
-                Unlock Unlimited 4K Wallpapers & Remove All Ads
+                Unlock Unlimited 4K & Exclusive VIP Collections
               </Text>
 
               <Text style={[styles.fullscreenSwipeHint, { marginTop: scale(15) }]}>
@@ -318,7 +318,7 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({
               <Text style={styles.vipCrown}>👑</Text>
               <Text style={styles.vipTitle}>WALLFLASH</Text>
               <Text style={styles.vipSubtitle}>PRO PASS</Text>
-              <Text style={styles.vipDesc}>4K • Ad-Free</Text>
+              <Text style={styles.vipDesc}>4K • VIP Pass</Text>
             </View>
 
             <LinearGradient

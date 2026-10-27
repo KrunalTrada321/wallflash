@@ -3,7 +3,7 @@ import { View, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-nativ
 import { scale } from 'react-native-size-matters';
 import { colors } from '../Styling/colors';
 import { useNavigation } from '@react-navigation/native';
-import { InterstitialAd, AdEventType } from 'react-native-google-mobile-ads';
+import { useGameInterstitialAd } from '../Components/Useinterstitialad';
 import NativeAdCard from '../Components/NativeAdCard';
 
 interface CategoryItem {
@@ -29,13 +29,9 @@ const categories: CategoryItem[] = [
   { id: '10', name: 'Superheroes', image: require('../assets/category/Superheroes.jpg') },
 ];  
 
-// Replace with your actual AdMob Interstitial Ad Unit ID 
-const adUnitId = "ca-app-pub-7105708210867722/2085051949";
-
 const CategoriesScreen = () => {
   const navigation = useNavigation<any>();
-  const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);
-  const [adLoaded, setAdLoaded] = useState(false);
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 40 });
 
   // Exactly 2 Native Ads in Categories: after Category 3 (index 2) and after Category 7 (index 6)
   const feedItems = useMemo<CategoryFeedItem[]>(() => {
@@ -51,38 +47,11 @@ const CategoriesScreen = () => {
     return list;
   }, []);
 
-  useEffect(() => {
-    loadAd();
-  }, []);
-
-  const loadAd = () => {
-    const interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
-      requestNonPersonalizedAdsOnly: true,
-    });
-
-    interstitialAd.addAdEventListener(AdEventType.LOADED, () => {
-      setAdLoaded(true);
-    });
-
-    interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
-      setAdLoaded(false);
-      loadAd(); // Load a new ad after the previous one is closed
-    });
-
-    interstitialAd.load();
-    setInterstitial(interstitialAd);
-  };
-
   const handleCategoryPress = (categoryName: string) => {
-    // Navigate to CategoryImages first
-    navigation.navigate('CategoryImages', { categoryName });
-
-    // Show the ad **only if it is fully loaded**
-    if (adLoaded && interstitial) {
-      setTimeout(() => {
-        interstitial.show();
-      }, 1000); // Delay of 1 second
-    }
+    // Show interstitial between transitions naturally (never interrupt user while browsing images)
+    showNaturalAd(() => {
+      navigation.navigate('CategoryImages', { categoryName });
+    });
   };
 
   const renderItem = ({ item }: { item: CategoryFeedItem }) => {

@@ -24,7 +24,7 @@ import LottieView from "lottie-react-native";
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { fetchImagesFromFirestore, fetchSeasonData, SeasonData } from '../API/ApiHelper';
-import ShortBanner from '../Components/ShortBanner';
+import SqareAd from '../Components/SqareAd';
 
 const CUSTOM_SERVICES_FORM_URL = 'https://forms.gle/KvDgYcG8yD5Vq1Pd8';
 
@@ -270,35 +270,55 @@ const TrendingScreen = () => {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <FlatList
-        data={images}
-        keyExtractor={(item, index) => `img-${index}-${item.substring(item.length - 8)}`}
-        numColumns={NUM_COLUMNS}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={6}
-        windowSize={5}
-        initialNumToRender={6}
-        ListHeaderComponent={renderHeader}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: CONTAINER_PAD, paddingBottom: scale(20) }}
-        renderItem={({ item, index }) => (
+  // ─── Group images into chunks of 15 with in-feed Native Ad between chunks ───
+  const CHUNK = 15;
+  const groups: string[][] = [];
+  for (let i = 0; i < images.length; i += CHUNK) {
+    groups.push(images.slice(i, i + CHUNK));
+  }
+
+  const renderGroup = ({ item: group }: { item: string[] }) => (
+    <View>
+      <View style={styles.gridRow}>
+        {group.map((item, i) => (
           <TouchableOpacity
+            key={`img-${item}-${i}`}
             activeOpacity={0.88}
             onPress={() =>
               navigation.navigate('FullImageScreen', {
                 imageUri: item,
                 images: images,
-                initialIndex: index,
-                onLoadMore: handleLoadMore
+                initialIndex: images.indexOf(item),
+                onLoadMore: handleLoadMore,
               })
             }
           >
             <Image source={{ uri: item }} style={styles.image} />
           </TouchableOpacity>
-        )}
+        ))}
+      </View>
+
+      {/* In-feed Native Ad after every 15 images */}
+      <View style={styles.adWrapper}>
+        <SqareAd />
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <FlatList
+        data={groups}
+        keyExtractor={(_, index) => `trending-group-${index}`}
+        renderItem={renderGroup}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        initialNumToRender={4}
+        ListHeaderComponent={renderHeader}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: CONTAINER_PAD, paddingBottom: scale(20) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.flashColor} />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
@@ -309,7 +329,6 @@ const TrendingScreen = () => {
             </View>
           ) : !hasMore && images.length > 0 ? (
             <View style={{ alignItems: 'center', marginVertical: scale(15) }}>
-              <ShortBanner />
               <Text style={styles.endText}>You're all caught up ✨</Text>
             </View>
           ) : null
@@ -577,6 +596,14 @@ const styles = StyleSheet.create({
     fontSize: scale(11.5),
     color: '#4B5563',
     fontWeight: '700',
+  },
+  gridRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  adWrapper: {
+    alignItems: 'center',
+    marginVertical: scale(8),
   },
   image: {
     width: IMAGE_WIDTH,

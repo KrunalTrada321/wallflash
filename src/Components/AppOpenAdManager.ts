@@ -29,8 +29,8 @@ export const APP_OPEN_AD_UNIT_ID = __DEV__
 
 const STORAGE_KEY_LAST_APP_OPEN_TIME = "@wallflash_last_app_open_ad_time";
 
-// Cooldown between App Open ads: 4 Hours (14,400,000 ms)
-export const APP_OPEN_COOLDOWN_MS = 4 * 60 * 60 * 1000;
+// Cooldown between App Open ads: 30 Minutes (1,800,000 ms) for high ARPU
+export const APP_OPEN_COOLDOWN_MS = 30 * 60 * 1000;
 
 // Google AdMob App Open ads expire after 4 hours from load time
 const AD_EXPIRY_MS = 3.9 * 60 * 60 * 1000;

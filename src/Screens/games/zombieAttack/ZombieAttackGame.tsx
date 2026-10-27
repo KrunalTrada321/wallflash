@@ -11,6 +11,7 @@ import {
   AppStateStatus,
   BackHandler,
   Animated,
+  Alert,
 } from 'react-native';
 import Svg, { G } from 'react-native-svg';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -224,7 +225,6 @@ export default function ZombieAttackGame() {
   const [unlockedLevel, setUnlockedLevel] = useState(1);
   const [levelStars, setLevelStars] = useState<Record<number, number>>({});
   const [levelScores, setLevelScores] = useState<Record<number, number>>({});
-  const [coins, setCoins] = useState(0);
 
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -321,7 +321,6 @@ export default function ZombieAttackGame() {
       setUnlockedLevel(prog.unlockedLevel);
       setLevelStars(prog.stars);
       setLevelScores(prog.scores);
-      setCoins(prog.coins);
       setSoundEnabled(prog.soundEnabled);
       setMusicEnabled(prog.musicEnabled);
       setHapticsEnabled(prog.hapticsEnabled);
@@ -437,16 +436,13 @@ export default function ZombieAttackGame() {
       }
 
       setEarnedStars(stars);
-      const levelWinCoins = 100 + stars * 50;
 
       ZombieStorageService.saveLevelWin(
         lvl.id,
         stars,
-        scoreRef.current + 500,
-        levelWinCoins
+        scoreRef.current + 500
       ).then(res => {
         setUnlockedLevel(res.newUnlockedLevel);
-        setCoins(res.totalCoins);
       });
 
       setIsVictoryOpen(true);
@@ -824,7 +820,6 @@ export default function ZombieAttackGame() {
             levelId={currentLevel.id}
             stars={earnedStars}
             score={score}
-            coinsEarned={100 + earnedStars * 50}
             onNextLevel={handleNextLevel}
             onRetry={() => {
               showNaturalAd(() => {

@@ -17,10 +17,9 @@ import { scale } from "react-native-size-matters";
 
 const AD_UNIT_ID = "ca-app-pub-7105708210867722/8647662693";
 
-// ── Default safe heights per size (dp) ────────────────────────────────────────
-//  These are the standard IAB ad heights. Keeping the container at exactly
-//  these values prevents the ad from ever overflowing — no policy risk.
-const DEFAULT_HEIGHTS = {
+type BannerSizeType = 'adaptive' | 'inline' | 'banner' | 'large' | 'medium';
+
+const DEFAULT_HEIGHTS: Record<BannerSizeType, number> = {
   adaptive : scale(60),   // ANCHORED_ADAPTIVE_BANNER  ~50–60dp
   inline   : scale(60),   // INLINE_ADAPTIVE_BANNER    use explicit height prop if needed
   banner   : scale(50),   // classic 320×50
@@ -28,7 +27,7 @@ const DEFAULT_HEIGHTS = {
   medium   : scale(250),  // 300×250
 };
 
-const SIZE_MAP = {
+const SIZE_MAP: Record<BannerSizeType, BannerAdSize> = {
   adaptive : BannerAdSize.ANCHORED_ADAPTIVE_BANNER,
   inline   : BannerAdSize.INLINE_ADAPTIVE_BANNER,
   banner   : BannerAdSize.BANNER,
@@ -36,13 +35,20 @@ const SIZE_MAP = {
   medium   : BannerAdSize.MEDIUM_RECTANGLE,
 };
 
+interface GameBannerAdProps {
+  size?: BannerSizeType;
+  bottom?: boolean;
+  height?: number;
+  style?: any;
+}
+
 export default function GameBannerAd({
   size   = "adaptive",
   bottom = false,
-  height,           // optional override — pass a number (dp) to force exact height
+  height,
   style,
-}) {
-  const bannerRef = useRef(null);
+}: GameBannerAdProps) {
+  const bannerRef = useRef<any>(null);
   const adSize    = SIZE_MAP[size] ?? BannerAdSize.ANCHORED_ADAPTIVE_BANNER;
 
   // Use explicit height prop if given, otherwise fall back to safe default
@@ -84,6 +90,6 @@ const styles = StyleSheet.create({
   adClip: {
     width: "100%",
     alignItems: "center",
-    overflow: "hidden",   // ← clips the ad to the container height
+    justifyContent: "center",
   },
 });

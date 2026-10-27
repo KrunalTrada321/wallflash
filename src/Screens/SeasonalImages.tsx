@@ -6,16 +6,11 @@ import { fetchImagesFromFirestore } from '../API/ApiHelper';
 import { scale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
-import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { useGameInterstitialAd } from '../Components/Useinterstitialad';
 import LoaderKit from 'react-native-loader-kit';
 import LottieView from "lottie-react-native";
 import ShortBanner from '../Components/ShortBanner';
 import Back from '../Components/Back';
-
-
-// 🔹 AdMob Rewarded Ad (Use Test ID for testing)
-const adUnitId = "ca-app-pub-7105708210867722/6181117151";
-const rewardedAd = RewardedAd.createForAdRequest(adUnitId);
 
 // 🔹 Screen width for responsive image sizes
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -23,41 +18,15 @@ const IMAGE_WIDTH = SCREEN_WIDTH / 3 - 10;
 const PAGE_SIZE = 12;
 
 const SeasonalImages = () => {
-  const [allImages, setAllImages] = useState([]);
-  const [images, setImages] = useState([]);
+  const [allImages, setAllImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
-  const [rewardedLoaded, setRewardedLoaded] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const navigation = useNavigation();
-
-
-
-  useEffect(() => {
-    const unsubscribeLoaded = rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
-      console.log("✅ Rewarded Ad Loaded Successfully");
-      setRewardedLoaded(true);
-    });
-
-    const unsubscribeEarned = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      if (selectedImage) {
-        navigation.navigate('FullImageScreen', { imageUri: selectedImage });
-        setSelectedImage(null);
-      }
-      setRewardedLoaded(false); // Reset loading state
-      rewardedAd.load(); // Load a new ad
-    });
-
-    rewardedAd.load(); // Load ad when component mounts
-
-    return () => {
-      unsubscribeLoaded();
-      unsubscribeEarned();
-    };
-  }, []);
+  const navigation = useNavigation<any>();
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 40 });
 
 
   // 🔹 Check Internet Connection
@@ -187,30 +156,14 @@ const SeasonalImages = () => {
 
 
   const handleImagePress = (imageUri: string) => {
-    setSelectedImage(imageUri);
-
-    if (rewardedLoaded) {
-      navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
-      rewardedAd.show().then(() => rewardedAd.load()) // Reload the ad after showing
-        .catch((error) => {
-          console.log("⚠️ Failed to show ad:", error);
-          navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
-          rewardedAd.load(); // Reload the ad in case of failure
-        });
-    } else {
-      console.log("⚠️ Ad not loaded yet, loading now...");
-      rewardedAd.load(); // Load the ad and wait for the next attempt
-      setTimeout(() => {
-        if (rewardedLoaded) {
-          rewardedAd.show()
-            .then(() => rewardedAd.load())
-            .catch(() => navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore }));
-        } else {
-          console.log("⚠️ Ad still not loaded, navigating directly.");
-          navigation.navigate('FullImageScreen', { imageUri, images: images, initialIndex: images.indexOf(imageUri), onLoadMore: handleLoadMore });
-        }
-      }, 3000); // Wait 3 seconds before retrying
-    }
+    showNaturalAd(() => {
+      navigation.navigate('FullImageScreen', {
+        imageUri,
+        images: images,
+        initialIndex: images.indexOf(imageUri),
+        onLoadMore: handleLoadMore,
+      });
+    });
   };
 
 
@@ -270,15 +223,7 @@ const SeasonalImages = () => {
 
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={() => {
-                if (rewardedLoaded) {
-                  handleImagePress(item); // Show Ad if ready
-                } else {
-                  console.log("⚠️ Ad not ready, navigating directly.");
-                  navigation.navigate('FullImageScreen', { imageUri: item, images: images, initialIndex: images.indexOf(item), onLoadMore: handleLoadMore }); // Navigate without Ad
-                  rewardedAd.load(); // Load the ad for next time
-                }
-              }}
+              onPress={() => handleImagePress(item)}
             >
               <Image source={{ uri: item }} style={styles.image} />
             </TouchableOpacity>

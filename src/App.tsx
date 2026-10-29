@@ -28,6 +28,7 @@ import messaging from "@react-native-firebase/messaging";
 import notifee, { AndroidImportance, AndroidStyle, EventType } from '@notifee/react-native';
 import { initRewardedPremiumAd } from './Components/RewardedPremiumAd';
 import { AppOpenAdManager } from './Components/AppOpenAdManager';
+import mobileAds from 'react-native-google-mobile-ads';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const App = () => {
@@ -106,6 +107,16 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    // Initialize Google Mobile Ads & Mediation Adapters (Unity Ads, Meta, etc.)
+    mobileAds()
+      .initialize()
+      .then(adapterStatuses => {
+        console.log('✅ AdMob Mediation Adapters Ready:', adapterStatuses);
+      })
+      .catch(err => {
+        console.warn('⚠️ AdMob Mediation Init Warning:', err);
+      });
+
     // Initialize App Open Ad Manager (listens for background -> foreground resume)
     AppOpenAdManager.init();
 

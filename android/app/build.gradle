@@ -151,8 +151,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion 36
         missingDimensionStrategy "store", "play"
-        versionCode 42 
-        versionName "1.42"   
+        versionCode 43 
+        versionName "1.43"   
          
         // ✅ Only build ABIs you need 
         ndk {
@@ -194,6 +194,13 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force "androidx.work:work-runtime:2.8.1"
+        force "androidx.work:work-runtime-ktx:2.8.1"
+    }
+}
+
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
@@ -211,6 +218,10 @@ dependencies {
 
     // Meta Audience Network (Facebook Ads) Mediation Adapter for AdMob Bidding
     implementation 'com.google.ads.mediation:facebook:6.18.0.0'
+
+    // Unity Ads SDK & AdMob Mediation Adapter (matches play-services-ads 23.x and Kotlin 1.9)
+    implementation 'com.unity3d.ads:unity-ads:4.12.5'
+    implementation 'com.google.ads.mediation:unity:4.12.5.0'
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")

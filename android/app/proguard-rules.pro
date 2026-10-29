@@ -78,3 +78,17 @@
 -dontwarn okio.**
 -dontwarn javax.annotation.**
 -keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
+
+# -----------------------------------------------------------------------------
+# Unity Ads & Mediation Adapter
+# -----------------------------------------------------------------------------
+-keepattributes SourceFile,LineNumberTable
+-keepattributes JavascriptInterface
+-keep class android.webkit.JavascriptInterface { *; }
+
+-keep class com.unity3d.ads.** { *; }
+-keep class com.unity3d.services.** { *; }
+
+-dontwarn com.unity3d.ads.**
+-dontwarn com.unity3d.services.**
+-dontwarn com.google.ar.core.**

@@ -44,8 +44,6 @@ const CustomDrawerContent = (props) => {
     }
   };
 
-
-
   return (
     <View style={{ flex: 1 }}>
       {/* Top Section - Add Logo or Profile Image */}
@@ -109,8 +107,6 @@ const CustomDrawerContent = (props) => {
             <Feather name="share-2" size={24} color={colors.white} />
             <Text style={styles.drawerText}>Share This App</Text>
           </TouchableOpacity>
-
-
         </View>
 
         {/* <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('LeadScreen')}> 

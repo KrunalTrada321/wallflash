@@ -277,7 +277,22 @@ const App = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.primary }}>
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer
+        ref={navigationRef}
+        onStateChange={() => {
+          try {
+            const currentRoute = navigationRef.getCurrentRoute();
+            const routeName = currentRoute?.name;
+            const isGame =
+              routeName === 'ZombieAttack' ||
+              routeName === 'TwinsConnect' ||
+              routeName === 'StickmanHook';
+            AppOpenAdManager.setGameActive(isGame);
+          } catch {
+            // safe fallback
+          }
+        }}
+      >
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.primary }}>
           <StatusBar
             backgroundColor="transparent"

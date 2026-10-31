@@ -15,6 +15,7 @@ import SeasonalImages from '../Screens/SeasonalImages';
 import PrimeCategories from '../Screens/PrimeCategories';
 import TwinsConnect from '../Screens/games/TwinsConnect';
 import ZombieAttackGame from '../Screens/games/zombieAttack/ZombieAttackGame';
+import StickmanHookGame from '../Screens/games/stickmanHook/StickmanHookGame';
 
 const Stack = createStackNavigator();
 
@@ -87,6 +88,14 @@ const StackNav = () => {
                     },
                 }} />
             <Stack.Screen name="ZombieAttack" component={ZombieAttackGame}
+                options={{
+                    animation: 'fade',
+                    transitionSpec: {
+                        open: { animation: 'timing', config: { duration: 400 } },
+                        close: { animation: 'timing', config: { duration: 400 } },
+                    },
+                }} />
+            <Stack.Screen name="StickmanHook" component={StickmanHookGame}
                 options={{
                     animation: 'fade',
                     transitionSpec: {

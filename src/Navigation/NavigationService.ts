@@ -58,6 +58,13 @@ export function navigateFromNotification(screenInput?: string, params?: any) {
         normalized === 'primescreen'
       ) {
         navigationRef.navigate('WallFlash', { screen: 'Premium' });
+      } else if (
+        normalized === 'stickmanhook' ||
+        normalized === 'stickman_hook' ||
+        normalized === 'stickman-hook' ||
+        normalized === 'hook'
+      ) {
+        navigationRef.navigate('StickmanHook', params);
       } else {
         // Fallback: direct navigation to Stack screen (e.g. ZombieAttack, FullImageScreen, etc.)
         navigationRef.navigate(screenInput, params);

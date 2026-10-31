@@ -80,6 +80,8 @@ class SoundModule(private val reactContext: ReactApplicationContext) : ReactCont
             loadSound("like", R.raw.tc_like)
             loadSound("premium", R.raw.tc_premium)
             loadSound("headshot", R.raw.tc_headshot)
+            loadSound("coin", R.raw.tc_star)
+            loadSound("star", R.raw.tc_star)
         } catch (e: Exception) {
             Log.e("SoundModule", "Failed to initialize SoundPool: ${e.message}", e)
         }

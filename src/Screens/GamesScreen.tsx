@@ -12,6 +12,7 @@ import {
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { scale } from 'react-native-size-matters';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../Styling/colors';
 import ShortBanner from '../Components/ShortBanner';
 import LinearGradient from 'react-native-linear-gradient';
@@ -23,6 +24,8 @@ export default function GamesScreen() {
 
   const [twinsLevel, setTwinsLevel] = useState(1);
   const [zombieLevel, setZombieLevel] = useState(1);
+  const [hookLevel, setHookLevel] = useState(1);
+  const [hookStars, setHookStars] = useState(0);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -36,6 +39,11 @@ export default function GamesScreen() {
           setZombieLevel(parseInt(lvl, 10));
         }
       });
+      AsyncStorage.getItem('@stickman_hook_unlocked_level').then(lvl => {
+        if (lvl) {
+          setHookLevel(parseInt(lvl, 10));
+        }
+      });
     }, [])
   );
 
@@ -45,34 +53,48 @@ export default function GamesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- Game 1: Twins Connect --- */}
+        {/* --- Game 1: Stickman Hook: Swing Hero (#1 Featured) --- */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.cardContainer}
-          onPress={() => navigation.navigate('TwinsConnect')}
+          onPress={() => navigation.navigate('StickmanHook')}
         >
           <ImageBackground
-            source={require('../assets/game/twins_connect.jpg')}
+            source={require('../assets/game/stickman_hook.jpg')}
             style={styles.imageBg}
             imageStyle={{ borderRadius: scale(20) }}
           >
+            {/* Top Badge Row */}
+            <View style={styles.cardTopBadgeRow}>
+              <View style={styles.hotBadge}>
+                <Text style={styles.hotBadgeText}>🔥 VIRAL ARCADE</Text>
+              </View>
+              <View style={styles.chapterBadge}>
+                <Text style={styles.chapterBadgeText}>🪝 50 LEVELS • 4 POWER-UPS</Text>
+              </View>
+            </View>
+
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,1)']}
+              colors={['transparent', 'rgba(15, 23, 42, 0.7)', 'rgba(2, 6, 23, 0.98)']}
               style={styles.gradient}
             >
               <View style={styles.contentWrapper}>
-                <Text style={styles.gameTitle}>Twins Connect</Text>
+                <Text style={styles.gameTitle}>Stickman Hook: Swing Hero</Text>
+                <Text style={styles.gameSubtitle}>Acrobatic Swings, Flips, Trampolines & Jetpacks</Text>
 
                 <View style={styles.progressRow}>
                   <View style={styles.progressTrack}>
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${Math.min(100, (twinsLevel / 50) * 100)}%` },
+                        {
+                          width: `${Math.min(100, (hookLevel / 50) * 100)}%`,
+                          backgroundColor: '#FACC15',
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.levelText}>Level {twinsLevel} / 50</Text>
+                  <Text style={styles.levelText}>Level {hookLevel} / 50</Text>
                 </View>
               </View>
             </LinearGradient>
@@ -90,12 +112,22 @@ export default function GamesScreen() {
             style={styles.imageBg}
             imageStyle={{ borderRadius: scale(20) }}
           >
+            <View style={styles.cardTopBadgeRow}>
+              <View style={[styles.hotBadge, { borderColor: '#84CC16', backgroundColor: 'rgba(132, 204, 22, 0.25)' }]}>
+                <Text style={[styles.hotBadgeText, { color: '#BEF264' }]}>🎯 60 FPS GPU</Text>
+              </View>
+              <View style={[styles.chapterBadge, { borderColor: '#F97316', backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}>
+                <Text style={[styles.chapterBadgeText, { color: '#FDBA74' }]}>🧟 50 SURVIVAL LEVELS</Text>
+              </View>
+            </View>
+
             <LinearGradient
-              colors={['transparent', 'rgba(15, 23, 42, 0.75)', 'rgba(2, 6, 23, 0.98)']}
+              colors={['transparent', 'rgba(15, 23, 42, 0.7)', 'rgba(2, 6, 23, 0.98)']}
               style={styles.gradient}
             >
               <View style={styles.contentWrapper}>
                 <Text style={styles.gameTitle}>Zombie Stickman Archer</Text>
+                <Text style={styles.gameSubtitle}>Physics Archery, Slingshot Trajectory & TNT</Text>
 
                 <View style={styles.progressRow}>
                   <View style={styles.progressTrack}>
@@ -116,6 +148,40 @@ export default function GamesScreen() {
           </ImageBackground>
         </TouchableOpacity>
 
+        {/* --- Game 3: Twins Connect --- */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.cardContainer}
+          onPress={() => navigation.navigate('TwinsConnect')}
+        >
+          <ImageBackground
+            source={require('../assets/game/twins_connect.jpg')}
+            style={styles.imageBg}
+            imageStyle={{ borderRadius: scale(20) }}
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.98)']}
+              style={styles.gradient}
+            >
+              <View style={styles.contentWrapper}>
+                <Text style={styles.gameTitle}>Twins Connect</Text>
+                <Text style={styles.gameSubtitle}>Tile Matching & Brain Puzzle</Text>
+
+                <View style={styles.progressRow}>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${Math.min(100, (twinsLevel / 50) * 100)}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.levelText}>Level {twinsLevel} / 50</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
 
         <View style={{ alignItems: 'center', marginTop: scale(15) }}>
           <ShortBanner />
@@ -149,6 +215,100 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 6,
   },
+  hookCard: {
+    width: '100%',
+    height: '100%',
+    borderRadius: scale(20),
+    justifyContent: 'space-between',
+    padding: scale(14),
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+  },
+  cardTopBadgeRow: {
+    position: 'absolute',
+    top: scale(14),
+    left: scale(14),
+    right: scale(14),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  hookHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hotBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(3),
+    borderRadius: scale(12),
+  },
+  hotBadgeText: {
+    color: '#FCA5A5',
+    fontSize: scale(10),
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  chapterBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(3),
+    borderRadius: scale(12),
+  },
+  chapterBadgeText: {
+    color: '#38BDF8',
+    fontSize: scale(10),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  hookDecorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    marginVertical: scale(4),
+    paddingLeft: scale(4),
+  },
+  decorPin: {
+    width: scale(24),
+    height: scale(24),
+    borderRadius: scale(12),
+    backgroundColor: '#1E293B',
+    borderWidth: 2,
+    borderColor: '#FACC15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  decorPinInner: {
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
+    backgroundColor: '#FACC15',
+  },
+  decorLine: {
+    width: scale(32),
+    height: scale(2),
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  decorStickman: {
+    width: scale(18),
+    height: scale(24),
+    borderRadius: scale(9),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  decorStickmanHead: {
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
+    backgroundColor: '#FFF',
+    marginBottom: scale(2),
+  },
   imageBg: {
     width: '100%',
     height: '100%',
@@ -161,32 +321,24 @@ const styles = StyleSheet.create({
     borderRadius: scale(20),
   },
   contentWrapper: {
-    padding: scale(18),
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: scale(4),
-  },
-  newBadge: {
-    borderWidth: 1,
-    borderRadius: scale(12),
-    paddingHorizontal: scale(8),
-    paddingVertical: scale(2),
-  },
-  newBadgeText: {
-    color: '#F0F9FF',
-    fontSize: scale(9),
-    fontWeight: '800',
-    letterSpacing: 0.6,
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(16),
+    paddingTop: scale(8),
   },
   gameTitle: {
     color: '#FFF',
-    fontSize: scale(22),
+    fontSize: scale(20),
     fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    marginBottom: scale(8),
+    textShadowRadius: 6,
+    marginBottom: scale(3),
+  },
+  gameSubtitle: {
+    color: '#CBD5E1',
+    fontSize: scale(11.5),
+    fontWeight: '600',
+    marginBottom: scale(10),
   },
   progressRow: {
     flexDirection: 'row',

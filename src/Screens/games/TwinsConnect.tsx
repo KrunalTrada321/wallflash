@@ -10,13 +10,14 @@ import {
   ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { scale } from 'react-native-size-matters';
 import Svg, { Path, Circle } from 'react-native-svg';
 import LinearGradient from 'react-native-linear-gradient';
 import GameSound from '../../Utils/GameSoundEffects';
 import { useGameInterstitialAd } from '../../Components/Useinterstitialad';
+import { AppOpenAdManager } from '../../Components/AppOpenAdManager';
 
 const TOTAL_LEVELS = 50;
 
@@ -166,6 +167,16 @@ export default function TwinsConnect() {
   const activeEmojiRef = useRef<string | null>(null);
   const gridLayout = useRef({ px: 0, py: 0 });
   const gridRef = useRef<View>(null);
+
+  // Suppress App Open ads whenever Twins Connect is active/focused
+  useFocusEffect(
+    React.useCallback(() => {
+      AppOpenAdManager.setGameActive(true);
+      return () => {
+        AppOpenAdManager.setGameActive(false);
+      };
+    }, [])
+  );
 
   useEffect(() => {
     const unsubscribe = GameSound.subscribe(muted => {

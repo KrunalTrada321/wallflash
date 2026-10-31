@@ -14,6 +14,7 @@ import { AppState, AppStateStatus } from "react-native";
 import { AppOpenAd, TestIds, AdEventType } from "react-native-google-mobile-ads";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { checkIsPremiumUser } from "./Useinterstitialad";
+import { navigationRef } from "../Navigation/NavigationService";
 
 /**
  * ⚠️ REPLACE THIS ID with your AdMob App Open Ad Unit ID from your AdMob Console!
@@ -43,6 +44,39 @@ class AppOpenAdService {
   private adLoadedTimestamp: number = 0;
   private appStateSubscription: any = null;
   private isInitialized: boolean = false;
+  private isGameActive: boolean = false;
+
+  /**
+   * Set whether a game is currently being played.
+   * When true, all App Open ads are strictly suppressed.
+   */
+  public setGameActive(active: boolean) {
+    this.isGameActive = active;
+    console.log(`[AppOpenAd] Game active status: ${active}`);
+  }
+
+  /**
+   * Checks whether the user is actively playing a game or on a game screen.
+   */
+  public isPlayingGame(): boolean {
+    if (this.isGameActive) return true;
+    try {
+      if (navigationRef && navigationRef.isReady()) {
+        const currentRoute = navigationRef.getCurrentRoute();
+        const routeName = currentRoute?.name;
+        if (
+          routeName === 'ZombieAttack' ||
+          routeName === 'TwinsConnect' ||
+          routeName === 'StickmanHook'
+        ) {
+          return true;
+        }
+      }
+    } catch {
+      // safe fallback
+    }
+    return false;
+  }
 
   /**
    * Initialize the App Open Ad Manager
@@ -155,6 +189,11 @@ class AppOpenAdService {
    * Shows an App Open ad on cold start (after splash screen hides)
    */
   public async tryShowColdStartAd(): Promise<boolean> {
+    if (this.isPlayingGame()) {
+      console.log("[AppOpenAd] User is in game. Suppressing cold start ad.");
+      return false;
+    }
+
     const isPremium = await checkIsPremiumUser();
     if (isPremium) {
       console.log("[AppOpenAd] User is premium. Skipping App Open Ad.");
@@ -174,6 +213,11 @@ class AppOpenAdService {
    * Shows an App Open ad when resuming from background
    */
   public async tryShowResumeAd(): Promise<boolean> {
+    if (this.isPlayingGame()) {
+      console.log("[AppOpenAd] User is in game. Suppressing resume ad.");
+      return false;
+    }
+
     const isPremium = await checkIsPremiumUser();
     if (isPremium) return false;
 
@@ -187,6 +231,11 @@ class AppOpenAdService {
    * Core display logic
    */
   public async showAd(): Promise<boolean> {
+    if (this.isPlayingGame()) {
+      console.log("[AppOpenAd] User is playing a game. Suppressing App Open Ad.");
+      return false;
+    }
+
     if (this.isShowingAd) return false;
 
     // Check if loaded ad is expired (Google requires ads older than 4h to be discarded)

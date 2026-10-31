@@ -267,13 +267,12 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
 
   // 5. Enforce Finite Arrow Limits with Difficulty Scaling:
   // Early levels (1-10): Generous surplus (+4 to +5) for learning
-  // Mid levels (11-30): Balanced surplus (+3)
-  // Late levels (31-50): Tight limit (+2) requiring skill, ricochets & headshots
+  // Mid & Late levels (11-50): Balanced surplus (+3) ensuring challenging but fair gameplay
   const totalZombieHitsNeeded = zombies.reduce((acc, z) => {
     return acc + (z.health ?? 1);
   }, 0);
 
-  const surplusArrows = levelId <= 10 ? 4 : levelId <= 30 ? 3 : 2;
+  const surplusArrows = levelId <= 10 ? 4 : 3;
 
   const computedArrowLimit = Math.max(
     typeof raw.arrowLimit === 'number' && raw.arrowLimit > 0 ? raw.arrowLimit : 0,

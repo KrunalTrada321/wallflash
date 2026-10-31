@@ -48,9 +48,31 @@ import {
   PauseModal,
   LevelSelectModal,
 } from './components/GameModals';
+import ZombieSkiaCanvas from './components/ZombieSkiaCanvas';
 import { ZombieStorageService } from './services/zombieStorage';
 import ZombieAudio from './services/zombieAudio';
 import { useGameInterstitialAd } from '../../../Components/Useinterstitialad';
+import { AppOpenAdManager } from '../../../Components/AppOpenAdManager';
+
+// ── Resilient GPU Error Boundary ─────────────────────────────────────────────
+class CanvasErrorBoundary extends React.Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any) {
+    console.warn('[ZombieAttack] Skia canvas notice, utilizing SVG fallback:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface RenderFrameState {
   cameraX: number;
@@ -150,6 +172,9 @@ export default function ZombieAttackGame() {
   // --- Responsive Orientation Handling (Locks landscape for mobile phones, unrestricted for tablets) ---
   useFocusEffect(
     useCallback(() => {
+      // Suppress App Open ads whenever Zombie Attack game is active/focused
+      AppOpenAdManager.setGameActive(true);
+
       if (!DeviceInfo.isTablet()) {
         Orientation.lockToLandscape();
       } else {
@@ -166,6 +191,7 @@ export default function ZombieAttackGame() {
       Orientation.addOrientationListener(onOrientationChange);
 
       return () => {
+        AppOpenAdManager.setGameActive(false);
         Orientation.removeOrientationListener(onOrientationChange);
         if (!DeviceInfo.isTablet()) {
           Orientation.lockToPortrait();
@@ -510,8 +536,8 @@ export default function ZombieAttackGame() {
           if (d < nearestDist) nearestDist = d;
         }
 
-        // 33ms Frame Gate (~30 FPS for React renders) — Physics still runs at 60 FPS
-        if (now - lastRenderTime >= 33) {
+        // 16ms Frame Gate (60-120 FPS buttery-smooth GPU frame loop)
+        if (now - lastRenderTime >= 16) {
           lastRenderTime = now;
           const aim = aimRef.current;
           setFrame({
@@ -764,52 +790,79 @@ export default function ZombieAttackGame() {
               canvasLayoutRef.current = { x, y, width, height };
             }}
           >
-            <Svg
-              width={screenWidth}
-              height={screenHeight}
-              viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+            <CanvasErrorBoundary
+              fallback={
+                <Svg
+                  width={screenWidth}
+                  height={screenHeight}
+                  viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+                >
+                  <G transform={`translate(${-frame.cameraX}, 0)`}>
+                    <StaticEnvironment
+                      worldWidth={currentLevel.worldWidth}
+                      worldHeight={currentLevel.worldHeight}
+                      platforms={currentLevel.platforms}
+                      weather={currentLevel.weather}
+                    />
+
+                    <DynamicObstacles
+                      obstacles={frame.obstacles}
+                      movingPlatforms={frame.movingPlatforms}
+                    />
+
+                    <PlayerArcher
+                      x={currentLevel.playerPos.x}
+                      y={currentLevel.playerPos.y}
+                      aimAngle={frame.aimAngle}
+                      pullDistance={frame.pullDistance}
+                      isAiming={frame.isAiming}
+                      weaponType={selectedArrowType}
+                      isVictorious={isVictoryOpen}
+                      isDefeated={isDefeatOpen}
+                      nearestZombieDist={frame.nearestZombieDist}
+                    />
+
+                    {frame.zombies.map(z => (
+                      <ZombieCharacter key={`zombie_${z.id}`} zombie={z} />
+                    ))}
+
+                    <ProjectilesAndEffects
+                      arrows={frame.arrows}
+                      trajectory={frame.trajectory}
+                      isAiming={frame.isAiming}
+                      arrowType={selectedArrowType}
+                      particles={frame.particles}
+                      floatTexts={frame.floatTexts}
+                      zombies={frame.zombies}
+                      playerPos={currentLevel.playerPos}
+                    />
+                  </G>
+                </Svg>
+              }
             >
-              <G transform={`translate(${-frame.cameraX}, 0)`}>
-                <StaticEnvironment
-                  worldWidth={currentLevel.worldWidth}
-                  worldHeight={currentLevel.worldHeight}
-                  platforms={currentLevel.platforms}
-                  weather={currentLevel.weather}
-                />
-
-                <DynamicObstacles
-                  obstacles={frame.obstacles}
-                  movingPlatforms={frame.movingPlatforms}
-                />
-
-                <PlayerArcher
-                  x={currentLevel.playerPos.x}
-                  y={currentLevel.playerPos.y}
-                  aimAngle={frame.aimAngle}
-                  pullDistance={frame.pullDistance}
-                  isAiming={frame.isAiming}
-                  weaponType={selectedArrowType}
-                  isVictorious={isVictoryOpen}
-                  isDefeated={isDefeatOpen}
-                  nearestZombieDist={frame.nearestZombieDist}
-                />
-
-                {frame.zombies.map(z => (
-                  <ZombieCharacter key={`zombie_${z.id}`} zombie={z} />
-                ))}
-
-                <ProjectilesAndEffects
-                  arrows={frame.arrows}
-                  trajectory={frame.trajectory}
-                  isAiming={frame.isAiming}
-                  arrowType={selectedArrowType}
-                  particles={frame.particles}
-                  floatTexts={frame.floatTexts}
-                  zombies={frame.zombies}
-                  playerPos={currentLevel.playerPos}
-                />
-              </G>
-            </Svg>
+              <ZombieSkiaCanvas
+                cameraX={frame.cameraX}
+                viewWidth={viewWidth}
+                viewHeight={viewHeight}
+                screenWidth={screenWidth}
+                screenHeight={screenHeight}
+                currentLevel={currentLevel}
+                aimAngle={frame.aimAngle}
+                pullDistance={frame.pullDistance}
+                isAiming={frame.isAiming}
+                selectedArrowType={selectedArrowType}
+                isVictorious={isVictoryOpen}
+                isDefeated={isDefeatOpen}
+                nearestZombieDist={frame.nearestZombieDist}
+                trajectory={frame.trajectory}
+                arrows={frame.arrows}
+                zombies={frame.zombies}
+                obstacles={frame.obstacles}
+                movingPlatforms={frame.movingPlatforms}
+                particles={frame.particles}
+                floatTexts={frame.floatTexts}
+              />
+            </CanvasErrorBoundary>
           </View>
         </GestureDetector>
 

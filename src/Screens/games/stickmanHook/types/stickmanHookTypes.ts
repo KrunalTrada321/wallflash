@@ -64,7 +64,7 @@ export interface PortalGate {
   cooldown?: number;
 }
 
-export type PowerUpType = 'jetpack' | 'slow_mo' | 'speed_boost' | 'magnet';
+export type PowerUpType = 'slow_mo' | 'speed_boost' | 'magnet';
 
 export interface PowerUpItem {
   id: string;
@@ -119,6 +119,40 @@ export interface LaserGate {
   active: boolean;
 }
 
+export interface BungeeWeb {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  launchVy?: number;
+  launchVx?: number;
+  tensionTime?: number;
+}
+
+export interface BreakableBarrier {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  minSpeed: number; // minimum velocity to smash through (e.g. 460)
+  broken?: boolean;
+  shatterTime?: number;
+}
+
+export interface WreckingBall {
+  id: string;
+  pivotX: number;
+  pivotY: number;
+  chainLength: number;
+  radius: number;
+  swingSpeed: number;
+  maxAngle: number;
+  currentX?: number;
+  currentY?: number;
+  angle?: number;
+}
+
 export interface StickmanSkin {
   id: string;
   name: string;
@@ -146,6 +180,9 @@ export interface HookLevelConfig {
   hazards?: HazardSaw[];
   windVents?: WindVent[];
   lasers?: LaserGate[];
+  bungeeWebs?: BungeeWeb[];
+  barriers?: BreakableBarrier[];
+  wreckingBalls?: WreckingBall[];
   stars?: CollectibleStar[];
   portals?: PortalGate[];
   powerUps?: PowerUpItem[];

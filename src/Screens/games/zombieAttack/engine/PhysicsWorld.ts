@@ -42,6 +42,7 @@ export class PhysicsWorld {
   public onZombieKilled?: (zombie: ZombieEntity, isHeadshot: boolean) => void;
   public onPlayerAttacked?: () => void;
   public onExplosionTriggered?: (x: number, y: number, radius: number) => void;
+  public slowMoTimer: number = 0;
 
   private nextArrowId: number = 1;
   private nextParticleId: number = 1;
@@ -128,9 +129,11 @@ export class PhysicsWorld {
     level.zombies.forEach(z => {
       const isGiant = z.type === 'giant' || z.type === 'boss';
       const isBoss = z.type === 'boss';
+      const isShield = z.type === 'shield';
+      const isWraith = z.type === 'wraith';
       // Widen regular zombie hitbox (44px) so edge arrows register reliably
-      const width = isBoss ? 68 : isGiant ? 52 : 44;
-      const height = isBoss ? 104 : isGiant ? 88 : 64;
+      const width = isBoss ? 68 : isGiant ? 52 : isShield ? 48 : isWraith ? 42 : 44;
+      const height = isBoss ? 104 : isGiant ? 88 : isShield ? 66 : isWraith ? 62 : 64;
 
       const baseHealth =
         z.health ??
@@ -138,7 +141,7 @@ export class PhysicsWorld {
           ? 10
           : z.type === 'giant'
           ? 4
-          : z.type === 'armored'
+          : z.type === 'armored' || isShield
           ? 2
           : 1);
 
@@ -152,6 +155,10 @@ export class PhysicsWorld {
           ? 2.4
           : isBoss
           ? 1.6
+          : isShield
+          ? 1.8
+          : isWraith
+          ? 2.6
           : 2.2);
 
       const body = Matter.Bodies.rectangle(z.x, z.y, width, height, {
@@ -188,6 +195,8 @@ export class PhysicsWorld {
         walkCycle: Math.random() * 10,
         width,
         height,
+        shieldHealth: isShield ? (z.shieldHealth ?? 2) : undefined,
+        teleportCooldown: 0,
         patrolMin: z.patrolMin,
         patrolMax: z.patrolMax,
         jumpCooldown: 0,
@@ -209,6 +218,19 @@ export class PhysicsWorld {
       } else if (o.type === 'rock') {
         isStatic = false;
         mass = 5;
+      } else if (o.type === 'boulder') {
+        isStatic = false;
+        mass = 18;
+        friction = 0.04;
+        restitution = 0.2;
+      } else if (o.type === 'ricochet_mirror') {
+        isStatic = true;
+        restitution = 1.0;
+        friction = 0.0;
+      } else if (o.type === 'acid_barrel') {
+        isStatic = false;
+        mass = 2.0;
+        friction = 0.6;
       } else if (o.type === 'tnt') {
         isStatic = false;
         mass = 1.5;
@@ -219,22 +241,40 @@ export class PhysicsWorld {
         isSensor = true;
       }
 
-      const body = Matter.Bodies.rectangle(o.x, o.y, o.width, o.height, {
-        isStatic,
-        isSensor,
-        restitution,
-        friction,
-        mass,
-        label: `obstacle:${o.id}`,
-        collisionFilter: {
-          category: isSensor ? COLLISION_CATEGORIES.TRIGGER : COLLISION_CATEGORIES.OBSTACLE,
-          mask:
-            COLLISION_CATEGORIES.TERRAIN |
-            COLLISION_CATEGORIES.ARROW |
-            COLLISION_CATEGORIES.ZOMBIE |
-            COLLISION_CATEGORIES.OBSTACLE,
-        },
-      });
+      const body =
+        o.type === 'boulder'
+          ? Matter.Bodies.circle(o.x, o.y, (o.width || 44) / 2, {
+              isStatic,
+              isSensor,
+              restitution,
+              friction,
+              mass,
+              label: `obstacle:${o.id}`,
+              collisionFilter: {
+                category: COLLISION_CATEGORIES.OBSTACLE,
+                mask:
+                  COLLISION_CATEGORIES.TERRAIN |
+                  COLLISION_CATEGORIES.ARROW |
+                  COLLISION_CATEGORIES.ZOMBIE |
+                  COLLISION_CATEGORIES.OBSTACLE,
+              },
+            })
+          : Matter.Bodies.rectangle(o.x, o.y, o.width, o.height, {
+              isStatic,
+              isSensor,
+              restitution,
+              friction,
+              mass,
+              label: `obstacle:${o.id}`,
+              collisionFilter: {
+                category: isSensor ? COLLISION_CATEGORIES.TRIGGER : COLLISION_CATEGORIES.OBSTACLE,
+                mask:
+                  COLLISION_CATEGORIES.TERRAIN |
+                  COLLISION_CATEGORIES.ARROW |
+                  COLLISION_CATEGORIES.ZOMBIE |
+                  COLLISION_CATEGORIES.OBSTACLE,
+              },
+            });
 
       Matter.World.add(this.world, body);
 
@@ -306,6 +346,37 @@ export class PhysicsWorld {
         }
       }
     }
+
+    // Rolling Boulder Hazard: Any zombie crushed by a moving boulder takes massive impact
+    const boulderObstacle = this.obstacles.find(
+      o => (o.body === bodyA || o.body === bodyB) && o.type === 'boulder'
+    );
+    if (boulderObstacle) {
+      const otherBody = bodyA === boulderObstacle.body ? bodyB : bodyA;
+      const otherLabel = otherBody.label || '';
+      if (otherLabel.startsWith('zombie:')) {
+        const boulderSpeed = Math.hypot(boulderObstacle.body.velocity.x, boulderObstacle.body.velocity.y);
+        if (boulderSpeed > 1.2) {
+          const zombieId = otherLabel.replace('zombie:', '');
+          const z = this.zombies.find(zm => zm.id === zombieId && zm.health > 0);
+          if (z) {
+            ZombieAudio.playBoulderCrush();
+            this.killZombie(z, false);
+            this.floatTexts.push({
+              id: this.nextFloatTextId++,
+              text: '🪨 CRUSHED! +300',
+              x: z.body.position.x,
+              y: z.body.position.y - 25,
+              vy: -2,
+              color: '#FACC15',
+              opacity: 1,
+              scale: 1.4,
+            });
+            return;
+          }
+        }
+      }
+    }
   }
 
   private handleArrowHit(arrowBody: Matter.Body, otherBody: Matter.Body) {
@@ -316,12 +387,49 @@ export class PhysicsWorld {
     const hitX = arrowBody.position.x;
     const hitY = arrowBody.position.y;
 
-    // Special Arrow Types Detonate Immediately on First Solid Impact!
-    if (arrow.arrowType === 'bomb') {
+    // Ice Arrow Detonates Immediately into Freeze Nova on First Solid Impact!
+    if (arrow.arrowType === 'ice') {
       Matter.World.remove(this.world, arrow.body);
       this.arrows = this.arrows.filter(a => a.id !== arrow.id);
-      this.triggerBombExplosion(hitX, hitY);
+      this.triggerFreezeNova(hitX, hitY);
       return;
+    }
+
+    // 0. Arrow hits Ricochet Mirror (Reflective crystal surface)
+    if (otherLabel.includes('ricochet_mirror')) {
+      const curVx = arrowBody.velocity.x;
+      const curVy = arrowBody.velocity.y;
+      const newVx = -curVx * 1.05;
+      const newVy = curVy * 1.02;
+      const newAngle = Math.atan2(newVy, newVx);
+      Matter.Body.setVelocity(arrow.body, { x: newVx, y: newVy });
+      Matter.Body.setAngle(arrow.body, newAngle);
+      arrow.angle = newAngle;
+      ZombieAudio.playRicochet();
+      this.spawnRicochetSparks(hitX, hitY, newAngle);
+      this.floatTexts.push({
+        id: this.nextFloatTextId++,
+        text: '🪞 RICOCHET! +100',
+        x: hitX,
+        y: hitY - 20,
+        vy: -1.6,
+        color: '#38BDF8',
+        opacity: 1,
+        scale: 1.25,
+      });
+      return;
+    }
+
+    // 0b. Arrow hits Acid Barrel
+    if (otherLabel.includes('acid_barrel')) {
+      const barrel = this.obstacles.find(o => o.body === otherBody);
+      if (barrel && !barrel.isTriggered) {
+        barrel.isTriggered = true;
+        Matter.World.remove(this.world, barrel.body);
+        this.lodgeArrow(arrow, otherBody);
+        this.triggerAcidExplosion(hitX, hitY);
+        return;
+      }
     }
 
     // 1. Arrow hits Zombie
@@ -335,6 +443,43 @@ export class PhysicsWorld {
           this.arrows = this.arrows.filter(a => a.id !== arrow.id);
           this.triggerIceShatter(zombie);
           return;
+        }
+
+        // Shield Zombie: Frontal hits bounce off shield!
+        if (zombie.type === 'shield' && !zombie.armorLost) {
+          const isFrontalHit =
+            (zombie.facingLeft && arrowBody.velocity.x > 0) ||
+            (!zombie.facingLeft && arrowBody.velocity.x < 0);
+          if (isFrontalHit) {
+            ZombieAudio.playShieldBlock();
+            this.spawnRicochetSparks(hitX, hitY, Math.PI);
+            zombie.shieldHealth = (zombie.shieldHealth ?? 2) - 1;
+            this.floatTexts.push({
+              id: this.nextFloatTextId++,
+              text: '🛡️ BLOCKED!',
+              x: hitX,
+              y: hitY - 20,
+              vy: -1.5,
+              color: '#94A3B8',
+              opacity: 1,
+              scale: 1.2,
+            });
+            if (zombie.shieldHealth <= 0) {
+              zombie.armorLost = true;
+              this.floatTexts.push({
+                id: this.nextFloatTextId++,
+                text: '🛡️ SHIELD BROKEN!',
+                x: hitX,
+                y: hitY - 35,
+                vy: -2,
+                color: '#EF4444',
+                opacity: 1,
+                scale: 1.3,
+              });
+            }
+            Matter.Body.setVelocity(arrow.body, { x: -arrowBody.velocity.x * 0.35, y: 5 });
+            return;
+          }
         }
 
         const zombieCenterY = zombie.body.position.y;
@@ -713,130 +858,48 @@ export class PhysicsWorld {
     }
   }
 
-  // Trigger Bomb Heavy Detonation Blast with rich visual shockwaves, fireballs, smoke & sound
-  public triggerBombExplosion(x: number, y: number) {
-    const radius = 135;
-    ZombieAudio.playBombBlast();
+  // Trigger Toxic Acid Barrel Explosion
+  public triggerAcidExplosion(x: number, y: number) {
+    ZombieAudio.playAcidExplosion();
+    const radius = 120;
 
-    if (this.onExplosionTriggered) {
-      this.onExplosionTriggered(x, y, radius);
-    }
-
-    // 1. High-Performance Single Core Expanding Shockwave
-    this.particles.push({
-      id: this.nextParticleId++,
-      x,
-      y,
-      vx: 0,
-      vy: 0,
-      color: '#FACC15',
-      size: 16,
-      opacity: 1,
-      life: 0,
-      maxLife: 14,
-      shape: 'shockwave',
-    });
-
-    // 2. High-energy explosive fireball puffs (compact, snappy)
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      const speed = Math.random() * 4.5 + 2.0;
-      const colors = ['#FEF08A', '#FACC15', '#F97316', '#EF4444'];
-      this.particles.push({
-        id: this.nextParticleId++,
-        x: x + (Math.random() - 0.5) * 8,
-        y: y + (Math.random() - 0.5) * 8,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.0,
-        color: colors[i % colors.length],
-        size: Math.random() * 8 + 8,
-        opacity: 0.95,
-        life: 0,
-        maxLife: Math.floor(Math.random() * 6 + 10),
-        shape: 'flame',
-      });
-    }
-
-    // 3. Compact smoke clouds
-    for (let i = 0; i < 4; i++) {
-      const angle = (i / 4) * Math.PI * 2;
-      const speed = Math.random() * 2 + 1;
-      const smokeColors = ['#334155', '#475569', '#64748B'];
-      this.particles.push({
-        id: this.nextParticleId++,
-        x: x + (Math.random() - 0.5) * 10,
-        y: y + (Math.random() - 0.5) * 10,
-        vx: Math.cos(angle) * speed * 0.7,
-        vy: -Math.random() * 1.8 - 0.6,
-        color: smokeColors[i % smokeColors.length],
-        size: Math.random() * 10 + 8,
-        opacity: 0.8,
-        life: 0,
-        maxLife: Math.floor(Math.random() * 8 + 12),
-        shape: 'smoke',
-      });
-    }
-
-    // 4. Snappy radial shrapnel sparks
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const speed = Math.random() * 6 + 3.0;
+    // Green toxic acid splash particles
+    for (let i = 0; i < 18; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4.5 + 1.5;
       this.particles.push({
         id: this.nextParticleId++,
         x,
         y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.8,
-        color: i % 2 === 0 ? '#FEF08A' : '#F97316',
-        size: Math.random() * 3 + 2,
+        vy: Math.sin(angle) * speed - 1.5,
+        color: Math.random() > 0.4 ? '#22C55E' : '#84CC16',
+        size: Math.random() * 5 + 3,
         opacity: 1,
         life: 0,
-        maxLife: Math.floor(Math.random() * 6 + 8),
-        shape: 'spark',
+        maxLife: 26,
+        shape: 'acid',
       });
     }
 
-    this.obstacles.forEach(o => {
-      const dist = Math.hypot(o.body.position.x - x, o.body.position.y - y);
-      if (dist < radius) {
-        if (o.type === 'tnt' && !o.isTriggered) {
-          o.isTriggered = true;
-          this.detonateTNT(o);
-        } else if (o.type === 'crate' && !o.isTriggered) {
-          o.isTriggered = true;
-          Matter.World.remove(this.world, o.body);
-        }
-      }
+    this.floatTexts.push({
+      id: this.nextFloatTextId++,
+      text: '🧪 TOXIC MELT! +250',
+      x,
+      y: y - 26,
+      vy: -1.8,
+      color: '#22C55E',
+      opacity: 1,
+      scale: 1.35,
     });
 
     this.zombies.forEach(z => {
       if (z.health <= 0) return;
-      const dx = z.body.position.x - x;
-      const dy = z.body.position.y - y;
-      const dist = Math.hypot(dx, dy);
+      const dist = Math.hypot(z.body.position.x - x, z.body.position.y - y);
       if (dist < radius) {
-        // Multi-layer enemy handling: each bomb strips 1 layer / deals 1 damage (like arrows)
-        let damage = 1;
-        if (z.type === 'armored' && !z.armorLost) {
-          z.armorLost = true;
-          damage = 1;
-          ZombieAudio.playArrowHitGround(); // Heavy helmet/armor clank
-        } else {
-          ZombieAudio.playArrowHitZombie(false);
-        }
-
-        z.health -= damage;
-        z.hitFlashTimer = 10;
-
-        // Controlled blast knockback push away from explosion center
-        const isBigZombie = z.type === 'boss' || z.type === 'giant';
-        const knockDir = dx >= 0 ? 1 : -1;
-        const forceMag = ((radius - dist) / radius) * (isBigZombie ? 0.025 : 0.045);
-        Matter.Body.applyForce(z.body, z.body.position, {
-          x: knockDir * forceMag,
-          y: -0.015,
-        });
-
+        z.armorLost = true; // Melts off armor & shield!
+        z.health -= 2;
+        z.hitFlashTimer = 8;
         if (z.health <= 0) {
           this.killZombie(z, false);
         }
@@ -850,6 +913,14 @@ export class PhysicsWorld {
     zombie.state = 'dead';
     if (!isHeadshot) {
       ZombieAudio.playZombieDefeat();
+    }
+
+    // Bullet-Time Kill Cam: Slow down on final kill or spectacular headshots!
+    const remainingLiving = this.zombies.filter(z => z.id !== zombie.id && z.health > 0).length;
+    if (remainingLiving === 0) {
+      this.slowMoTimer = 45;
+    } else if (isHeadshot) {
+      this.slowMoTimer = 18;
     }
 
     this.arrows
@@ -945,6 +1016,30 @@ export class PhysicsWorld {
     power: number,
     arrowType: ArrowType = 'regular'
   ): ArrowEntity {
+    if (arrowType === 'splitter') {
+      ZombieAudio.playSplitterLaunch();
+      const main = this.spawnArrowBody(startX, startY, angle, power, 'splitter');
+      this.spawnArrowBody(startX, startY, angle + 0.12, power * 0.98, 'splitter');
+      this.spawnArrowBody(startX, startY, angle - 0.12, power * 0.98, 'splitter');
+      return main;
+    }
+
+    if (arrowType === 'ice') {
+      ZombieAudio.playFreezeArrowLaunch();
+    } else {
+      ZombieAudio.playBowRelease();
+    }
+
+    return this.spawnArrowBody(startX, startY, angle, power, arrowType);
+  }
+
+  private spawnArrowBody(
+    startX: number,
+    startY: number,
+    angle: number,
+    power: number,
+    arrowType: ArrowType
+  ): ArrowEntity {
     // Arrow launch velocity matched with wide landscape trajectory
     const speed = Math.min(30, Math.max(10, power * 28));
     const vx = Math.cos(angle) * speed;
@@ -977,16 +1072,11 @@ export class PhysicsWorld {
       angle,
       trail: [],
       bounces: 0,
-      maxBounces: arrowType === 'bomb' ? 0 : 2,
+      maxBounces: arrowType === 'ice' ? 0 : 2,
       arrowType,
     };
 
     this.arrows.push(arrowEntity);
-    if (arrowType === 'bomb') {
-      ZombieAudio.playBombThrow();
-    } else {
-      ZombieAudio.playBowRelease();
-    }
 
     // Point-blank check: If a living zombie is standing right in front of the bow launch point,
     // trigger immediate direct hit so the arrow never misses or ghosts through at close range
@@ -1013,7 +1103,10 @@ export class PhysicsWorld {
 
   // Pure deterministic 60 FPS update
   public update() {
-    const fixedDt = 1000 / 60;
+    const fixedDt = this.slowMoTimer > 0 ? (1000 / 60) * 0.35 : 1000 / 60;
+    if (this.slowMoTimer > 0) {
+      this.slowMoTimer--;
+    }
     Matter.Engine.update(this.engine, fixedDt);
 
     // Update Moving Platforms
@@ -1047,38 +1140,37 @@ export class PhysicsWorld {
           arrow.angle = currentAngle;
         }
 
-        // Trailing fuse sizzle particles for thrown bomb in flight
-        if (arrow.arrowType === 'bomb') {
-          if (Math.random() < 0.7) {
-            // Sizzling spark from burning fuse
+        // Trailing particles for special arrows in flight
+        if (arrow.arrowType === 'ice') {
+          if (Math.random() < 0.6) {
             this.particles.push({
               id: this.nextParticleId++,
               x: arrow.body.position.x - Math.cos(arrow.angle) * 12,
               y: arrow.body.position.y - Math.sin(arrow.angle) * 12,
-              vx: (Math.random() - 0.5) * 1.5,
-              vy: (Math.random() - 0.5) * 1.5 - 0.4,
-              color: Math.random() > 0.4 ? '#FDE047' : '#F97316',
+              vx: (Math.random() - 0.5) * 1.0,
+              vy: (Math.random() - 0.5) * 1.0 - 0.2,
+              color: Math.random() > 0.4 ? '#38BDF8' : '#BAE6FD',
               size: Math.random() * 2.5 + 2,
-              opacity: 0.95,
+              opacity: 0.9,
               life: 0,
               maxLife: 10,
-              shape: 'spark',
+              shape: 'ice',
             });
           }
-          if (Math.random() < 0.45) {
-            // Wisp of fuse smoke trailing behind
+        } else if (arrow.arrowType === 'splitter') {
+          if (Math.random() < 0.5) {
             this.particles.push({
               id: this.nextParticleId++,
-              x: arrow.body.position.x - Math.cos(arrow.angle) * 14,
-              y: arrow.body.position.y - Math.sin(arrow.angle) * 14,
+              x: arrow.body.position.x - Math.cos(arrow.angle) * 10,
+              y: arrow.body.position.y - Math.sin(arrow.angle) * 10,
               vx: (Math.random() - 0.5) * 0.8,
-              vy: -Math.random() * 0.8 - 0.3,
-              color: '#64748B',
-              size: Math.random() * 3 + 2.5,
-              opacity: 0.7,
+              vy: (Math.random() - 0.5) * 0.8,
+              color: '#34D399',
+              size: 2,
+              opacity: 0.8,
               life: 0,
-              maxLife: 14,
-              shape: 'smoke',
+              maxLife: 8,
+              shape: 'circle',
             });
           }
         }
@@ -1213,6 +1305,58 @@ export class PhysicsWorld {
         this.floatTexts.splice(i, 1);
       }
     }
+
+    // Update Wraith Teleportation AI (Shadow phase when arrows come near)
+    this.zombies.forEach(z => {
+      if (z.health <= 0 || z.type !== 'wraith') return;
+      if (z.teleportCooldown && z.teleportCooldown > 0) {
+        z.teleportCooldown--;
+      }
+      if (!z.teleportCooldown || z.teleportCooldown <= 0) {
+        const zx = z.body.position.x;
+        const zy = z.body.position.y;
+        const incomingArrow = this.arrows.find(a => {
+          if (!a.inFlight || a.stuck) return false;
+          const dist = Math.hypot(a.body.position.x - zx, a.body.position.y - zy);
+          return dist < 120;
+        });
+        if (incomingArrow) {
+          z.teleportCooldown = 180; // 3 second cooldown
+          ZombieAudio.playWraithTeleport();
+          const shiftX = z.facingLeft ? 80 : -80;
+          const nextX = Math.max(180, Math.min(this.level.worldWidth - 50, zx + shiftX));
+          Matter.Body.setPosition(z.body, { x: nextX, y: zy });
+
+          // Purple smoke burst
+          for (let i = 0; i < 10; i++) {
+            this.particles.push({
+              id: this.nextParticleId++,
+              x: zx,
+              y: zy,
+              vx: (Math.random() - 0.5) * 3,
+              vy: (Math.random() - 0.5) * 3,
+              color: '#C084FC',
+              size: Math.random() * 4 + 2,
+              opacity: 1,
+              life: 0,
+              maxLife: 18,
+              shape: 'smoke',
+            });
+          }
+
+          this.floatTexts.push({
+            id: this.nextFloatTextId++,
+            text: '👻 TELEPORT!',
+            x: nextX,
+            y: zy - 26,
+            vy: -1.6,
+            color: '#C084FC',
+            opacity: 1,
+            scale: 1.25,
+          });
+        }
+      }
+    });
 
     // Update Zombies
     this.updateZombies();
@@ -1921,7 +2065,7 @@ export class PhysicsWorld {
     let curX = startX;
     let curY = startY;
     let bounces = 0;
-    const maxBounces = arrowType === 'bomb' ? 0 : 2;
+    const maxBounces = arrowType === 'ice' ? 0 : 2;
 
     for (let step = 0; step < maxSteps; step++) {
       vx += windAcc;

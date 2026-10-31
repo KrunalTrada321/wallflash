@@ -54,7 +54,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         >
           {/* Header Trophy */}
           <View style={styles.trophyWrapper}>
-            <Ionicons name="trophy" size={scale(36)} color="#FACC15" />
+            <Ionicons name="trophy" size={scale(24)} color="#FACC15" />
           </View>
 
           <Text style={styles.victoryTitle}>LEVEL {levelId} COMPLETE!</Text>
@@ -66,9 +66,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               <Ionicons
                 key={s}
                 name={s <= stars ? 'star' : 'star-outline'}
-                size={scale(32)}
+                size={scale(22)}
                 color={s <= stars ? '#FACC15' : '#475569'}
-                style={{ marginHorizontal: scale(4) }}
+                style={{ marginHorizontal: scale(3) }}
               />
             ))}
           </View>
@@ -157,7 +157,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           <View style={[styles.trophyWrapper, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
             <Ionicons
               name={reason === 'hazard' ? 'flash-outline' : 'trending-down-outline'}
-              size={scale(36)}
+              size={scale(24)}
               color="#EF4444"
             />
           </View>
@@ -406,71 +406,72 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: scale(340),
-    borderRadius: scale(22),
+    maxWidth: scale(360),
+    borderRadius: scale(18),
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(56, 189, 248, 0.3)',
     elevation: 20,
   },
   modalGradient: {
-    padding: scale(20),
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(16),
     alignItems: 'center',
   },
   trophyWrapper: {
-    width: scale(64),
-    height: scale(64),
-    borderRadius: scale(32),
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: 'rgba(250, 204, 21, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: scale(10),
+    marginBottom: scale(6),
   },
   victoryTitle: {
     color: '#FFF',
-    fontSize: scale(20),
+    fontSize: scale(16),
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   victorySubtitle: {
     color: '#94A3B8',
-    fontSize: scale(12),
+    fontSize: scale(11),
     fontWeight: '600',
-    marginTop: scale(2),
-    marginBottom: scale(12),
+    marginTop: scale(1),
+    marginBottom: scale(6),
   },
   starsRow: {
     flexDirection: 'row',
-    marginBottom: scale(14),
+    marginBottom: scale(8),
   },
   statBox: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: scale(12),
-    paddingVertical: scale(10),
-    paddingHorizontal: scale(20),
+    borderRadius: scale(10),
+    paddingVertical: scale(5),
+    paddingHorizontal: scale(16),
     width: '100%',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: scale(18),
+    marginBottom: scale(10),
   },
   statCol: {
     alignItems: 'center',
   },
   statLabel: {
     color: '#94A3B8',
-    fontSize: scale(10),
+    fontSize: scale(9),
     fontWeight: '700',
   },
   statValue: {
     color: '#FACC15',
-    fontSize: scale(18),
+    fontSize: scale(15),
     fontWeight: '900',
-    marginTop: scale(2),
+    marginTop: scale(1),
   },
   statDivider: {
     width: 1,
-    height: scale(26),
+    height: scale(20),
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   primaryButton: {
@@ -479,13 +480,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingVertical: scale(13),
-    borderRadius: scale(14),
+    paddingVertical: scale(9),
+    borderRadius: scale(12),
     elevation: 4,
   },
   primaryButtonText: {
     color: '#000',
-    fontSize: scale(14),
+    fontSize: scale(13),
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -495,13 +496,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingVertical: scale(13),
-    borderRadius: scale(14),
+    paddingVertical: scale(9),
+    borderRadius: scale(12),
     elevation: 4,
   },
   reviveButtonText: {
     color: '#000',
-    fontSize: scale(13),
+    fontSize: scale(12),
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -509,8 +510,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
-    marginTop: scale(12),
-    gap: scale(10),
+    marginTop: scale(8),
+    gap: scale(8),
   },
   secondaryButton: {
     flex: 1,
@@ -518,22 +519,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: scale(10),
-    borderRadius: scale(12),
-    gap: scale(6),
+    paddingVertical: scale(7),
+    borderRadius: scale(10),
+    gap: scale(5),
   },
   secondaryButtonText: {
     color: '#E2E8F0',
-    fontSize: scale(12),
+    fontSize: scale(11),
     fontWeight: '700',
   },
   textOnlyButton: {
-    marginTop: scale(12),
-    paddingVertical: scale(6),
+    marginTop: scale(8),
+    paddingVertical: scale(4),
   },
   textOnlyButtonText: {
     color: '#38BDF8',
-    fontSize: scale(12),
+    fontSize: scale(11),
     fontWeight: '700',
   },
   modalHeaderRow: {

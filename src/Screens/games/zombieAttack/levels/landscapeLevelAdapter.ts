@@ -281,17 +281,23 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
     4
   );
 
-  const defaultWeather: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic' =
-    raw.weather ??
-    (raw.chapter === 2
-      ? 'rain'
-      : raw.chapter === 3
-      ? 'snow'
-      : raw.chapter === 4
+  // 6. Strict Weather/Atmosphere Theme Segregation per User Request:
+  // - Flying enemies (cyber laser attack) OR Late Boss (41-50): Hellfire realm (eclipsed blood sun + lava)
+  // - Levels 1-10: Light daylight sun + green alpine mountains
+  // - Levels 11-20: Dark night with radiant silver moon + slate mountains
+  // - Levels 21-30: Sickly toxic emerald moon + biohazard marsh
+  // - Levels 31-40: Stormy tempest rain + wet basalt peaks
+  const hasFlyingLaserZombies = raw.zombies.some(z => z.type === 'flying');
+  const levelThemeWeather: 'clear' | 'night_moon' | 'toxic' | 'rain' | 'snow' | 'hellfire' =
+    hasFlyingLaserZombies || levelId >= 41
       ? 'hellfire'
-      : raw.chapter === 5
+      : levelId <= 10
+      ? 'clear'
+      : levelId <= 20
+      ? 'night_moon'
+      : levelId <= 30
       ? 'toxic'
-      : 'clear');
+      : 'rain';
 
   return {
     ...raw,
@@ -302,6 +308,6 @@ export function adaptLevelForLandscape(raw: LevelConfig): LevelConfig {
     obstacles,
     zombies,
     arrowLimit: computedArrowLimit,
-    weather: defaultWeather,
+    weather: levelThemeWeather,
   };
 }

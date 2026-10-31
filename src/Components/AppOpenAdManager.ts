@@ -63,11 +63,12 @@ class AppOpenAdService {
     try {
       if (navigationRef && navigationRef.isReady()) {
         const currentRoute = navigationRef.getCurrentRoute();
-        const routeName = currentRoute?.name;
+        const routeName = (currentRoute?.name || '').toLowerCase();
         if (
-          routeName === 'ZombieAttack' ||
-          routeName === 'TwinsConnect' ||
-          routeName === 'StickmanHook'
+          routeName.includes('zombie') ||
+          routeName.includes('stickman') ||
+          routeName.includes('twins') ||
+          routeName.includes('game')
         ) {
           return true;
         }

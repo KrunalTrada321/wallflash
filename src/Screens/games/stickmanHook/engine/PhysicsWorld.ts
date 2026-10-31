@@ -10,6 +10,9 @@ import {
   HazardSaw,
   WindVent,
   LaserGate,
+  BungeeWeb,
+  BreakableBarrier,
+  WreckingBall,
   CollectibleStar,
   PortalGate,
   PowerUpItem,
@@ -30,7 +33,7 @@ export interface PhysicsStepResult {
   player: StickmanPlayer;
   activePin: AnchorPin | null;
   targetCandidatePin: AnchorPin | null;
-  event: 'none' | 'trampoline' | 'speed_ring' | 'wind_vent' | 'hazard_hit' | 'fall_death' | 'victory' | 'star_collected' | 'portal_warp' | 'powerup_collected';
+  event: 'none' | 'trampoline' | 'speed_ring' | 'wind_vent' | 'hazard_hit' | 'fall_death' | 'victory' | 'star_collected' | 'portal_warp' | 'powerup_collected' | 'bungee_web' | 'barrier_smashed' | 'acrobatic_loop';
   eventPayload?: any;
 }
 
@@ -43,11 +46,15 @@ export class PhysicsWorld {
   public hazards: HazardSaw[];
   public windVents: WindVent[];
   public lasers: LaserGate[];
+  public bungeeWebs: BungeeWeb[];
+  public barriers: BreakableBarrier[];
+  public wreckingBalls: WreckingBall[];
   public stars: CollectibleStar[];
   public portals: PortalGate[];
   public powerUps: PowerUpItem[];
   private fragileHoldTimer: number = 0;
   private lastTrampolineTime: number = 0;
+  private accumulatedLoopAngle: number = 0;
 
   constructor(level: HookLevelConfig, skinId: string = 'classic_red') {
     this.level = level;
@@ -60,6 +67,9 @@ export class PhysicsWorld {
     }));
     this.windVents = (level.windVents || []).map(w => ({ ...w }));
     this.lasers = (level.lasers || []).map(l => ({ ...l }));
+    this.bungeeWebs = (level.bungeeWebs || []).map(b => ({ ...b }));
+    this.barriers = (level.barriers || []).map(b => ({ ...b }));
+    this.wreckingBalls = (level.wreckingBalls || []).map(w => ({ ...w }));
     this.stars = (level.stars || []).map(s => ({ ...s }));
     this.portals = (level.portals || []).map(p => ({ ...p }));
     this.powerUps = (level.powerUps || []).map(pu => ({ ...pu }));
@@ -175,6 +185,7 @@ export class PhysicsWorld {
     this.player.isGrappling = false;
     this.player.activePinId = null;
     this.fragileHoldTimer = 0;
+    this.accumulatedLoopAngle = 0;
   }
 
   /**
@@ -193,7 +204,6 @@ export class PhysicsWorld {
     }
 
     const hasSlowMo = (this.player.activePowerUps || []).some(p => p.type === 'slow_mo');
-    const hasJetpack = (this.player.activePowerUps || []).some(p => p.type === 'jetpack');
     const hasSpeedBoost = (this.player.activePowerUps || []).some(p => p.type === 'speed_boost');
     const hasMagnet = (this.player.activePowerUps || []).some(p => p.type === 'magnet');
 
@@ -309,6 +319,16 @@ export class PhysicsWorld {
         this.player.swingOmega += alpha * effectiveDt;
         this.player.swingAngle += this.player.swingOmega * effectiveDt;
 
+        // 360° Acrobatic Loop Detection around current Anchor Pin
+        const omegaDelta = this.player.swingOmega * effectiveDt;
+        this.accumulatedLoopAngle += omegaDelta;
+        if (Math.abs(this.accumulatedLoopAngle) >= 2 * Math.PI) {
+          this.accumulatedLoopAngle = 0;
+          this.player.swingOmega *= 1.25; // Satisfying centrifugal acceleration
+          event = 'acrobatic_loop';
+          eventPayload = { x: this.player.x, y: this.player.y };
+        }
+
         // Position derived from pin + polar coordinates
         this.player.x = activePin.x + L * Math.sin(this.player.swingAngle);
         this.player.y = activePin.y + L * Math.cos(this.player.swingAngle);
@@ -322,11 +342,7 @@ export class PhysicsWorld {
     } else {
       // Free flight state
       let currentGravity = GRAVITY;
-      if (hasJetpack) {
-        currentGravity = GRAVITY * 0.25; // 75% anti-gravity lift!
-        this.player.vy -= 950 * effectiveDt; // Rocket Thrusters!
-        this.player.vx = Math.max(this.player.vx, 520); // Forward rocket drive!
-      } else if (hasSpeedBoost) {
+      if (hasSpeedBoost) {
         this.player.vx = Math.max(this.player.vx, 640);
       }
 
@@ -485,6 +501,59 @@ export class PhysicsWorld {
       }
     }
 
+    // ── 6e. SPIDER BUNGEE WEBS (ELASTIC SLINGSHOT CATAPULT) ────────────────────
+    if (event === 'none') {
+      for (const web of this.bungeeWebs) {
+        const inX =
+          this.player.x >= web.x - web.width / 2 &&
+          this.player.x <= web.x + web.width / 2;
+        const inY = Math.abs(this.player.y - web.y) <= playerRadius + 8;
+        if (inX && inY && this.player.vy > -120) {
+          this.releaseHook();
+          const launchVy = web.launchVy || -840;
+          const launchVx = Math.max(580, Math.abs(this.player.vx) * 1.35 + 260);
+          this.player.vy = launchVy;
+          this.player.vx = launchVx;
+          this.player.y = web.y - playerRadius - 4;
+          this.player.angularVelocity = 520;
+          web.tensionTime = now;
+          this.lastTrampolineTime = now;
+          event = 'bungee_web';
+          eventPayload = web;
+          break;
+        }
+      }
+    }
+
+    // ── 6f. BREAKABLE SPEED BARRICADES (SMASH-THROUGH GLASS) ───────────────────
+    if (event === 'none') {
+      for (const barrier of this.barriers) {
+        if (barrier.broken) continue;
+        const inX =
+          this.player.x + playerRadius >= barrier.x &&
+          this.player.x - playerRadius <= barrier.x + barrier.width;
+        const inY =
+          this.player.y + playerRadius >= barrier.y &&
+          this.player.y - playerRadius <= barrier.y + barrier.height;
+        if (inX && inY) {
+          const speed = Math.sqrt(this.player.vx * this.player.vx + this.player.vy * this.player.vy);
+          if (speed >= barrier.minSpeed) {
+            barrier.broken = true;
+            barrier.shatterTime = now;
+            this.player.vx = Math.max(this.player.vx, 520);
+            event = 'barrier_smashed';
+            eventPayload = barrier;
+          } else {
+            // Rebound bounce
+            this.player.vx = -Math.abs(this.player.vx) * 0.45;
+            this.player.vy *= 0.5;
+            this.player.x = barrier.x - playerRadius - 2;
+          }
+          break;
+        }
+      }
+    }
+
     // ── 7. HAZARD & LASER COLLISIONS ───────────────────────────────────────────
     let closestHazardDist = 999;
     for (const saw of this.hazards) {
@@ -521,6 +590,26 @@ export class PhysicsWorld {
             }
           }
         }
+      }
+    }
+
+    // ── 7b. SWINGING WRECKING BALLS (HEAVY PENDULUMS) ──────────────────────────
+    const timeSec = now / 1000;
+    for (const ball of this.wreckingBalls) {
+      const swingAngle = Math.sin(timeSec * ball.swingSpeed) * ball.maxAngle;
+      ball.angle = swingAngle;
+      ball.currentX = ball.pivotX + Math.sin(swingAngle) * ball.chainLength;
+      ball.currentY = ball.pivotY + Math.cos(swingAngle) * ball.chainLength;
+
+      const dx = this.player.x - ball.currentX;
+      const dy = this.player.y - ball.currentY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < closestHazardDist) closestHazardDist = dist;
+
+      if (event === 'none' && dist <= ball.radius + playerRadius - 4) {
+        event = 'hazard_hit';
+        eventPayload = ball;
+        break;
       }
     }
 

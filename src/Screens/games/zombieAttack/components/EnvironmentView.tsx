@@ -23,7 +23,7 @@ interface StaticEnvironmentProps {
   worldWidth: number;
   worldHeight: number;
   platforms: PlatformConfig[];
-  weather?: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic';
+  weather?: 'clear' | 'night_moon' | 'rain' | 'snow' | 'hellfire' | 'toxic';
 }
 
 export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
@@ -83,6 +83,8 @@ export const StaticEnvironment: React.FC<StaticEnvironmentProps> = React.memo(
     // Weather sky colors
     const skyColors = useMemo(() => {
       switch (weather) {
+        case 'night_moon':
+          return { top: '#020617', mid: '#0F172A', bot: '#1E1B4B' };
         case 'rain':
           return { top: '#1E293B', mid: '#334155', bot: '#475569' };
         case 'snow':
@@ -339,6 +341,95 @@ export const DynamicObstacles: React.FC<DynamicObstaclesProps> = ({
                 strokeWidth="2.5"
               />
               <Path d={`M ${o.width * 0.3} ${o.height * 0.2} L ${o.width * 0.5} ${o.height * 0.6} L ${o.width * 0.7} ${o.height * 0.4}`} stroke="#1E293B" strokeWidth="1.5" fill="none" />
+            </G>
+          );
+        }
+
+        if (o.type === 'boulder') {
+          return (
+            <G key={`obs_${o.id}`} transform={`translate(${left}, ${top})`}>
+              <Circle
+                cx={o.width / 2}
+                cy={o.height / 2}
+                r={o.width / 2}
+                fill="#475569"
+                stroke="#1E293B"
+                strokeWidth="2.5"
+              />
+              <Circle
+                cx={o.width * 0.4}
+                cy={o.height * 0.35}
+                r={o.width * 0.35}
+                fill="#64748B"
+                opacity="0.6"
+              />
+              <Line
+                x1={o.width * 0.25}
+                y1={o.height * 0.3}
+                x2={o.width * 0.75}
+                y2={o.height * 0.7}
+                stroke="#1E293B"
+                strokeWidth="2"
+              />
+            </G>
+          );
+        }
+
+        if (o.type === 'ricochet_mirror') {
+          return (
+            <G key={`obs_${o.id}`} transform={`translate(${left}, ${top})`}>
+              <Rect
+                x="0"
+                y="0"
+                width={o.width}
+                height={o.height}
+                fill="#0284C7"
+                stroke="#38BDF8"
+                strokeWidth="2"
+                rx="3"
+              />
+              <Line
+                x1="4"
+                y1={o.height - 4}
+                x2={o.width - 4}
+                y2="4"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+              />
+            </G>
+          );
+        }
+
+        if (o.type === 'acid_barrel') {
+          return (
+            <G key={`obs_${o.id}`} transform={`translate(${left}, ${top})`}>
+              <Rect
+                x="0"
+                y="0"
+                width={o.width}
+                height={o.height}
+                fill="#166534"
+                stroke="#14532D"
+                strokeWidth="2"
+                rx="4"
+              />
+              <Line
+                x1="2"
+                y1={o.height * 0.3}
+                x2={o.width - 2}
+                y2={o.height * 0.3}
+                stroke="#FACC15"
+                strokeWidth="2"
+              />
+              <Line
+                x1="2"
+                y1={o.height * 0.7}
+                x2={o.width - 2}
+                y2={o.height * 0.7}
+                stroke="#FACC15"
+                strokeWidth="2"
+              />
+              <Circle cx={o.width / 2} cy={o.height / 2} r="5" fill="#FACC15" />
             </G>
           );
         }

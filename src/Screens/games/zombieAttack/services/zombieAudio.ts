@@ -119,12 +119,6 @@ class ZombieAudioService {
     this.vibrate([0, 30, 20, 35]);
   }
 
-  public playBombThrow() {
-    if (!this.soundEnabled) return;
-    GameSound.playBombThrow();
-    this.vibrate(20);
-  }
-
   public playBombBlast() {
     if (!this.soundEnabled) return;
     GameSound.playBombBlast();
@@ -173,6 +167,38 @@ class ZombieAudioService {
     GameSound.playStep(12);
     GameSound.playStep(14);
     this.vibrate([0, 30, 15, 30, 15, 60]);
+  }
+
+  public playSplitterLaunch() {
+    if (!this.soundEnabled) return;
+    GameSound.playCut();
+    GameSound.playCut();
+    this.vibrate(30);
+  }
+
+  public playShieldBlock() {
+    if (!this.soundEnabled) return;
+    GameSound.playStep(13); // High-impact metallic clash
+    this.vibrate([0, 35, 20, 45]);
+  }
+
+  public playWraithTeleport() {
+    if (!this.soundEnabled) return;
+    GameSound.playStep(11);
+    this.vibrate(20);
+  }
+
+  public playBoulderCrush() {
+    if (!this.soundEnabled) return;
+    GameSound.playBombBlast();
+    this.vibrate([0, 50, 40, 120]);
+  }
+
+  public playAcidExplosion() {
+    if (!this.soundEnabled) return;
+    GameSound.playStep(8);
+    GameSound.playSupernovaExplosion();
+    this.vibrate([0, 40, 30, 80]);
   }
 
   public playSwitchTrigger() {

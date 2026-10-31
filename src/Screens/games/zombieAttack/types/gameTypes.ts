@@ -7,6 +7,8 @@ export type ZombieType =
   | 'sneaky'
   | 'exploding'
   | 'flying'
+  | 'shield'
+  | 'wraith'
   | 'boss';
 
 export type ObstacleType =
@@ -19,7 +21,10 @@ export type ObstacleType =
   | 'wind'
   | 'gate'
   | 'switch'
-  | 'portal';
+  | 'portal'
+  | 'boulder'
+  | 'ricochet_mirror'
+  | 'acid_barrel';
 
 export interface PlatformConfig {
   id: string;
@@ -48,6 +53,8 @@ export interface ObstacleConfig {
   gateId?: string; // For switch linked to gate
   targetPortalId?: string; // For portal teleportation pair
   windStrength?: { x: number; y: number };
+  radius?: number;
+  angle?: number;
 }
 
 export interface ZombieConfig {
@@ -59,9 +66,10 @@ export interface ZombieConfig {
   speed?: number;
   patrolMin?: number;
   patrolMax?: number;
+  shieldHealth?: number;
 }
 
-export type ArrowType = 'regular' | 'bomb';
+export type ArrowType = 'regular' | 'ice' | 'splitter';
 
 export interface LevelConfig {
   id: number;
@@ -78,7 +86,7 @@ export interface LevelConfig {
   gravity?: { x: number; y: number };
   wind?: { x: number; y: number };
   description?: string;
-  weather?: 'clear' | 'rain' | 'snow' | 'hellfire' | 'toxic';
+  weather?: 'clear' | 'night_moon' | 'rain' | 'snow' | 'hellfire' | 'toxic';
 }
 
 export interface TrajectoryPoint {
@@ -99,7 +107,7 @@ export interface ParticleEntity {
   opacity: number;
   life: number;
   maxLife: number;
-  shape?: 'circle' | 'star' | 'splat' | 'wood' | 'smoke' | 'spark' | 'ice' | 'flame' | 'shockwave';
+  shape?: 'circle' | 'star' | 'splat' | 'wood' | 'smoke' | 'spark' | 'ice' | 'flame' | 'shockwave' | 'lightning' | 'acid' | 'crystal';
 }
 
 export interface FloatText {
@@ -145,6 +153,10 @@ export interface ZombieEntity {
   width: number;
   height: number;
   armorLost?: boolean;
+  shieldHealth?: number;
+  teleportCooldown?: number;
+  isShocked?: boolean;
+  shockTimer?: number;
   patrolMin?: number;
   patrolMax?: number;
   patrolDir?: number;
@@ -178,6 +190,8 @@ export interface ObstacleEntity {
   gateId?: string;
   targetPortalId?: string;
   windStrength?: { x: number; y: number };
+  radius?: number;
+  angle?: number;
 }
 
 export interface MovingPlatformEntity {

@@ -298,10 +298,12 @@ const TrendingScreen = () => {
         ))}
       </View>
 
-      {/* In-feed Native Ad after every 15 images */}
-      <View style={styles.adWrapper}>
-        <SqareAd />
-      </View>
+      {/* In-feed Native Ad ONLY after a full set of 15 images (never after partial chunks) */}
+      {group.length >= CHUNK && (
+        <View style={styles.adWrapper}>
+          <SqareAd />
+        </View>
+      )}
     </View>
   );
 

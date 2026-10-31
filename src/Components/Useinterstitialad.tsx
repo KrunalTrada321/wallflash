@@ -13,6 +13,8 @@ import {
 } from "react-native-google-mobile-ads";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TEMP_PREMIUM_KEY } from "./RewardedPremiumAd";
+import Orientation from "react-native-orientation-locker";
+import { AppOpenAdManager } from "./AppOpenAdManager";
 
 const AD_UNIT_ID = __DEV__
   ? TestIds.INTERSTITIAL
@@ -102,6 +104,13 @@ export function useGameInterstitialAd(options?: UseGameInterstitialAdOptions): U
 
       ad.addAdEventListener(AdEventType.CLOSED, () => {
         isAdLoadedRef.current = false;
+        try {
+          if (AppOpenAdManager.isPlayingGame()) {
+            Orientation.lockToLandscape();
+          }
+        } catch {
+          // safe fallback
+        }
         pendingCallbackRef.current?.();
         pendingCallbackRef.current = null;
         loadAd(); // Preload next ad immediately

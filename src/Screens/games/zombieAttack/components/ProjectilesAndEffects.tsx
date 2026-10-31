@@ -25,8 +25,11 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
 }) => {
   // Color trajectory and crosshair according to active arrow type
   const themeColor = useMemo(() => {
-    if (arrowType === 'bomb') {
-      return '#FACC15';
+    if (arrowType === 'ice') {
+      return '#06B6D4';
+    }
+    if (arrowType === 'splitter') {
+      return '#10B981';
     }
     return '#38BDF8';
   }, [arrowType]);
@@ -182,30 +185,31 @@ export const ProjectilesAndEffects: React.FC<ProjectilesAndEffectsProps> = ({
         );
       })}
 
-      {/* 4. Projectiles: In-Flight Arrows & Thrown Bombs */}
+      {/* 4. Projectiles: In-Flight Arrows */}
       {arrows.map(arrow => {
         const x = arrow.body.position.x;
         const y = arrow.body.position.y;
         const deg = (arrow.angle * 180) / Math.PI;
         const type = arrow.arrowType || 'regular';
 
-        if (type === 'bomb') {
+        if (type === 'ice') {
           return (
             <G key={`arr_${arrow.id}`} transform={`translate(${x}, ${y}) rotate(${deg})`}>
-              {/* Heavy Cast Iron Round Bomb */}
-              <Circle cx="0" cy="0" r="9" fill="#09090B" stroke="#27272A" strokeWidth="1.5" />
-              {/* Specular curved reflection sheen */}
-              <Path d="M -4 -4 Q -2 -7 3 -6" stroke="#94A3B8" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-              {/* Cylindrical Brass Neck / Cap */}
-              <Rect x="-2.5" y="-12" width="5" height="3.5" rx="0.8" fill="#D97706" stroke="#92400E" strokeWidth="0.8" />
-              {/* Sizzling Braided Fuse Cord */}
-              <Path d="M 0 -12 Q 5 -18 2 -22" stroke="#EAB308" strokeWidth="2.2" fill="none" />
-              {/* Burning Fuse Sparks */}
-              <Circle cx="2" cy="-22" r="3.5" fill="#EF4444" />
-              <Circle cx="2" cy="-22" r="2" fill="#FEF08A" />
-              {/* Crackle Spark Rays */}
-              <Line x1="-1" y1="-25" x2="5" y2="-19" stroke="#FEF08A" strokeWidth="1.4" />
-              <Line x1="5" y1="-25" x2="-1" y2="-19" stroke="#FEF08A" strokeWidth="1.4" />
+              <Line x1="-22" y1="0" x2="14" y2="0" stroke="#0284C7" strokeWidth="3" strokeLinecap="round" />
+              <Path d="M 22 0 L 12 -5 L 14 0 L 12 5 Z" fill="#BAE6FD" stroke="#38BDF8" strokeWidth="1.2" />
+              <Path d="M -22 0 L -28 -5 L -20 -1 Z" fill="#38BDF8" />
+              <Path d="M -22 0 L -28 5 L -20 1 Z" fill="#38BDF8" />
+            </G>
+          );
+        }
+
+        if (type === 'splitter') {
+          return (
+            <G key={`arr_${arrow.id}`} transform={`translate(${x}, ${y}) rotate(${deg})`}>
+              <Line x1="-22" y1="0" x2="14" y2="0" stroke="#047857" strokeWidth="3" strokeLinecap="round" />
+              <Path d="M 22 0 L 12 -6 L 14 0 L 12 6 Z" fill="#34D399" stroke="#065F46" strokeWidth="1.2" />
+              <Path d="M -22 0 L -28 -5 L -20 -1 Z" fill="#10B981" />
+              <Path d="M -22 0 L -28 5 L -20 1 Z" fill="#10B981" />
             </G>
           );
         }

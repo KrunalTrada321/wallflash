@@ -402,6 +402,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "radius": 18,
         "durationSeconds": 7
       }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw3_1",
+        "x": 1200,
+        "y": 530,
+        "width": 140,
+        "launchVy": -860,
+        "launchVx": 680
+      }
     ]
   },
   {
@@ -725,6 +735,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 7
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar5_1",
+        "x": 1000,
+        "y": 190,
+        "width": 20,
+        "height": 160,
+        "minSpeed": 460
       }
     ]
   },
@@ -1102,6 +1122,17 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "radius": 18,
         "durationSeconds": 7
       }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb7_1",
+        "pivotX": 1100,
+        "pivotY": 30,
+        "chainLength": 210,
+        "radius": 24,
+        "swingSpeed": 2.2,
+        "maxAngle": 0.85
+      }
     ]
   },
   {
@@ -1297,6 +1328,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 7
+      }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw8_1",
+        "x": 1550,
+        "y": 540,
+        "width": 150,
+        "launchVy": -880,
+        "launchVx": 700
       }
     ]
   },
@@ -1986,7 +2027,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu11_1",
-        "type": "jetpack",
+        "type": "speed_boost",
         "x": 940,
         "y": 350,
         "radius": 18,
@@ -1999,6 +2040,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 350,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar11_1",
+        "x": 950,
+        "y": 210,
+        "width": 22,
+        "height": 170,
+        "minSpeed": 460
       }
     ]
   },
@@ -2271,7 +2322,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu12_1",
-        "type": "jetpack",
+        "type": "magnet",
         "x": 940,
         "y": 360,
         "radius": 18,
@@ -2566,7 +2617,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu13_1",
-        "type": "jetpack",
+        "type": "slow_mo",
         "x": 940,
         "y": 370,
         "radius": 18,
@@ -2883,7 +2934,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu14_1",
-        "type": "jetpack",
+        "type": "speed_boost",
         "x": 940,
         "y": 350,
         "radius": 18,
@@ -2904,6 +2955,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 350,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw14_1",
+        "x": 1420,
+        "y": 530,
+        "width": 140,
+        "launchVy": -860,
+        "launchVx": 680
       }
     ]
   },
@@ -3216,7 +3277,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu15_1",
-        "type": "jetpack",
+        "type": "magnet",
         "x": 940,
         "y": 360,
         "radius": 18,
@@ -3560,7 +3621,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu16_1",
-        "type": "jetpack",
+        "type": "slow_mo",
         "x": 940,
         "y": 370,
         "radius": 18,
@@ -3581,6 +3642,17 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 370,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb16_1",
+        "pivotX": 1350,
+        "pivotY": 40,
+        "chainLength": 230,
+        "radius": 26,
+        "swingSpeed": 2.5,
+        "maxAngle": 0.9
       }
     ]
   },
@@ -3922,7 +3994,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu17_1",
-        "type": "jetpack",
+        "type": "speed_boost",
         "x": 940,
         "y": 350,
         "radius": 18,
@@ -4289,7 +4361,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu18_1",
-        "type": "jetpack",
+        "type": "magnet",
         "x": 940,
         "y": 360,
         "radius": 18,
@@ -4672,7 +4744,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu19_1",
-        "type": "jetpack",
+        "type": "slow_mo",
         "x": 940,
         "y": 370,
         "radius": 18,
@@ -4693,6 +4765,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 370,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar19_1",
+        "x": 1250,
+        "y": 200,
+        "width": 22,
+        "height": 180,
+        "minSpeed": 480
       }
     ]
   },
@@ -5075,7 +5157,7 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
     "powerUps": [
       {
         "id": "pu20_1",
-        "type": "jetpack",
+        "type": "speed_boost",
         "x": 940,
         "y": 350,
         "radius": 18,
@@ -6128,6 +6210,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw22_1",
+        "x": 1600,
+        "y": 550,
+        "width": 150,
+        "launchVy": -880,
+        "launchVx": 720
       }
     ]
   },
@@ -7877,6 +7969,17 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb25_1",
+        "pivotX": 1200,
+        "pivotY": 50,
+        "chainLength": 240,
+        "radius": 28,
+        "swingSpeed": 2.6,
+        "maxAngle": 0.95
       }
     ]
   },
@@ -9790,6 +9893,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 6
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar28_1",
+        "x": 1400,
+        "y": 190,
+        "width": 24,
+        "height": 190,
+        "minSpeed": 500
       }
     ]
   },
@@ -14853,6 +14966,17 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "radius": 18,
         "durationSeconds": 5
       }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb34_1",
+        "pivotX": 1450,
+        "pivotY": 40,
+        "chainLength": 250,
+        "radius": 28,
+        "swingSpeed": 2.8,
+        "maxAngle": 1
+      }
     ]
   },
   {
@@ -15849,6 +15973,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 5
+      }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw35_1",
+        "x": 1750,
+        "y": 560,
+        "width": 160,
+        "launchVy": -900,
+        "launchVx": 740
       }
     ]
   },
@@ -18998,6 +19132,27 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 360,
         "radius": 18,
         "durationSeconds": 5
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar38_1",
+        "x": 1150,
+        "y": 190,
+        "width": 24,
+        "height": 180,
+        "minSpeed": 500
+      }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb38_1",
+        "pivotX": 1800,
+        "pivotY": 40,
+        "chainLength": 240,
+        "radius": 26,
+        "swingSpeed": 2.6,
+        "maxAngle": 0.9
       }
     ]
   },
@@ -22362,6 +22517,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 350,
         "radius": 18,
         "durationSeconds": 7
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar41_1",
+        "x": 1300,
+        "y": 190,
+        "width": 24,
+        "height": 200,
+        "minSpeed": 520
       }
     ]
   },
@@ -26020,6 +26185,16 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "radius": 18,
         "durationSeconds": 7
       }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw44_1",
+        "x": 1650,
+        "y": 550,
+        "width": 160,
+        "launchVy": -920,
+        "launchVx": 760
+      }
     ]
   },
   {
@@ -28627,6 +28802,17 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 370,
         "radius": 18,
         "durationSeconds": 7
+      }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb46_1",
+        "pivotX": 1500,
+        "pivotY": 30,
+        "chainLength": 260,
+        "radius": 30,
+        "swingSpeed": 3,
+        "maxAngle": 1.05
       }
     ]
   },
@@ -32813,6 +32999,37 @@ export const ALL_50_HOOK_LEVELS: HookLevelConfig[] = [
         "y": 370,
         "radius": 18,
         "durationSeconds": 7
+      }
+    ],
+    "bungeeWebs": [
+      {
+        "id": "bw49_1",
+        "x": 1100,
+        "y": 550,
+        "width": 160,
+        "launchVy": -900,
+        "launchVx": 750
+      }
+    ],
+    "barriers": [
+      {
+        "id": "bar49_1",
+        "x": 1600,
+        "y": 190,
+        "width": 24,
+        "height": 200,
+        "minSpeed": 520
+      }
+    ],
+    "wreckingBalls": [
+      {
+        "id": "wb49_1",
+        "pivotX": 2100,
+        "pivotY": 40,
+        "chainLength": 250,
+        "radius": 28,
+        "swingSpeed": 2.7,
+        "maxAngle": 0.95
       }
     ]
   },

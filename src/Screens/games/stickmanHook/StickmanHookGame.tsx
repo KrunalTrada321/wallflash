@@ -20,7 +20,7 @@ import Orientation from 'react-native-orientation-locker';
 import { scale } from 'react-native-size-matters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { RewardedAd, RewardedAdEventType, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 
 import {
   StickmanPlayer,
@@ -69,6 +69,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const REWARDED_AD_ID = __DEV__
   ? TestIds.REWARDED
   : 'ca-app-pub-7105708210867722/6181117151';
+
+export const STICKMAN_GAME_ZOOM = 0.75;
 
 interface GameRenderFrame {
   player: StickmanPlayer;
@@ -218,6 +220,13 @@ export default function StickmanHookGame() {
           }
         });
 
+        ad.addAdEventListener(AdEventType.CLOSED, () => {
+          Orientation.lockToLandscape();
+          StatusBar.setHidden(true);
+          isRewardedLoadedRef.current = false;
+          loadRewarded();
+        });
+
         ad.load();
       } catch (err) {
         console.warn('[StickmanHook] Rewarded ad load error:', err);
@@ -244,9 +253,11 @@ export default function StickmanHookGame() {
       const newWorld = new PhysicsWorld(lvl, selectedSkinId);
       physicsRef.current = newWorld;
 
-      // Center camera on start position in landscape
-      const initCamX = lvl.startX - screenWidth * 0.32;
-      const initCamY = lvl.startY - screenHeight * 0.48;
+      // Center camera on start position with zoomed out world view
+      const viewWorldWidth = screenWidth / STICKMAN_GAME_ZOOM;
+      const viewWorldHeight = screenHeight / STICKMAN_GAME_ZOOM;
+      const initCamX = lvl.startX - viewWorldWidth * 0.30;
+      const initCamY = lvl.startY - viewWorldHeight * 0.48;
       cameraRef.current = { x: initCamX, y: initCamY };
 
       setFrame({
@@ -326,10 +337,12 @@ export default function StickmanHookGame() {
         // Advance physics world at 60 FPS
         const res = physicsRef.current.step(dt);
 
-        // Smooth Camera Follow with velocity lookahead in widescreen landscape
-        const lookaheadX = Math.max(-40, Math.min(240, res.player.vx * 0.22));
-        const targetCamX = res.player.x + lookaheadX - screenWidth * 0.32;
-        const targetCamY = res.player.y - screenHeight * 0.48;
+        // Smooth Camera Follow with velocity lookahead in widescreen zoomed-out landscape
+        const viewWorldWidth = screenWidth / STICKMAN_GAME_ZOOM;
+        const viewWorldHeight = screenHeight / STICKMAN_GAME_ZOOM;
+        const lookaheadX = Math.max(-40, Math.min(260, res.player.vx * 0.22));
+        const targetCamX = res.player.x + lookaheadX - viewWorldWidth * 0.30;
+        const targetCamY = res.player.y - viewWorldHeight * 0.48;
 
         cameraRef.current.x += (targetCamX - cameraRef.current.x) * 0.12;
         cameraRef.current.y += (targetCamY - cameraRef.current.y) * 0.10;
@@ -429,6 +442,50 @@ export default function StickmanHookGame() {
           particlesRef.current.push(...bursts);
         } else if (res.event === 'wind_vent') {
           HookAudio.playSpeedRing();
+        } else if (res.event === 'bungee_web') {
+          HookAudio.playWebBungee();
+          const web = res.eventPayload;
+          const webSparks: Particle[] = Array.from({ length: 8 }).map((_, i) => ({
+            id: `bw_${now}_${i}`,
+            x: res.player.x,
+            y: web.y,
+            vx: (Math.random() - 0.5) * 260,
+            vy: -Math.random() * 260 - 100,
+            color: '#34D399',
+            size: 3.5,
+            alpha: 1,
+            life: 1,
+          }));
+          particlesRef.current.push(...webSparks);
+        } else if (res.event === 'barrier_smashed') {
+          HookAudio.playGlassShatter();
+          const barrier = res.eventPayload;
+          const shards: Particle[] = Array.from({ length: 12 }).map((_, i) => ({
+            id: `sh_${now}_${i}`,
+            x: barrier.x + barrier.width / 2,
+            y: barrier.y + barrier.height / 2,
+            vx: (Math.random() - 0.3) * 360,
+            vy: (Math.random() - 0.5) * 360,
+            color: i % 2 === 0 ? '#38BDF8' : '#E0F2FE',
+            size: 4,
+            alpha: 1,
+            life: 1,
+          }));
+          particlesRef.current.push(...shards);
+        } else if (res.event === 'acrobatic_loop') {
+          HookAudio.playAcrobaticLoop();
+          const loopGlows: Particle[] = Array.from({ length: 10 }).map((_, i) => ({
+            id: `loop_${now}_${i}`,
+            x: res.player.x,
+            y: res.player.y,
+            vx: Math.cos((i * Math.PI) / 5) * 220,
+            vy: Math.sin((i * Math.PI) / 5) * 220,
+            color: '#FACC15',
+            size: 4,
+            alpha: 1,
+            life: 1,
+          }));
+          particlesRef.current.push(...loopGlows);
         } else if (res.event === 'hazard_hit') {
           HookAudio.playHazardHit();
           setFinalTime(elapsedTimeRef.current);
@@ -568,6 +625,9 @@ export default function StickmanHookGame() {
               hazards={physicsRef.current.hazards}
               windVents={physicsRef.current.windVents}
               lasers={physicsRef.current.lasers}
+              bungeeWebs={physicsRef.current.bungeeWebs}
+              barriers={physicsRef.current.barriers}
+              wreckingBalls={physicsRef.current.wreckingBalls}
               stars={physicsRef.current.stars}
               portals={physicsRef.current.portals}
               powerUps={physicsRef.current.powerUps}
@@ -594,6 +654,9 @@ export default function StickmanHookGame() {
             hazards={physicsRef.current.hazards}
             windVents={physicsRef.current.windVents}
             lasers={physicsRef.current.lasers}
+            bungeeWebs={physicsRef.current.bungeeWebs}
+            barriers={physicsRef.current.barriers}
+            wreckingBalls={physicsRef.current.wreckingBalls}
             stars={physicsRef.current.stars}
             portals={physicsRef.current.portals}
             powerUps={physicsRef.current.powerUps}
@@ -655,16 +718,13 @@ export default function StickmanHookGame() {
                     key={pu.type}
                     style={[
                       styles.powerUpBadge,
-                      pu.type === 'jetpack' && { backgroundColor: 'rgba(249, 115, 22, 0.9)' },
                       pu.type === 'slow_mo' && { backgroundColor: 'rgba(168, 85, 247, 0.9)' },
                       pu.type === 'speed_boost' && { backgroundColor: 'rgba(234, 179, 8, 0.9)' },
                       pu.type === 'magnet' && { backgroundColor: 'rgba(16, 185, 129, 0.9)' },
                     ]}
                   >
                     <Text style={styles.powerUpBadgeText}>
-                      {pu.type === 'jetpack'
-                        ? '🚀 JETPACK'
-                        : pu.type === 'slow_mo'
+                      {pu.type === 'slow_mo'
                         ? '⏱️ SLOW-MO'
                         : pu.type === 'speed_boost'
                         ? '⚡ SPEED'

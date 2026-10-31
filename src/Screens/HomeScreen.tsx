@@ -153,10 +153,12 @@ const HomeScreen = () => {
         ))}
       </View>
 
-      {/* Ad after every 15 images (Native Feed Ad) */}
-      <View style={styles.adWrapper}>
-        <SqareAd />
-      </View>
+      {/* Ad ONLY after a full set of 15 images (never after partial chunks) */}
+      {group.length >= CHUNK && (
+        <View style={styles.adWrapper}>
+          <SqareAd />
+        </View>
+      )}
     </View>
   );
 

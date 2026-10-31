@@ -59,6 +59,48 @@ export const HookAudio = {
     }
   },
 
+  playWebBungee() {
+    if (this.isMuted()) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('coin', 1.4, 0.9);
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate([0, 15, 25, 35]);
+      }
+    } catch {
+      // safe fallback
+    }
+  },
+
+  playGlassShatter() {
+    if (this.isMuted()) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('set_success', 1.6, 1.0);
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate([0, 20, 30, 50]);
+      }
+    } catch {
+      // safe fallback
+    }
+  },
+
+  playAcrobaticLoop() {
+    if (this.isMuted()) return;
+    try {
+      if (SoundModule?.playSound) {
+        SoundModule.playSound('premium', 1.5, 0.95);
+      }
+      if (Platform.OS === 'android') {
+        Vibration.vibrate([0, 20, 30, 30]);
+      }
+    } catch {
+      // safe fallback
+    }
+  },
+
   playSpeedRing() {
     if (this.isMuted()) return;
     try {

@@ -39,7 +39,7 @@ const isValidImage = async (url: string): Promise<boolean> => {
 
 // 🔄 Track last document fetched for each collection
 const lastDocs: { [collectionName: string]: QueryDocumentSnapshot<DocumentData> | null } = {};
-const PAGE_LIMIT = 12;
+const PAGE_LIMIT = 15;
 
 export const fetchImagesFromFirestore = async (
   collections: string[],

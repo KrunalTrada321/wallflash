@@ -78,6 +78,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     ],
     obstacles: [
       { id: 'spikes_1', type: 'spikes', x: 215, y: 720, width: 110, height: 25 },
+      { id: 'refl_4', type: 'ricochet_mirror', x: 220, y: 270, width: 90, height: 18 },
     ],
     zombies: [
       { id: 'z1', type: 'walker', x: 310, y: 550, health: 1, speed: 0.65 },
@@ -86,7 +87,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     ],
     arrowLimit: 6,
     parArrows: 2,
-    description: 'Use the floating stone slab to ricochet bank shots down into the walking undead!',
+    description: 'Use the crystal ricochet mirror to bank trick shots down into the walking undead!',
   },
   {
     id: 5,
@@ -113,7 +114,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 6,
-    title: 'The Overlook',
+    title: 'The Overlook & Rolling Boulder',
     chapter: 1,
     worldWidth: 450,
     worldHeight: 740,
@@ -122,15 +123,17 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
       { id: 'p_player_high', x: 80, y: 520, width: 160, height: 140, type: 'floating' },
       { id: 'p_floor', x: 300, y: 690, width: 300, height: 140, type: 'ground' },
     ],
-    obstacles: [],
+    obstacles: [
+      { id: 'boulder_6', type: 'boulder', x: 190, y: 440, width: 46, height: 46 },
+    ],
     zombies: [
       { id: 'z1', type: 'walker', x: 240, y: 570, health: 1, speed: 0.6 },
       { id: 'z2', type: 'walker', x: 310, y: 570, health: 1, speed: 0.65 },
       { id: 'z3', type: 'walker', x: 375, y: 570, health: 1, speed: 0.5 },
     ],
     arrowLimit: 6,
-    parArrows: 3,
-    description: 'Shoot downwards from your vantage point with precision.',
+    parArrows: 2,
+    description: 'Shoot the giant rolling boulder off the ledge to crush the horde below!',
   },
   {
     id: 7,
@@ -179,7 +182,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 9,
-    title: 'Narrow Slit',
+    title: 'Narrow Slit & Riot Shield',
     chapter: 1,
     worldWidth: 450,
     worldHeight: 740,
@@ -191,13 +194,13 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     ],
     obstacles: [],
     zombies: [
-      { id: 'z1', type: 'walker', x: 310, y: 550, health: 1, speed: 0.6 },
+      { id: 'z_shield_1', type: 'shield', x: 310, y: 550, health: 2, speed: 0.55 },
       { id: 'z2', type: 'walker', x: 360, y: 550, health: 1, speed: 0.55 },
       { id: 'z3', type: 'walker', x: 410, y: 550, health: 1, speed: 0.5 },
     ],
     arrowLimit: 6,
     parArrows: 2,
-    description: 'Thread the arrow through the narrow window between stone barriers.',
+    description: 'Watch out! The Riot Shield zombie blocks direct frontal hits — arc your shot over or shoot the narrow slit!',
   },
   {
     id: 10,
@@ -252,7 +255,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 12,
-    title: 'Helmet Head',
+    title: 'Chemical Toxic Barrel',
     chapter: 2,
     worldWidth: 450,
     worldHeight: 740,
@@ -260,15 +263,17 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     platforms: [
       { id: 'p_ground', x: 225, y: 680, width: 450, height: 160, type: 'ground' },
     ],
-    obstacles: [],
+    obstacles: [
+      { id: 'acid_12', type: 'acid_barrel', x: 270, y: 575, width: 34, height: 42 },
+    ],
     zombies: [
       { id: 'z_arm1', type: 'armored', x: 320, y: 550, health: 2, speed: 0.7 },
       { id: 'z_walk1', type: 'walker', x: 375, y: 550, health: 1, speed: 0.6 },
       { id: 'z_walk2', type: 'walker', x: 425, y: 550, health: 1, speed: 0.55 },
     ],
     arrowLimit: 6,
-    parArrows: 3,
-    description: 'Armored zombies take two hits: knock the helmet off first!',
+    parArrows: 2,
+    description: 'Hit the green toxic acid barrel to dissolve the armored zombie!',
   },
   {
     id: 13,
@@ -324,7 +329,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 15,
-    title: 'Armored Vanguard',
+    title: 'Shadow Wraith Vanguard',
     chapter: 2,
     worldWidth: 480,
     worldHeight: 740,
@@ -334,14 +339,14 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     ],
     obstacles: [],
     zombies: [
-      { id: 'z1', type: 'armored', x: 280, y: 550, health: 2, speed: 0.7 },
-      { id: 'z2', type: 'runner', x: 340, y: 550, health: 1, speed: 1.6 },
-      { id: 'z3', type: 'walker', x: 390, y: 550, health: 1, speed: 0.6 },
-      { id: 'z4', type: 'walker', x: 440, y: 550, health: 1, speed: 0.6 },
+      { id: 'z_wraith', type: 'wraith', x: 290, y: 550, health: 1, speed: 1.0 },
+      { id: 'z1', type: 'armored', x: 340, y: 550, health: 2, speed: 0.7 },
+      { id: 'z2', type: 'runner', x: 395, y: 550, health: 1, speed: 1.6 },
+      { id: 'z3', type: 'walker', x: 440, y: 550, health: 1, speed: 0.6 },
     ],
     arrowLimit: 7,
     parArrows: 3,
-    description: 'An armored zombie leads the squad. Prioritize your targets!',
+    description: 'Beware the Wraith! It teleports through shadows when arrows approach. Predict where it phases!',
   },
   {
     id: 16,
@@ -398,7 +403,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 18,
-    title: 'Slippery Glacier',
+    title: 'Slippery Glacier & Avalanche',
     chapter: 2,
     worldWidth: 460,
     worldHeight: 740,
@@ -406,16 +411,19 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     platforms: [
       { id: 'p_start', x: 80, y: 680, width: 160, height: 160, type: 'ground' },
       { id: 'p_ice', x: 280, y: 680, width: 220, height: 160, type: 'slippery' },
+      { id: 'p_glacier_ledge', x: 215, y: 440, width: 95, height: 25, type: 'floating' },
     ],
-    obstacles: [],
+    obstacles: [
+      { id: 'boulder_18', type: 'boulder', x: 215, y: 395, width: 46, height: 46 },
+    ],
     zombies: [
       { id: 'z1', type: 'runner', x: 290, y: 550, health: 1, speed: 2.2 },
       { id: 'z2', type: 'runner', x: 350, y: 550, health: 1, speed: 2.0 },
       { id: 'z3', type: 'runner', x: 410, y: 550, health: 1, speed: 1.8 },
     ],
     arrowLimit: 6,
-    parArrows: 3,
-    description: 'Slippery ice floor makes runner zombies slide uncontrollably!',
+    parArrows: 2,
+    description: 'Shoot the boulder off the high icy shelf to bowl through the sliding runner zombies!',
   },
   {
     id: 19,
@@ -472,7 +480,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   // ==========================================
   {
     id: 21,
-    title: 'The Target Switch',
+    title: 'The Target Switch & Toxic Reservoir',
     chapter: 3,
     worldWidth: 460,
     worldHeight: 740,
@@ -483,15 +491,16 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     obstacles: [
       { id: 'sw_1', type: 'switch', x: 220, y: 380, width: 36, height: 36, gateId: 'gate_1' },
       { id: 'gate_1', type: 'gate', x: 220, y: 535, width: 24, height: 120 },
+      { id: 'acid_21', type: 'acid_barrel', x: 290, y: 575, width: 34, height: 42 },
     ],
     zombies: [
-      { id: 'z1', type: 'armored', x: 320, y: 550, health: 2, speed: 0.6 },
-      { id: 'z2', type: 'walker', x: 370, y: 550, health: 1, speed: 0.6 },
-      { id: 'z3', type: 'walker', x: 420, y: 550, health: 1, speed: 0.55 },
+      { id: 'z1', type: 'armored', x: 330, y: 550, health: 2, speed: 0.6 },
+      { id: 'z2', type: 'walker', x: 380, y: 550, health: 1, speed: 0.6 },
+      { id: 'z3', type: 'walker', x: 425, y: 550, health: 1, speed: 0.55 },
     ],
     arrowLimit: 6,
-    parArrows: 3,
-    description: 'Hit the green target switch overhead to open the reinforced gate!',
+    parArrows: 2,
+    description: 'Hit the switch overhead to open the gate, then puncture the green toxic acid barrel to dissolve the armored fiends!',
   },
   {
     id: 22,
@@ -544,7 +553,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 24,
-    title: 'Crosswind Alley',
+    title: 'Crosswind Wraith Alley',
     chapter: 3,
     worldWidth: 480,
     worldHeight: 740,
@@ -556,14 +565,14 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
       { id: 'wind_zone', type: 'wind', x: 240, y: 440, width: 160, height: 260, windStrength: { x: 1.5, y: 0 } },
     ],
     zombies: [
-      { id: 'z1', type: 'runner', x: 320, y: 550, health: 1, speed: 1.6 },
-      { id: 'z2', type: 'armored', x: 380, y: 550, health: 2, speed: 0.6 },
-      { id: 'z3', type: 'walker', x: 430, y: 550, health: 1, speed: 0.6 },
+      { id: 'z_wraith', type: 'wraith', x: 300, y: 550, health: 1, speed: 1.1 },
+      { id: 'z_shield', type: 'shield', x: 360, y: 550, health: 2, speed: 0.6 },
+      { id: 'z_run', type: 'runner', x: 420, y: 550, health: 1, speed: 1.6 },
     ],
     arrowLimit: 6,
     parArrows: 3,
     wind: { x: 2.2, y: 0 },
-    description: 'Brisk wind blows to the right! Aim into the breeze to compensate.',
+    description: 'Crosswind curves your trajectory! Anticipate the wind and time your shot against the teleporting Wraith and Riot Shield zombie.',
   },
   {
     id: 25,
@@ -617,7 +626,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 27,
-    title: 'Headwind Cross',
+    title: 'Ricochet Flank & Riot Shields',
     chapter: 3,
     worldWidth: 480,
     worldHeight: 740,
@@ -625,16 +634,18 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     platforms: [
       { id: 'p_ground', x: 240, y: 680, width: 480, height: 160, type: 'ground' },
     ],
-    obstacles: [],
+    obstacles: [
+      { id: 'refl_27', type: 'ricochet_mirror', x: 250, y: 260, width: 90, height: 18 },
+    ],
     zombies: [
-      { id: 'z1', type: 'runner', x: 310, y: 550, health: 1, speed: 1.7 },
-      { id: 'z2', type: 'walker', x: 365, y: 550, health: 1, speed: 0.6 },
-      { id: 'z3', type: 'runner', x: 420, y: 550, health: 1, speed: 1.7 },
+      { id: 'z_shield', type: 'shield', x: 330, y: 550, health: 2, speed: 0.5 },
+      { id: 'z_arm', type: 'armored', x: 380, y: 550, health: 2, speed: 0.6 },
+      { id: 'z_run', type: 'runner', x: 430, y: 550, health: 1, speed: 1.7 },
     ],
     arrowLimit: 6,
-    parArrows: 3,
-    wind: { x: -2.0, y: 0 },
-    description: 'Strong headwind! Arrows will fall short without extra power.',
+    parArrows: 2,
+    wind: { x: -1.2, y: 0 },
+    description: 'Bank your arrows off the high crystal ricochet mirror to strike the Riot Shield zombie from behind!',
   },
   {
     id: 28,
@@ -808,24 +819,28 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 35,
-    title: 'Cartoon Bomber',
+    title: 'Toxic Avalanche & Shield Brutes',
     chapter: 4,
     worldWidth: 480,
     worldHeight: 740,
     playerPos: { x: 75, y: 545 },
     platforms: [
       { id: 'p_ground', x: 240, y: 680, width: 480, height: 160, type: 'ground' },
+      { id: 'p_ledge', x: 210, y: 440, width: 90, height: 25, type: 'floating' },
     ],
-    obstacles: [],
+    obstacles: [
+      { id: 'boulder_35', type: 'boulder', x: 210, y: 395, width: 46, height: 46 },
+      { id: 'acid_35', type: 'acid_barrel', x: 290, y: 575, width: 34, height: 42 },
+    ],
     zombies: [
-      { id: 'z_exp', type: 'exploding', x: 280, y: 550, health: 1, speed: 0.9 },
-      { id: 'z_arm1', type: 'armored', x: 330, y: 550, health: 2, speed: 0.6 },
-      { id: 'z_arm2', type: 'armored', x: 380, y: 550, health: 2, speed: 0.6 },
-      { id: 'z_run', type: 'runner', x: 430, y: 550, health: 1, speed: 1.7 },
+      { id: 'z_shield', type: 'shield', x: 330, y: 550, health: 2, speed: 0.55 },
+      { id: 'z_exp', type: 'exploding', x: 380, y: 550, health: 1, speed: 0.9 },
+      { id: 'z_arm', type: 'armored', x: 425, y: 550, health: 2, speed: 0.6 },
+      { id: 'z_run', type: 'runner', x: 460, y: 550, health: 1, speed: 1.7 },
     ],
     arrowLimit: 7,
     parArrows: 2,
-    description: 'Shoot the cartoon exploding zombie to blast the armored crowd away!',
+    description: 'Launch the boulder into the toxic acid barrel to dissolve the shielded legion and ignite exploding zombies!',
   },
   {
     id: 36,
@@ -972,7 +987,7 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
   },
   {
     id: 42,
-    title: 'Double Portal Flank',
+    title: 'Portal Wraith Citadel',
     chapter: 5,
     worldWidth: 560,
     worldHeight: 740,
@@ -985,17 +1000,18 @@ export const ZOMBIE_50_LEVELS: LevelConfig[] = [
     obstacles: [
       { id: 'p_in', type: 'portal', x: 170, y: 370, width: 34, height: 48, targetPortalId: 'p_out' },
       { id: 'p_out', type: 'portal', x: 330, y: 370, width: 34, height: 48 },
-      { id: 'tnt_1', type: 'tnt', x: 420, y: 570, width: 36, height: 42 },
+      { id: 'acid_42', type: 'acid_barrel', x: 415, y: 570, width: 34, height: 42 },
+      { id: 'tnt_1', type: 'tnt', x: 470, y: 570, width: 36, height: 42 },
     ],
     zombies: [
-      { id: 'z_arm', type: 'armored', x: 360, y: 550, health: 2, speed: 0.6 },
-      { id: 'z_run1', type: 'runner', x: 410, y: 550, health: 1, speed: 1.8 },
-      { id: 'z_run2', type: 'runner', x: 460, y: 550, health: 1, speed: 1.8 },
-      { id: 'z_j', type: 'jumper', x: 510, y: 550, health: 1, speed: 1.2 },
+      { id: 'z_wraith', type: 'wraith', x: 340, y: 550, health: 1, speed: 1.1 },
+      { id: 'z_shield', type: 'shield', x: 390, y: 550, health: 2, speed: 0.6 },
+      { id: 'z_arm', type: 'armored', x: 440, y: 550, health: 2, speed: 0.6 },
+      { id: 'z_j', type: 'jumper', x: 500, y: 550, health: 1, speed: 1.2 },
     ],
     arrowLimit: 8,
     parArrows: 3,
-    description: 'Shoot through the portal to hit the TNT behind the enemy barricade.',
+    description: 'Shoot through the portal to hit the toxic barrel and TNT, outmaneuvering both the Wraith and Riot Shield guardian!',
   },
   {
     id: 43,

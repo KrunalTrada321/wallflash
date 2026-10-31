@@ -171,10 +171,12 @@ const PrimeImages = ({ route }: any) => {
         ))}
       </View>
 
-      {/* Ad after every chunk */}
-      <View style={styles.adWrapper}>
-        <SqareAd />
-      </View>
+      {/* Ad ONLY after a full set of 15 images (never after partial chunks) */}
+      {group.length >= CHUNK && (
+        <View style={styles.adWrapper}>
+          <SqareAd />
+        </View>
+      )}
     </View>
   );
 

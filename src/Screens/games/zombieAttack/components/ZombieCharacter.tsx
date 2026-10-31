@@ -30,11 +30,45 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
   const isFrozen = !!zombie.isFrozen;
   const isBurning = !!zombie.isBurning;
   const isHitFlash = hitFlashTimer > 0;
+  const isShield = type === 'shield';
+  const isWraith = type === 'wraith';
 
-  const skinColor = isFrozen ? '#BAE6FD' : isBurning ? '#F97316' : isHitFlash ? '#FFFFFF' : '#84CC16';
-  const stickColor = isFrozen ? '#38BDF8' : isBurning ? '#C2410C' : isHitFlash ? '#FFFFFF' : '#4D7C0F';
-  const shirtColor = isFrozen ? '#0284C7' : isBurning ? '#7C2D12' : isHitFlash ? '#E2E8F0' : '#334155';
-  const pantsColor = isFrozen ? '#0369A1' : isBurning ? '#431407' : isHitFlash ? '#CBD5E1' : '#475569';
+  const skinColor = isFrozen
+    ? '#BAE6FD'
+    : isBurning
+    ? '#F97316'
+    : isHitFlash
+    ? '#FFFFFF'
+    : isWraith
+    ? '#C084FC'
+    : '#84CC16';
+  const stickColor = isFrozen
+    ? '#38BDF8'
+    : isBurning
+    ? '#C2410C'
+    : isHitFlash
+    ? '#FFFFFF'
+    : isWraith
+    ? '#A855F7'
+    : '#4D7C0F';
+  const shirtColor = isFrozen
+    ? '#0284C7'
+    : isBurning
+    ? '#7C2D12'
+    : isHitFlash
+    ? '#E2E8F0'
+    : isWraith
+    ? '#581C87'
+    : '#334155';
+  const pantsColor = isFrozen
+    ? '#0369A1'
+    : isBurning
+    ? '#431407'
+    : isHitFlash
+    ? '#CBD5E1'
+    : isWraith
+    ? '#3B0764'
+    : '#475569';
 
   // Dynamic locomotion animations: walk, run, climb, jump, ferocious attack
   const isAttacking = state === 'attack' && !isFrozen;
@@ -740,6 +774,21 @@ export const ZombieCharacter: React.FC<ZombieCharacterProps> = ({ zombie }) => {
                 />
                 <Circle cx="0" cy="-6" r="3" fill="#EF4444" />
               </G>
+            )}
+
+            {/* Riot Shield in SVG Fallback */}
+            {isShield && !armorLost && (
+              <G transform="translate(14, 0)">
+                <Rect x="0" y="-30" width="10" height="48" fill="#334155" stroke="#1E293B" strokeWidth="2" rx="3" />
+                <Rect x="2" y="-18" width="6" height="4" fill="#94A3B8" />
+                <Line x1="1" y1="-6" x2="9" y2="-6" stroke="#FACC15" strokeWidth="2.5" />
+                <Line x1="1" y1="4" x2="9" y2="4" stroke="#1E293B" strokeWidth="2" />
+              </G>
+            )}
+
+            {/* Wraith Shadow Smoke Aura */}
+            {isWraith && (
+              <Circle cx="0" cy="-14" r="22" fill="#C084FC" opacity="0.3" />
             )}
           </G>
         </G>

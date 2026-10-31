@@ -64,23 +64,13 @@ export default function GamesScreen() {
             style={styles.imageBg}
             imageStyle={{ borderRadius: scale(20) }}
           >
-            {/* Top Badge Row */}
-            <View style={styles.cardTopBadgeRow}>
-              <View style={styles.hotBadge}>
-                <Text style={styles.hotBadgeText}>🔥 VIRAL ARCADE</Text>
-              </View>
-              <View style={styles.chapterBadge}>
-                <Text style={styles.chapterBadgeText}>🪝 50 LEVELS • 4 POWER-UPS</Text>
-              </View>
-            </View>
-
             <LinearGradient
               colors={['transparent', 'rgba(15, 23, 42, 0.7)', 'rgba(2, 6, 23, 0.98)']}
               style={styles.gradient}
             >
               <View style={styles.contentWrapper}>
                 <Text style={styles.gameTitle}>Stickman Hook: Swing Hero</Text>
-                <Text style={styles.gameSubtitle}>Acrobatic Swings, Flips, Trampolines & Jetpacks</Text>
+                <Text style={styles.gameSubtitle}>Acrobatic Swings, Flips & Trampolines</Text>
 
                 <View style={styles.progressRow}>
                   <View style={styles.progressTrack}>
@@ -112,15 +102,6 @@ export default function GamesScreen() {
             style={styles.imageBg}
             imageStyle={{ borderRadius: scale(20) }}
           >
-            <View style={styles.cardTopBadgeRow}>
-              <View style={[styles.hotBadge, { borderColor: '#84CC16', backgroundColor: 'rgba(132, 204, 22, 0.25)' }]}>
-                <Text style={[styles.hotBadgeText, { color: '#BEF264' }]}>🎯 60 FPS GPU</Text>
-              </View>
-              <View style={[styles.chapterBadge, { borderColor: '#F97316', backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                <Text style={[styles.chapterBadgeText, { color: '#FDBA74' }]}>🧟 50 SURVIVAL LEVELS</Text>
-              </View>
-            </View>
-
             <LinearGradient
               colors={['transparent', 'rgba(15, 23, 42, 0.7)', 'rgba(2, 6, 23, 0.98)']}
               style={styles.gradient}

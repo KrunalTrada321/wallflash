@@ -69,7 +69,7 @@ export const HookStorage = {
 
   async getTotalStarsCount(totalLevels: number = 50): Promise<number> {
     const starsMap = await this.getAllStars(totalLevels);
-    return Object.values(starsMap).reduce((sum, s) => sum + s, 0);
+    return Object.values(starsMap).reduce((sum: number, s: number) => sum + s, 0);
   },
 
   async getSelectedSkin(): Promise<string> {

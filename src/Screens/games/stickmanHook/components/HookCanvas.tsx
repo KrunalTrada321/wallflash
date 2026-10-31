@@ -30,6 +30,9 @@ import {
   HazardSaw,
   WindVent,
   LaserGate,
+  BungeeWeb,
+  BreakableBarrier,
+  WreckingBall,
   CollectibleStar,
   PortalGate,
   PowerUpItem,
@@ -325,6 +328,9 @@ interface HookCanvasProps {
   hazards: HazardSaw[];
   windVents?: WindVent[];
   lasers?: LaserGate[];
+  bungeeWebs?: BungeeWeb[];
+  barriers?: BreakableBarrier[];
+  wreckingBalls?: WreckingBall[];
   stars?: CollectibleStar[];
   portals?: PortalGate[];
   powerUps?: PowerUpItem[];
@@ -342,6 +348,8 @@ interface HookCanvasProps {
   screenHeight?: number;
 }
 
+export const STICKMAN_GAME_ZOOM = 0.75;
+
 export const HookCanvas: React.FC<HookCanvasProps> = ({
   player,
   pins,
@@ -350,6 +358,9 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
   hazards,
   windVents = [],
   lasers = [],
+  bungeeWebs = [],
+  barriers = [],
+  wreckingBalls = [],
   stars = [],
   portals = [],
   powerUps = [],
@@ -368,8 +379,8 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
 }) => {
   const sWidth = screenWidth || SCREEN_WIDTH;
   const sHeight = screenHeight || SCREEN_HEIGHT;
-  const viewMinX = cameraX - 60;
-  const viewMaxX = cameraX + sWidth + 60;
+  const viewMinX = cameraX - 100;
+  const viewMaxX = cameraX + sWidth / STICKMAN_GAME_ZOOM + 100;
 
   const pScreenX = player.x - cameraX;
   const pScreenY = player.y - cameraY;
@@ -400,10 +411,12 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
         {/* 1. Memoized Parallax Background */}
         <ParallaxSkyline cameraX={cameraX} theme={theme} />
 
-        {/* 2. Finish Line */}
-        {finishX >= viewMinX && finishX <= viewMaxX && (
-          <G x={finishX - cameraX} y={0}>
-            <Line x1={0} y1={40} x2={0} y2={sHeight - 60} stroke="#FACC15" strokeWidth={3} strokeDasharray="10, 6" opacity={0.7} />
+        {/* ── ZOOMED-OUT GAMEPLAY WORLD ── */}
+        <G transform={`scale(${STICKMAN_GAME_ZOOM})`}>
+          {/* 2. Finish Line */}
+          {finishX >= viewMinX && finishX <= viewMaxX && (
+            <G x={finishX - cameraX} y={0}>
+              <Line x1={0} y1={40} x2={0} y2={sHeight / STICKMAN_GAME_ZOOM - 60} stroke="#FACC15" strokeWidth={3} strokeDasharray="10, 6" opacity={0.7} />
             <Rect x={-15} y={90} width={30} height={40} fill="#FACC15" rx={4} stroke="#000" strokeWidth={1.5} />
             <Rect x={-10} y={95} width={10} height={10} fill="#000" />
             <Rect x={0} y={95} width={10} height={10} fill="#FFF" />
@@ -468,6 +481,83 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
           );
         })}
 
+        {/* 5e. Spider Bungee Webs (Elastic Slingshot Catapult) */}
+        {bungeeWebs.map(web => {
+          if (web.x + web.width / 2 < viewMinX || web.x - web.width / 2 > viewMaxX) return null;
+          const x1 = web.x - web.width / 2 - cameraX;
+          const x2 = web.x + web.width / 2 - cameraX;
+          const sy = web.y - cameraY;
+          const elapsed = web.tensionTime ? Date.now() - web.tensionTime : 999;
+          const sag = elapsed < 260 ? Math.sin((elapsed / 260) * Math.PI) * 28 : 0;
+          const midX = (x1 + x2) / 2;
+
+          return (
+            <G key={web.id}>
+              {/* Metallic End Anchors */}
+              <Rect x={x1 - 4} y={sy - 6} width={8} height={12} fill="#475569" rx={2} />
+              <Circle cx={x1} cy={sy} r={3} fill="#10B981" />
+              <Rect x={x2 - 4} y={sy - 6} width={8} height={12} fill="#475569" rx={2} />
+              <Circle cx={x2} cy={sy} r={3} fill="#10B981" />
+
+              {/* Glowing Spider Bungee Cord (Parabolic Sag when hit) */}
+              <Path
+                d={`M ${x1} ${sy} Q ${midX} ${sy + sag} ${x2} ${sy}`}
+                stroke="#10B981"
+                strokeWidth={4}
+                strokeLinecap="round"
+                fill="none"
+              />
+              <Path
+                d={`M ${x1} ${sy} Q ${midX} ${sy + sag} ${x2} ${sy}`}
+                stroke="#A7F3D0"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                fill="none"
+              />
+              {/* Spider Silk Cross Weaves */}
+              {[-18, 0, 18].map((offset, i) => (
+                <Line
+                  key={`cw_${i}`}
+                  x1={midX + offset - 5}
+                  y1={sy + sag * 0.7 - 4}
+                  x2={midX + offset + 5}
+                  y2={sy + sag * 0.7 + 4}
+                  stroke="#ECFDF5"
+                  strokeWidth={1.4}
+                />
+              ))}
+            </G>
+          );
+        })}
+
+        {/* 5f. Breakable Speed Barricades (Crystal Glass Panels) */}
+        {barriers.map(barrier => {
+          if (barrier.broken) {
+            const elapsed = barrier.shatterTime ? Date.now() - barrier.shatterTime : 999;
+            if (elapsed > 400) return null;
+          }
+          if (barrier.x + barrier.width < viewMinX || barrier.x > viewMaxX) return null;
+          const bx = barrier.x - cameraX;
+          const by = barrier.y - cameraY;
+
+          return (
+            <G key={barrier.id}>
+              {!barrier.broken ? (
+                <G>
+                  <Rect x={bx} y={by} width={barrier.width} height={barrier.height} fill="#0284C7" fillOpacity={0.35} stroke="#38BDF8" strokeWidth={2} rx={4} />
+                  <Line x1={bx + 4} y1={by + barrier.height - 6} x2={bx + barrier.width - 4} y2={by + 6} stroke="#BAE6FD" strokeWidth={2} opacity={0.8} />
+                  <Line x1={bx + 12} y1={by + barrier.height - 4} x2={bx + barrier.width - 4} y2={by + 14} stroke="#38BDF8" strokeWidth={1.5} opacity={0.6} />
+                </G>
+              ) : (
+                <G opacity={0.4}>
+                  <Line x1={bx + 2} y1={by + 2} x2={bx + barrier.width / 2} y2={by + barrier.height / 2} stroke="#BAE6FD" strokeWidth={1.5} />
+                  <Line x1={bx + barrier.width - 2} y1={by + 2} x2={bx + barrier.width / 2} y2={by + barrier.height / 2} stroke="#BAE6FD" strokeWidth={1.5} />
+                </G>
+              )}
+            </G>
+          );
+        })}
+
         {/* 5b. Quantum Portal Warp Gates */}
         {portals.map(portal => {
           const inOnScreen = portal.inX >= viewMinX - 50 && portal.inX <= viewMaxX + 50;
@@ -514,9 +604,7 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
           const sx = pu.x - cameraX;
           const sy = pu.y - cameraY;
           const color =
-            pu.type === 'jetpack'
-              ? '#F97316'
-              : pu.type === 'slow_mo'
+            pu.type === 'slow_mo'
               ? '#A855F7'
               : pu.type === 'speed_boost'
               ? '#FACC15'
@@ -556,6 +644,50 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
               )}
               <Circle cx={sx} cy={sy} r={saw.radius} fill="url(#sawGrad)" stroke="#DC2626" strokeWidth={2} />
               <Circle cx={sx} cy={sy} r={5} fill="#0F172A" />
+            </G>
+          );
+        })}
+
+        {/* 7b. Swinging Wrecking Balls (Heavy Pendulums) */}
+        {wreckingBalls.map(ball => {
+          const curX = ball.currentX !== undefined ? ball.currentX : ball.pivotX;
+          const curY = ball.currentY !== undefined ? ball.currentY : ball.pivotY + ball.chainLength;
+          const maxExtent = ball.chainLength + ball.radius;
+          if (ball.pivotX + maxExtent < viewMinX || ball.pivotX - maxExtent > viewMaxX) return null;
+
+          const px = ball.pivotX - cameraX;
+          const py = ball.pivotY - cameraY;
+          const bx = curX - cameraX;
+          const by = curY - cameraY;
+
+          return (
+            <G key={ball.id}>
+              <Rect x={px - 9} y={py - 6} width={18} height={9} fill="#334155" rx={2} />
+              <Circle cx={px} cy={py} r={4} fill="#94A3B8" />
+              <Line x1={px} y1={py} x2={bx} y2={by} stroke="#475569" strokeWidth={3.5} />
+              <Line x1={px} y1={py} x2={bx} y2={by} stroke="#94A3B8" strokeWidth={1.5} />
+              <Circle cx={bx} cy={by} r={ball.radius + 5} fill="#EF4444" opacity={0.25} />
+              <Circle cx={bx} cy={by} r={ball.radius} fill="#1E293B" stroke="#DC2626" strokeWidth={2.5} />
+              <Circle cx={bx} cy={by} r={ball.radius * 0.45} fill="#475569" />
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
+                const rad = (deg * Math.PI) / 180;
+                const spkLen = 6;
+                const sx1 = bx + Math.cos(rad) * ball.radius;
+                const sy1 = by + Math.sin(rad) * ball.radius;
+                const sx2 = bx + Math.cos(rad) * (ball.radius + spkLen);
+                const sy2 = by + Math.sin(rad) * (ball.radius + spkLen);
+                return (
+                  <Line
+                    key={`spk_${i}`}
+                    x1={sx1}
+                    y1={sy1}
+                    x2={sx2}
+                    y2={sy2}
+                    stroke="#EF4444"
+                    strokeWidth={2.5}
+                  />
+                );
+              })}
             </G>
           );
         })}
@@ -624,6 +756,7 @@ export const HookCanvas: React.FC<HookCanvasProps> = ({
             opacity={pt.alpha}
           />
         ))}
+        </G>
       </Svg>
     </View>
   );

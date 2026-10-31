@@ -20,7 +20,8 @@ interface GameHUDProps {
 
 const ARROW_OPTIONS: { type: ArrowType; icon: string; label: string; unlockLevel: number; color: string }[] = [
   { type: 'regular', icon: '🏹', label: 'Arrow', unlockLevel: 1, color: '#38BDF8' },
-  { type: 'bomb', icon: '💣', label: 'Bomb', unlockLevel: 2, color: '#FACC15' },
+  { type: 'ice', icon: '❄️', label: 'Frost', unlockLevel: 3, color: '#06B6D4' },
+  { type: 'splitter', icon: '🪓', label: 'Triple', unlockLevel: 6, color: '#10B981' },
 ];
 
 export const GameHUD: React.FC<GameHUDProps> = React.memo(({

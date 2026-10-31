@@ -73,11 +73,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress, onWat
     outputRange: ["rgba(16, 185, 129, 0.4)", "rgba(52, 211, 153, 0.95)"],
   });
 
-  const animatedShadowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.75],
-  });
-
   return (
     <View style={{ width: "100%", alignItems: "center" }}>
       <LinearGradient
@@ -183,10 +178,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ price, onPurchasePress, onWat
               borderWidth: 1.5,
               borderColor: animatedBorderColor,
               backgroundColor: "rgba(16, 185, 129, 0.10)",
-              shadowColor: "#10B981",
-              shadowOpacity: animatedShadowOpacity,
-              shadowRadius: 10,
-              elevation: 4,
               overflow: "hidden", // Cleanly clips the diagonal reflection beam
               position: "relative",
             }}

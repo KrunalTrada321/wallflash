@@ -285,7 +285,7 @@ export default function ZombieAttackGame() {
   const [isLevelSelectOpen, setIsLevelSelectOpen] = useState(false);
   const [earnedStars, setEarnedStars] = useState(1);
 
-  // Tactical Arrow Ability State (Unlocked level-wise: Steel L1, Fire L3, Freeze L6, Bomb L10)
+  // Tactical Arrow Ability State (Unlocked level-wise: Steel L1, Frost L3, Triple L6)
   const [selectedArrowType, setSelectedArrowType] = useState<ArrowType>('regular');
   const selectedArrowTypeRef = useRef<ArrowType>('regular');
   selectedArrowTypeRef.current = selectedArrowType;
@@ -354,9 +354,11 @@ export default function ZombieAttackGame() {
     });
   }, []);
 
-  // Clamp arrow type to available unlocks if level drops below required level (Bomb unlocks at L2)
+  // Clamp arrow type to available unlocks if level drops below required level
   useEffect(() => {
-    if (currentLevelId < 2 && selectedArrowType !== 'regular') {
+    if (selectedArrowType === 'ice' && currentLevelId < 3) {
+      setSelectedArrowType('regular');
+    } else if (selectedArrowType === 'splitter' && currentLevelId < 6) {
       setSelectedArrowType('regular');
     }
   }, [currentLevelId, selectedArrowType]);
@@ -636,11 +638,7 @@ export default function ZombieAttackGame() {
                 (isTargetingZombie && !wasTargetingZombieRef.current)) &&
               now - lastStretchTimeRef.current > 65
             ) {
-              if (selectedArrowTypeRef.current === 'bomb') {
-                ZombieAudio.playClick();
-              } else {
-                ZombieAudio.playBowStretch(power);
-              }
+              ZombieAudio.playBowStretch(power);
               lastStretchPowerRef.current = power;
               lastStretchTimeRef.current = now;
             }

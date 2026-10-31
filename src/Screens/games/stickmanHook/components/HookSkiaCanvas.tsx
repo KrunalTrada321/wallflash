@@ -24,6 +24,9 @@ import {
   HazardSaw,
   WindVent,
   LaserGate,
+  BungeeWeb,
+  BreakableBarrier,
+  WreckingBall,
   CollectibleStar,
   PortalGate,
   PowerUpItem,
@@ -75,6 +78,9 @@ interface HookSkiaCanvasProps {
   hazards: HazardSaw[];
   windVents?: WindVent[];
   lasers?: LaserGate[];
+  bungeeWebs?: BungeeWeb[];
+  barriers?: BreakableBarrier[];
+  wreckingBalls?: WreckingBall[];
   stars?: CollectibleStar[];
   portals?: PortalGate[];
   powerUps?: PowerUpItem[];
@@ -92,6 +98,8 @@ interface HookSkiaCanvasProps {
   screenHeight?: number;
 }
 
+export const STICKMAN_GAME_ZOOM = 0.75;
+
 export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
   player,
   pins,
@@ -100,6 +108,9 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
   hazards,
   windVents = [],
   lasers = [],
+  bungeeWebs = [],
+  barriers = [],
+  wreckingBalls = [],
   stars = [],
   portals = [],
   powerUps = [],
@@ -119,8 +130,8 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
   const p = THEME_PALETTES[theme] || THEME_PALETTES.city_sunset;
   const sWidth = screenWidth || SCREEN_WIDTH;
   const sHeight = screenHeight || SCREEN_HEIGHT;
-  const viewMinX = cameraX - 60;
-  const viewMaxX = cameraX + sWidth + 60;
+  const viewMinX = cameraX - 100;
+  const viewMaxX = cameraX + sWidth / STICKMAN_GAME_ZOOM + 100;
 
   const pScreenX = player.x - cameraX;
   const pScreenY = player.y - cameraY;
@@ -167,19 +178,21 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
       {/* Horizon Fog Accent */}
       <Rect x={0} y={sHeight - 160} width={sWidth} height={160} color={p.hazeColor} opacity={0.07} />
 
-      {/* ── 2. FINISH LINE ─────────────────────────────────────────────────── */}
-      {finishX >= viewMinX && finishX <= viewMaxX && (
-        <Group transform={[{ translateX: finishX - cameraX }]}>
-          <Line p1={vec(0, 40)} p2={vec(0, sHeight - 60)} color="#FACC15" strokeWidth={3} opacity={0.75} style="stroke" />
-          <Rect x={-15} y={90} width={30} height={40} color="#FACC15" />
-          <Rect x={-10} y={95} width={10} height={10} color="#000" />
-          <Rect x={0} y={95} width={10} height={10} color="#FFF" />
-          <Rect x={-10} y={105} width={10} height={10} color="#FFF" />
-          <Rect x={0} y={105} width={10} height={10} color="#000" />
-          <Rect x={-10} y={115} width={10} height={10} color="#000" />
-          <Rect x={0} y={115} width={10} height={10} color="#FFF" />
-        </Group>
-      )}
+      {/* ── ZOOMED-OUT GAMEPLAY WORLD ─────────────────────────────────────── */}
+      <Group transform={[{ scale: STICKMAN_GAME_ZOOM }]}>
+        {/* ── 2. FINISH LINE ─────────────────────────────────────────────────── */}
+        {finishX >= viewMinX && finishX <= viewMaxX && (
+          <Group transform={[{ translateX: finishX - cameraX }]}>
+            <Line p1={vec(0, 40)} p2={vec(0, sHeight / STICKMAN_GAME_ZOOM - 60)} color="#FACC15" strokeWidth={3} opacity={0.75} style="stroke" />
+            <Rect x={-15} y={90} width={30} height={40} color="#FACC15" />
+            <Rect x={-10} y={95} width={10} height={10} color="#000" />
+            <Rect x={0} y={95} width={10} height={10} color="#FFF" />
+            <Rect x={-10} y={105} width={10} height={10} color="#FFF" />
+            <Rect x={0} y={105} width={10} height={10} color="#000" />
+            <Rect x={-10} y={115} width={10} height={10} color="#000" />
+            <Rect x={0} y={115} width={10} height={10} color="#FFF" />
+          </Group>
+        )}
 
       {/* ── 3. WIND VENTS ───────────────────────────────────────────────────── */}
       {windVents.map(vent => {
@@ -231,6 +244,86 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
         );
       })}
 
+      {/* ── 5e. SPIDER BUNGEE WEBS (ELASTIC SLINGSHOT CATAPULT) ──────────────── */}
+      {bungeeWebs.map(web => {
+        if (web.x + web.width / 2 < viewMinX || web.x - web.width / 2 > viewMaxX) return null;
+        const x1 = web.x - web.width / 2 - cameraX;
+        const x2 = web.x + web.width / 2 - cameraX;
+        const sy = web.y - cameraY;
+        const elapsed = web.tensionTime ? Date.now() - web.tensionTime : 999;
+        const sag = elapsed < 260 ? Math.sin((elapsed / 260) * Math.PI) * 28 : 0;
+        const midX = (x1 + x2) / 2;
+
+        return (
+          <Group key={web.id}>
+            {/* Metallic End Anchors */}
+            <Rect x={x1 - 4} y={sy - 6} width={8} height={12} color="#475569" />
+            <Circle cx={x1} cy={sy} r={3} color="#10B981" />
+            <Rect x={x2 - 4} y={sy - 6} width={8} height={12} color="#475569" />
+            <Circle cx={x2} cy={sy} r={3} color="#10B981" />
+
+            {/* Glowing Spider Bungee Cord (Parabolic Sag when hit) */}
+            <Path
+              path={`M ${x1} ${sy} Q ${midX} ${sy + sag} ${x2} ${sy}`}
+              color="#10B981"
+              style="stroke"
+              strokeWidth={4}
+              strokeCap="round"
+            />
+            <Path
+              path={`M ${x1} ${sy} Q ${midX} ${sy + sag} ${x2} ${sy}`}
+              color="#A7F3D0"
+              style="stroke"
+              strokeWidth={1.8}
+              strokeCap="round"
+            />
+            {/* Spider Silk Cross Weaves */}
+            {[-18, 0, 18].map((offset, i) => (
+              <Line
+                key={`cw_${i}`}
+                p1={vec(midX + offset - 5, sy + sag * 0.7 - 4)}
+                p2={vec(midX + offset + 5, sy + sag * 0.7 + 4)}
+                color="#ECFDF5"
+                strokeWidth={1.4}
+                style="stroke"
+              />
+            ))}
+          </Group>
+        );
+      })}
+
+      {/* ── 5f. BREAKABLE SPEED BARRICADES (CRYSTAL GLASS PANELS) ───────────── */}
+      {barriers.map(barrier => {
+        if (barrier.broken) {
+          const elapsed = barrier.shatterTime ? Date.now() - barrier.shatterTime : 999;
+          if (elapsed > 400) return null; // Fully disintegrated
+        }
+        if (barrier.x + barrier.width < viewMinX || barrier.x > viewMaxX) return null;
+        const bx = barrier.x - cameraX;
+        const by = barrier.y - cameraY;
+
+        return (
+          <Group key={barrier.id}>
+            {!barrier.broken ? (
+              <Group>
+                {/* Neon Cyan Glass Frame */}
+                <RoundedRect x={bx} y={by} width={barrier.width} height={barrier.height} r={4} color="#0284C7" opacity={0.35} />
+                <RoundedRect x={bx} y={by} width={barrier.width} height={barrier.height} r={4} color="#38BDF8" style="stroke" strokeWidth={2} />
+                {/* Diagonal Hazard Warning Stripes */}
+                <Line p1={vec(bx + 4, by + barrier.height - 6)} p2={vec(bx + barrier.width - 4, by + 6)} color="#BAE6FD" strokeWidth={2} opacity={0.8} style="stroke" />
+                <Line p1={vec(bx + 12, by + barrier.height - 4)} p2={vec(bx + barrier.width - 4, by + 14)} color="#38BDF8" strokeWidth={1.5} opacity={0.6} style="stroke" />
+              </Group>
+            ) : (
+              /* Fading Shatter Cracks */
+              <Group opacity={0.4}>
+                <Line p1={vec(bx + 2, by + 2)} p2={vec(bx + barrier.width / 2, by + barrier.height / 2)} color="#BAE6FD" strokeWidth={1.5} style="stroke" />
+                <Line p1={vec(bx + barrier.width - 2, by + 2)} p2={vec(bx + barrier.width / 2, by + barrier.height / 2)} color="#BAE6FD" strokeWidth={1.5} style="stroke" />
+              </Group>
+            )}
+          </Group>
+        );
+      })}
+
       {/* ── 5b. QUANTUM PORTAL WARP GATES ────────────────────────────────────── */}
       {portals.map(portal => {
         const inOnScreen = portal.inX >= viewMinX - 50 && portal.inX <= viewMaxX + 50;
@@ -277,9 +370,7 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
         const sx = pu.x - cameraX;
         const sy = pu.y - cameraY;
         const color =
-          pu.type === 'jetpack'
-            ? '#F97316'
-            : pu.type === 'slow_mo'
+          pu.type === 'slow_mo'
             ? '#A855F7'
             : pu.type === 'speed_boost'
             ? '#FACC15'
@@ -322,6 +413,59 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
             <Circle cx={sx} cy={sy} r={saw.radius + 3} color="#EF4444" opacity={0.3} />
             <Circle cx={sx} cy={sy} r={saw.radius} color="#64748B" />
             <Circle cx={sx} cy={sy} r={5} color="#0F172A" />
+          </Group>
+        );
+      })}
+
+      {/* ── 7b. SWINGING WRECKING BALLS (HEAVY PENDULUMS) ───────────────────── */}
+      {wreckingBalls.map(ball => {
+        const curX = ball.currentX !== undefined ? ball.currentX : ball.pivotX;
+        const curY = ball.currentY !== undefined ? ball.currentY : ball.pivotY + ball.chainLength;
+        const maxExtent = ball.chainLength + ball.radius;
+        if (ball.pivotX + maxExtent < viewMinX || ball.pivotX - maxExtent > viewMaxX) return null;
+
+        const px = ball.pivotX - cameraX;
+        const py = ball.pivotY - cameraY;
+        const bx = curX - cameraX;
+        const by = curY - cameraY;
+
+        return (
+          <Group key={ball.id}>
+            {/* Ceiling Pivot Mount */}
+            <Rect x={px - 9} y={py - 6} width={18} height={9} color="#334155" />
+            <Circle cx={px} cy={py} r={4} color="#94A3B8" />
+
+            {/* Heavy Iron Pendulum Chain */}
+            <Line p1={vec(px, py)} p2={vec(bx, by)} color="#475569" strokeWidth={3.5} style="stroke" />
+            <Line p1={vec(px, py)} p2={vec(bx, by)} color="#94A3B8" strokeWidth={1.5} style="stroke" />
+
+            {/* Glowing Danger Aura */}
+            <Circle cx={bx} cy={by} r={ball.radius + 5} color="#EF4444" opacity={0.25} />
+
+            {/* Spiked Obsidian Iron Core */}
+            <Circle cx={bx} cy={by} r={ball.radius} color="#1E293B" />
+            <Circle cx={bx} cy={by} r={ball.radius} color="#DC2626" style="stroke" strokeWidth={2.5} />
+            <Circle cx={bx} cy={by} r={ball.radius * 0.45} color="#475569" />
+
+            {/* Perimeter Spikes (8 radial spikes) */}
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => {
+              const rad = (deg * Math.PI) / 180;
+              const spkLen = 6;
+              const sx1 = bx + Math.cos(rad) * ball.radius;
+              const sy1 = by + Math.sin(rad) * ball.radius;
+              const sx2 = bx + Math.cos(rad) * (ball.radius + spkLen);
+              const sy2 = by + Math.sin(rad) * (ball.radius + spkLen);
+              return (
+                <Line
+                  key={`spk_${i}`}
+                  p1={vec(sx1, sy1)}
+                  p2={vec(sx2, sy2)}
+                  color="#EF4444"
+                  strokeWidth={2.5}
+                  style="stroke"
+                />
+              );
+            })}
           </Group>
         );
       })}
@@ -422,18 +566,6 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
         ]}
       >
         {/* Active Power-Up Visual Overlays */}
-        {player.activePowerUps?.some(p => p.type === 'jetpack') && (
-          <Group>
-            <Rect x={-6} y={-4} width={12} height={14} color="#475569" />
-            <Circle cx={-4} cy={12} r={3.5} color="#F97316" />
-            <Circle cx={4} cy={12} r={3.5} color="#F97316" />
-            <Line p1={vec(-4, 12)} p2={vec(-4, 25)} color="#EF4444" strokeWidth={3} style="stroke" />
-            <Line p1={vec(4, 12)} p2={vec(4, 25)} color="#EF4444" strokeWidth={3} style="stroke" />
-            <Line p1={vec(-4, 12)} p2={vec(-4, 18)} color="#FDE047" strokeWidth={1.8} style="stroke" />
-            <Line p1={vec(4, 12)} p2={vec(4, 18)} color="#FDE047" strokeWidth={1.8} style="stroke" />
-          </Group>
-        )}
-
         {player.activePowerUps?.some(p => p.type === 'slow_mo') && (
           <Circle cx={0} cy={0} r={24} color="#A855F7" style="stroke" strokeWidth={2} opacity={0.65} />
         )}
@@ -568,6 +700,7 @@ export const HookSkiaCanvas: React.FC<HookSkiaCanvasProps> = ({
           opacity={pt.alpha}
         />
       ))}
+      </Group>
     </Canvas>
   );
 };

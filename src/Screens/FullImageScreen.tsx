@@ -30,7 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import LinearGradient from "react-native-linear-gradient";
 import GameSound from "../Utils/GameSoundEffects";
 import FavoritesManager from "../Utils/FavoritesManager";
-import NativeAdCard from "../Components/NativeAdCard";
+import FullPreviewBannerAd from "../Components/FullPreviewBannerAd";
 import { checkIsPremiumUser, useGameInterstitialAd } from "../Components/Useinterstitialad";
 
 const { width, height } = Dimensions.get("window");
@@ -552,14 +552,7 @@ const FullImageScreen = () => {
           renderItem={({ item, index }) => {
             if (item.type === 'ad') {
               return (
-                <View style={{ width, height: screenHeight, overflow: 'hidden' }}>
-                  <NativeAdCard
-                    variant="fullscreen"
-                    customWidth={width}
-                    customHeight={screenHeight}
-                    style={{ width, height: screenHeight }}
-                  />
-                </View>
+                <FullPreviewBannerAd width={width} height={screenHeight} />
               );
             }
 

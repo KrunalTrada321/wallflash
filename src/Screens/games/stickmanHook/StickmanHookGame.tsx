@@ -84,7 +84,7 @@ interface GameRenderFrame {
 
 export default function StickmanHookGame() {
   const navigation = useNavigation<any>();
-  const { showNaturalAd } = useGameInterstitialAd();
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 4, cooldownSeconds: 90 });
 
   // ── DYNAMIC LANDSCAPE DIMENSIONS ──────────────────────────────────────────
   const { width: winWidth, height: winHeight } = useWindowDimensions();

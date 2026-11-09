@@ -26,6 +26,8 @@ export default function GamesScreen() {
   const [zombieLevel, setZombieLevel] = useState(1);
   const [hookLevel, setHookLevel] = useState(1);
   const [hookStars, setHookStars] = useState(0);
+  const [spyLevel, setSpyLevel] = useState(1);
+  const [spyStars, setSpyStars] = useState(0);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -53,7 +55,8 @@ export default function GamesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- Game 1: Stickman Hook: Swing Hero (#1 Featured) --- */}
+
+        {/* --- Game 2: Stickman Hook: Swing Hero --- */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.cardContainer}
@@ -184,6 +187,78 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: scale(10),
     paddingBottom: scale(30),
+  },
+  spyCard: {
+    width: '100%',
+    height: '100%',
+    borderRadius: scale(20),
+    justifyContent: 'space-between',
+    padding: scale(14),
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
+  },
+  spyTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  spyBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+  },
+  newBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(3),
+    borderRadius: scale(12),
+  },
+  newBadgeText: {
+    color: '#FCA5A5',
+    fontSize: scale(10),
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  spyMissionBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(3),
+    borderRadius: scale(12),
+  },
+  spyMissionBadgeText: {
+    color: '#7DD3FC',
+    fontSize: scale(10),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  spyReticleIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(10),
+  },
+  spyReticleText: {
+    color: '#F87171',
+    fontSize: scale(10),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  spyStarsRow: {
+    marginTop: scale(5),
+  },
+  spyStarsText: {
+    color: '#FACC15',
+    fontSize: scale(11),
+    fontWeight: '700',
   },
   cardContainer: {
     width: '100%',

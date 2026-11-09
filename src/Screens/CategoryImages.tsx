@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, FlatList, Image, StyleSheet, RefreshControl, TouchableOpacity, Text, Dimensions,
   ActivityIndicator
 } from 'react-native';
 import { colors } from '../Styling/colors';
-import { fetchImagesFromFirestore } from '../API/ApiHelper';
+import { fetchImagesFromFirestore, PAGE_LIMIT, hasMoreDocs } from '../API/ApiHelper';
 import Back from '../Components/Back';
 import { useNavigation } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
@@ -15,7 +15,6 @@ import { checkIsPremiumUser } from '../Components/Useinterstitialad';
 import LottieView from "lottie-react-native";
 import LinearGradient from 'react-native-linear-gradient';
 
-const PAGE_SIZE    = 12;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // ─── Pixel-perfect width constants (must stay in sync) ───────────────────────
@@ -27,25 +26,35 @@ const IMAGE_WIDTH   = Math.floor(
 );
 // ─────────────────────────────────────────────────────────────────────────────
 
+const CHUNK = 15;
+
 const CategoryImages = ({ route }: any) => {
 
   const { categoryName } = route.params;
 
-  const [images, setImages]         = useState<string[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasMore, setHasMore]       = useState(true);
+  const [images, setImages]           = useState<string[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [hasMore, setHasMore]         = useState(true);
   const [isConnected, setIsConnected] = useState<boolean | null>(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [isPremium, setIsPremium]   = useState(false);
+  const [isPremium, setIsPremium]     = useState(false);
   const isLoadingMoreRef = useRef(false);
 
   const navigation = useNavigation<any>();
 
+  // ─── Pre-group images into chunks of 15 for ad injection (MUST be before any return) ────
+  const groups = useMemo(() => {
+    const list: string[][] = [];
+    for (let i = 0; i < images.length; i += CHUNK) {
+      list.push(images.slice(i, i + CHUNK));
+    }
+    return list;
+  }, [images]);
+
   useEffect(() => {
     checkIsPremiumUser().then(setIsPremium);
   }, []);
-
 
   useEffect(() => {
     let isMounted = true;
@@ -84,9 +93,11 @@ const CategoryImages = ({ route }: any) => {
 
     try {
       const fetched = await fetchImagesFromFirestore([categoryName], reset);
+      const moreAvailable = (hasMoreDocs[categoryName] ?? (fetched.length >= PAGE_LIMIT)) && fetched.length > 0;
+
       if (reset) {
         setImages(fetched);
-        setHasMore(fetched.length === PAGE_SIZE);
+        setHasMore(moreAvailable);
         return fetched;
       } else {
         if (fetched.length > 0) {
@@ -96,7 +107,7 @@ const CategoryImages = ({ route }: any) => {
             return [...prev, ...uniqueNew];
           });
         }
-        if (fetched.length < PAGE_SIZE) setHasMore(false);
+        setHasMore(moreAvailable);
         return fetched;
       }
     } catch (e) {
@@ -157,20 +168,13 @@ const CategoryImages = ({ route }: any) => {
     );
   }
 
-  // ─── Pre-group images into chunks of 15 for ad injection ───────────────────
-  const CHUNK = 15;
-  const groups: string[][] = [];
-  for (let i = 0; i < images.length; i += CHUNK) {
-    groups.push(images.slice(i, i + CHUNK));
-  }
-
-  const renderGroup = ({ item: group }: { item: string[] }) => (
+  const renderGroup = ({ item: group, index: groupIndex }: { item: string[]; index: number }) => (
     <View>
       {/* Fixed 3-column grid — IMAGE_WIDTH guarantees exactly 3 per row */}
       <View style={styles.gridRow}>
         {group.map((uri, i) => (
           <TouchableOpacity
-            key={uri || `img-${i}`}
+            key={uri ? `${uri}-${groupIndex}-${i}` : `img-${groupIndex}-${i}`}
             activeOpacity={0.85}
             onPress={() =>
               navigation.navigate('FullImageScreen', {
@@ -187,15 +191,13 @@ const CategoryImages = ({ route }: any) => {
       </View>
 
       {/* Ad ONLY after a full set of 15 images (never after partial chunks) */}
-      {group.length >= CHUNK && (
+      {!isPremium && group.length >= CHUNK && (
         <View style={styles.adWrapper}>
           <SqareAd />
         </View>
       )}
     </View>
   );
-
-
 
   return (
     <View style={styles.container}>

@@ -721,7 +721,7 @@ export default function ZombieAttackGame() {
     ZombieStorageService.setSoundSetting('haptics', next);
   };
 
-  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 2, cooldownSeconds: 45 });
+  const { showNaturalAd } = useGameInterstitialAd({ transitionInterval: 4, cooldownSeconds: 90 });
 
   const handleNextLevel = () => {
     showNaturalAd(() => {
@@ -734,7 +734,6 @@ export default function ZombieAttackGame() {
   };
 
   const handleSelectLevel = (lvlId: number) => {
-    showNaturalAd(() => {
       setIsLevelSelectOpen(false);
       setIsVictoryOpen(false);
       setIsDefeatOpen(false);
@@ -745,8 +744,7 @@ export default function ZombieAttackGame() {
       } else {
         setCurrentLevelId(lvlId);
       }
-    });
-  };
+    };
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -873,9 +871,7 @@ export default function ZombieAttackGame() {
             score={score}
             onNextLevel={handleNextLevel}
             onRetry={() => {
-              showNaturalAd(() => {
-                initLevel(currentLevel);
-              });
+              initLevel(currentLevel);
             }}
             onLevelSelect={() => {
               setIsVictoryOpen(false);
@@ -890,9 +886,7 @@ export default function ZombieAttackGame() {
             levelId={currentLevel.id}
             reason={defeatReason}
             onRetry={() => {
-              showNaturalAd(() => {
-                initLevel(currentLevel);
-              });
+              initLevel(currentLevel);
             }}
             onLevelSelect={() => {
               setIsDefeatOpen(false);

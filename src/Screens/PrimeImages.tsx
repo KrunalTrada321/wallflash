@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, FlatList, Image, StyleSheet, RefreshControl, TouchableOpacity, Text, Dimensions,
   ActivityIndicator
 } from 'react-native';
 import { colors } from '../Styling/colors';
-import { fetchImagesFromFirestore } from '../API/ApiHelper';
+import { fetchImagesFromFirestore, PAGE_LIMIT, hasMoreDocs } from '../API/ApiHelper';
 import Back from '../Components/Back';
 import { useNavigation } from '@react-navigation/native';
 import { scale } from 'react-native-size-matters';
@@ -13,7 +13,6 @@ import FlashMessage, { showMessage } from 'react-native-flash-message';
 import SqareAd from '../Components/SqareAd';
 import LottieView from "lottie-react-native";
 
-const PAGE_SIZE    = 12;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // ─── Pixel-perfect width constants (must stay in sync) ───────────────────────
@@ -38,7 +37,16 @@ const PrimeImages = ({ route }: any) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const isLoadingMoreRef = useRef(false);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+
+  // ─── Pre-group images into chunks of CHUNK for ad injection (MUST be before any return) ──
+  const groups = useMemo(() => {
+    const list: string[][] = [];
+    for (let i = 0; i < images.length; i += CHUNK) {
+      list.push(images.slice(i, i + CHUNK));
+    }
+    return list;
+  }, [images]);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,9 +85,11 @@ const PrimeImages = ({ route }: any) => {
 
     try {
       const fetched = await fetchImagesFromFirestore([categoryName], reset);
+      const moreAvailable = (hasMoreDocs[categoryName] ?? (fetched.length >= PAGE_LIMIT)) && fetched.length > 0;
+
       if (reset) {
         setImages(fetched);
-        setHasMore(fetched.length === PAGE_SIZE);
+        setHasMore(moreAvailable);
         return fetched;
       } else {
         if (fetched.length > 0) {
@@ -89,7 +99,7 @@ const PrimeImages = ({ route }: any) => {
             return [...prev, ...uniqueNew];
           });
         }
-        if (fetched.length < PAGE_SIZE) setHasMore(false);
+        setHasMore(moreAvailable);
         return fetched;
       }
     } catch (e) {
@@ -150,19 +160,13 @@ const PrimeImages = ({ route }: any) => {
     );
   }
 
-  // ─── Pre-group images into chunks of CHUNK for ad injection ──────────────────
-  const groups: string[][] = [];
-  for (let i = 0; i < images.length; i += CHUNK) {
-    groups.push(images.slice(i, i + CHUNK));
-  }
-
-  const renderGroup = ({ item: group }: { item: string[] }) => (
+  const renderGroup = ({ item: group, index: groupIndex }: { item: string[]; index: number }) => (
     <View>
       {/* Fixed 3-column grid — IMAGE_WIDTH guarantees exactly 3 per row */}
       <View style={styles.gridRow}>
         {group.map((uri, i) => (
           <TouchableOpacity
-            key={`img-${i}`}
+            key={uri ? `${uri}-${groupIndex}-${i}` : `prime-img-${groupIndex}-${i}`}
             activeOpacity={0.85}
             onPress={() => navigation.navigate('FullImageScreen', { imageUri: uri, images: images, initialIndex: images.indexOf(uri), onLoadMore: handleLoadMore })}
           >

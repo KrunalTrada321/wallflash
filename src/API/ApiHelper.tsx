@@ -39,7 +39,8 @@ const isValidImage = async (url: string): Promise<boolean> => {
 
 // 🔄 Track last document fetched for each collection
 const lastDocs: { [collectionName: string]: QueryDocumentSnapshot<DocumentData> | null } = {};
-const PAGE_LIMIT = 15;
+export const hasMoreDocs: { [collectionName: string]: boolean } = {};
+export const PAGE_LIMIT = 15;
 
 export const fetchImagesFromFirestore = async (
   collections: string[],
@@ -50,12 +51,18 @@ export const fetchImagesFromFirestore = async (
       // 🔁 Clear lastDocs if it's a fresh fetch (e.g. pull to refresh)
       for (const name of collections) {
         lastDocs[name] = null;
+        hasMoreDocs[name] = true;
       }
     }
 
     const perCollectionLimit = Math.ceil(PAGE_LIMIT / collections.length);
 
     const fetchPromises = collections.map(async (collectionName) => {
+      // If we already know this collection has no more docs, skip it
+      if (!reset && hasMoreDocs[collectionName] === false) {
+        return [];
+      }
+
       const collRef = collection(db, collectionName);
       let q;
 
@@ -71,6 +78,9 @@ export const fetchImagesFromFirestore = async (
       if (!snapshot.empty) {
         lastDocs[collectionName] = snapshot.docs[snapshot.docs.length - 1];
       }
+
+      // If snapshot returned fewer docs than requested, this collection reached the end
+      hasMoreDocs[collectionName] = snapshot.docs.length >= perCollectionLimit;
 
       const urls = snapshot.docs.map(doc => doc.data()?.url).filter(Boolean);
       const validUrls = await Promise.all(
@@ -119,4 +129,3 @@ export const fetchSeasonData = async (): Promise<SeasonData | null> => {
     return null;
   }
 };
-

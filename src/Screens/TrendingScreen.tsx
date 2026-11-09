@@ -23,7 +23,7 @@ import { colors } from '../Styling/colors';
 import LottieView from "lottie-react-native";
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { fetchImagesFromFirestore, fetchSeasonData, SeasonData } from '../API/ApiHelper';
+import { fetchImagesFromFirestore, fetchSeasonData, SeasonData, PAGE_LIMIT, hasMoreDocs } from '../API/ApiHelper';
 import SqareAd from '../Components/SqareAd';
 
 const CUSTOM_SERVICES_FORM_URL = 'https://forms.gle/KvDgYcG8yD5Vq1Pd8';
@@ -106,7 +106,7 @@ const TrendingScreen = () => {
         setImages(prev => [...prev, ...seasonImgs]);
       }
 
-      setHasMore(seasonImgs.length >= PAGE_SIZE);
+      setHasMore(seasonImgs.length >= PAGE_LIMIT && (hasMoreDocs['SeasonImage'] ?? true));
     } catch (e) {
       console.log('❌ Error loading trending data:', e);
     } finally {
@@ -125,7 +125,7 @@ const TrendingScreen = () => {
         return [];
       } else {
         setImages(prev => [...prev, ...more]);
-        if (more.length < PAGE_SIZE) {
+        if (more.length < PAGE_LIMIT || hasMoreDocs['SeasonImage'] === false) {
           setHasMore(false);
         }
         return more;

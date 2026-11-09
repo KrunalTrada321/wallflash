@@ -104,6 +104,7 @@ const StackNav = () => {
                     },
                 }} />
 
+
         </Stack.Navigator>
     );
 };

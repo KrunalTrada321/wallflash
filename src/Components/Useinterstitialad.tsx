@@ -21,7 +21,7 @@ const AD_UNIT_ID = __DEV__
   : "ca-app-pub-7105708210867722/2085051949";
 
 // Global tracking to pace interstitial ads across level transitions and between games
-let globalLastAdTimestamp = 0;
+let globalLastAdTimestamp = Date.now();
 let globalTransitionCount = 0;
 
 /**
@@ -49,9 +49,9 @@ export const checkHasVipAccess = async (): Promise<boolean> => {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface UseGameInterstitialAdOptions {
-  /** Minimum number of transitions (e.g. level completes, retries) before an ad can trigger. Default: 2 */
+  /** Minimum number of transitions (e.g. level completes, retries) before an ad can trigger. Default: 4 */
   transitionInterval?: number;
-  /** Minimum cooldown in seconds between interstitial ads. Default: 45 seconds */
+  /** Minimum cooldown in seconds between interstitial ads. Default: 90 seconds */
   cooldownSeconds?: number;
 }
 
@@ -74,8 +74,8 @@ export interface UseGameInterstitialAdReturn {
 
 // ─── Game Interstitial Hook with Natural Low-Disturbance Pacing ───────────────
 export function useGameInterstitialAd(options?: UseGameInterstitialAdOptions): UseGameInterstitialAdReturn {
-  const transitionInterval = options?.transitionInterval ?? 2;
-  const cooldownSeconds = options?.cooldownSeconds ?? 45;
+  const transitionInterval = options?.transitionInterval ?? 4;
+  const cooldownSeconds = options?.cooldownSeconds ?? 90;
 
   const interstitialRef = useRef<InterstitialAd | null>(null);
   const isAdLoadedRef = useRef(false);

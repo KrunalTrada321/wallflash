@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, FlatList, Image, StyleSheet, Dimensions, RefreshControl, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import NetInfo from '@react-native-community/netinfo';
-import { fetchImagesFromFirestore } from '../API/ApiHelper';
+import { fetchImagesFromFirestore, PAGE_LIMIT, hasMoreDocs } from '../API/ApiHelper';
 import { scale } from 'react-native-size-matters';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../Styling/colors';
@@ -88,7 +88,8 @@ const SeasonalImages = () => {
       }
 
       // 🔹 If fewer than PAGE_LIMIT images are returned, no more images
-      setHasMore(fetchedImages.length === PAGE_SIZE);
+      const moreAvailable = (hasMoreDocs['SeasonImage'] ?? (fetchedImages.length >= PAGE_LIMIT)) && fetchedImages.length > 0;
+      setHasMore(moreAvailable);
       return fetchedImages;
     } catch (error) {
       console.log('❌ Error fetching images:', error);
